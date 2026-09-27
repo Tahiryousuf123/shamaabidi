@@ -1,0 +1,96 @@
+{
+  "name": "Shama Abidi — Daily PhD Discovery & 7-10 Day Gmail Follow-Up Draft Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 24
+            }
+          ]
+        }
+      },
+      "id": "cron-daily-trigger",
+      "name": "Daily 08:00 AM Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [220, 260]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:8000/api/v1/discovery/run",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "strict_verification",
+              "value": "true"
+            },
+            {
+              "name": "filter_expired_and_duplicates",
+              "value": "true"
+            }
+          ]
+        }
+      },
+      "id": "trigger-langgraph-discovery",
+      "name": "Trigger LangGraph Global PhD Discovery",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [480, 160]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:8000/api/v1/gmail/check-7-to-10-day-followups",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "days_threshold_min",
+              "value": "7"
+            },
+            {
+              "name": "days_threshold_max",
+              "value": "10"
+            },
+            {
+              "name": "auto_send",
+              "value": "false"
+            },
+            {
+              "name": "queue_for_human_approval",
+              "value": "true"
+            }
+          ]
+        }
+      },
+      "id": "gmail-followup-drafter",
+      "name": "Generate 7-10 Day Follow-Up Drafts (Pending Approval)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [480, 360]
+    }
+  ],
+  "connections": {
+    "Daily 08:00 AM Trigger": {
+      "main": [
+        [
+          {
+            "node": "Trigger LangGraph Global PhD Discovery",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Generate 7-10 Day Follow-Up Drafts (Pending Approval)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

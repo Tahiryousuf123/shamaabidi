@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+  <title>Shama Abidi — International Funded PhD AI Research & Application System</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232563eb'/%3E%3Ctext x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' fill='%23ffffff' font-family='Arial,sans-serif' font-weight='bold' font-size='28'%3ESA%3C/text%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- Mobile Sidebar Backdrop -->
+  <div id="sidebar-backdrop" class="sidebar-backdrop" onclick="closeMobileSidebar()"></div>
+
+  <div class="app-shell">
+    <!-- Left Sidebar (Slide-Over Drawer on Mobile) -->
+    <aside id="app-sidebar" class="sidebar">
+      <div class="brand-box">
+        <div>
+          <div class="brand-badge">🎓 Academic AI Platform</div>
+          <div class="brand-title">Shama Abidi</div>
+          <div class="brand-sub">International Funded PhD AI Research & Application System</div>
+        </div>
+        <button class="sidebar-close-btn" onclick="closeMobileSidebar()" aria-label="Close Menu">✕</button>
+      </div>
+
+      <div class="nav-section-label">Core PhD Workflow</div>
+      <ul class="nav-list">
+        <li>
+          <button class="nav-btn active" data-tab="overview" onclick="switchTab('overview')">
+            <span class="nav-btn-left">📊 Executive Dashboard</span>
+            <span class="nav-pill emerald">Live</span>
+          </button>
+        </li>
+        <li>
+          <button class="nav-btn" data-tab="discovery" onclick="switchTab('discovery')">
+            <span class="nav-btn-left">🌍 Global PhD Discovery</span>
+            <span id="pill-opps" class="nav-pill">5</span>
+          </button>
+        </li>
+        <li>
+          <button class="nav-btn" data-tab="supervisors" onclick="switchTab('supervisors')">
+            <span class="nav-btn-left">👩‍🔬 Supervisor Fit (RAG)</span>
+            <span class="nav-pill">4</span>
+          </button>
+        </li>
+        <li>
+          <button class="nav-btn" data-tab="emails" onclick="switchTab('emails')">
+            <span class="nav-btn-left">✉️ Email Approval Gate</span>
+            <span id="pill-drafts" class="nav-pill amber">3</span>
+          </button>
+        </li>
+        <li>
+          <button class="nav-btn" data-tab="gmail" onclick="switchTab('gmail')">
+            <span class="nav-btn-left">📬 Gmail OAuth & Follow-Ups</span>
+            <span class="nav-pill emerald">OAuth2</span>
+          </button>
+        </li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <div class="candidate-mini-card">
+          <div class="candidate-mini-header">
+            <div class="avatar-circle">SA</div>
+            <div>
+              <div style="font-weight:800;font-size:13.5px;color:#0f172a;">Shama Abidi</div>
+              <div style="font-size:11.5px;color:#059669;font-weight:700;">✓ Verified Profile Active</div>
+            </div>
+          </div>
+          <div style="font-size:11.5px;color:#475569;line-height:1.45;">
+            <div>• <strong>Human-in-the-Loop:</strong> Mandatory</div>
+            <div>• <strong>No Fabrication:</strong> TO_VERIFY / UNKNOWN</div>
+            <div>• <strong>Gmail OAuth2:</strong> Secure Sync</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-area">
+      <!-- Top Header Bar -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="mobile-menu-btn" onclick="toggleMobileSidebar()">
+            ☰ Menu
+          </button>
+          <div class="security-badges">
+            <span class="sec-badge emerald">🛡️ No-Fabrication Guardrail: ON</span>
+            <span class="sec-badge amber">🔒 Human Approval Lock: ARMED (0 Auto-Sent)</span>
+            <span class="sec-badge blue">🔐 Gmail OAuth2: Connected</span>
+          </div>
+        </div>
+
+        <div class="topbar-actions">
+          <button id="urdu-toggle-btn" class="btn btn-sm" onclick="toggleUrduGuide()">
+            📘 Step-by-Step Guide: ON
+          </button>
+          <button class="btn btn-primary btn-sm" onclick="openLiveAgentModal()">
+            ▶ Run Live AI Discovery Agent
+          </button>
+        </div>
+      </header>
+
+      <!-- Main View Content -->
+      <div class="content-wrap">
+        <!-- Bilingual Roman Urdu Client Guide Banner -->
+        <div id="urdu-banner" class="urdu-explainer"></div>
+
+        <!-- Dynamic View Container -->
+        <div id="view-root"></div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Mobile Bottom Quick-Navigation Bar -->
+  <nav class="mobile-bottom-nav" aria-label="Mobile Quick Navigation">
+    <div class="mobile-bottom-nav-inner">
+      <button class="mob-tab-btn active" data-tab="overview" onclick="switchTab('overview')">
+        <span>📊</span>
+        <span>Overview</span>
+      </button>
+      <button class="mob-tab-btn" data-tab="discovery" onclick="switchTab('discovery')">
+        <span>🌍</span>
+        <span>PhDs</span>
+      </button>
+      <button class="mob-tab-btn" data-tab="supervisors" onclick="switchTab('supervisors')">
+        <span>👩‍🔬</span>
+        <span>Fit</span>
+      </button>
+      <button class="mob-tab-btn" data-tab="emails" onclick="switchTab('emails')">
+        <span>✉️</span>
+        <span>Approve</span>
+      </button>
+      <button class="mob-tab-btn" data-tab="gmail" onclick="switchTab('gmail')">
+        <span>📬</span>
+        <span>Gmail</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Live LangGraph Agent Execution Modal -->
+  <div id="agent-modal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border-subtle);">
+        <div>
+          <div style="font-size:16px;font-weight:800;color:#0f172a;">
+            ⚙️ LangGraph Multi-Agent Pipeline — Live Execution
+          </div>
+          <div style="font-size:12.5px;color:#475569;">
+            Executing Discovery -> Official Verification -> Qdrant RAG Fit -> No-Fabrication Check -> Human Approval Queue
+          </div>
+        </div>
+        <button class="btn btn-sm" onclick="closeLiveAgentModal()">✕ Close</button>
+      </div>
+
+      <div id="agent-steps-container"></div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-top:16px;padding-top:12px;border-top:1px solid var(--border-subtle);">
+        <div style="font-size:12px;color:#047857;font-weight:700;">
+          🔒 Policy Enforced: Email queued in Pending Approval (Never sent without Human Click)
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-sm" onclick="closeLiveAgentModal(); switchTab('discovery');">View New Opportunity</button>
+          <button class="btn btn-sm btn-primary" onclick="closeLiveAgentModal(); switchTab('emails');">Review New Email Draft →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
