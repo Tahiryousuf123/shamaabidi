@@ -1,0 +1,32 @@
+name: Shama Abidi — Daily Autonomous PhD Discovery & WhatsApp Alert (100% Free Cloud Cron)
+
+on:
+  schedule:
+    # Runs automatically every day at 08:00 AM Pakistan Time (03:00 UTC) — Laptop band hone par bhi chalega!
+    - cron: "0 3 * * *"
+  workflow_dispatch: # Allows manual 1-click run from GitHub Actions tab anytime
+
+jobs:
+  autonomous-phd-discovery:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12 (100% Free GitHub Runner)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verify Shama Abidi Knowledge Base Ingestion
+        run: python backend/ingest_knowledge_base.py
+
+      - name: Run Autonomous OpenAlex Discovery & Send WhatsApp Alert
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          WHATSAPP_RECIPIENT_PHONE: ${{ secrets.WHATSAPP_RECIPIENT_PHONE }}
+          CALLMEBOT_API_KEY: ${{ secrets.CALLMEBOT_API_KEY }}
+          GMAIL_OAUTH_CLIENT_ID: ${{ secrets.GMAIL_OAUTH_CLIENT_ID }}
+          GMAIL_OAUTH_CLIENT_SECRET: ${{ secrets.GMAIL_OAUTH_CLIENT_SECRET }}
+          GMAIL_OAUTH_REFRESH_TOKEN: ${{ secrets.GMAIL_OAUTH_REFRESH_TOKEN }}
+        run: python backend/worker_scheduler.py
