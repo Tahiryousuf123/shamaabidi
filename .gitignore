@@ -5,3 +5,4 @@ __pycache__/
 venv/
 node_modules/
 .vercel/
+.whatsapp_auth_session/
