@@ -40,13 +40,13 @@
         <li>
           <button class="nav-btn" data-tab="supervisors" onclick="switchTab('supervisors')">
             <span class="nav-btn-left">👩‍🔬 Supervisor RAG Fit</span>
-            <span class="nav-pill">4</span>
+            <span id="pill-sups" class="nav-pill">6</span>
           </button>
         </li>
         <li>
           <button class="nav-btn" data-tab="emails" onclick="switchTab('emails')">
             <span class="nav-btn-left">✉️ Email Approval Gate</span>
-            <span id="pill-drafts" class="nav-pill amber">3</span>
+            <span id="pill-drafts" class="nav-pill amber">6</span>
           </button>
         </li>
         <li>
@@ -69,7 +69,7 @@
           <div style="font-size:11.5px;color:#475569;line-height:1.45;">
             <div>• <strong>Email:</strong> shama.abidi80@gmail.com</div>
             <div>• <strong>WhatsApp:</strong> 0300-2460274 (+923002460274)</div>
-            <div>• <strong>Worker:</strong> 24/7 OpenAlex + Cron</div>
+            <div>• <strong>Worker:</strong> 24/7 Live PubMed + OpenAlex</div>
             <div>• <strong>No Fabrication:</strong> TO_VERIFY Lock</div>
           </div>
         </div>
@@ -85,9 +85,9 @@
             ☰ Menu
           </button>
           <div class="security-badges">
-            <span class="sec-badge emerald">🛡️ 5 Real Papers Ingested (Qdrant)</span>
+            <span id="live-sync-badge" class="sec-badge emerald">🔄 Connecting Live Global Academic API...</span>
             <span class="sec-badge amber">🔒 Human Approval Lock: ARMED</span>
-            <span class="sec-badge blue">📲 WhatsApp + Gmail OAuth2: Active</span>
+            <span class="sec-badge blue">📲 Connected: 0300-2460274</span>
           </div>
         </div>
 
@@ -96,7 +96,7 @@
             📘 Step-by-Step Guide: ON
           </button>
           <button class="btn btn-primary btn-sm" onclick="openLiveAgentModal()">
-            ▶ Run Autonomous OpenAlex Worker
+            🔄 Fetch Next Live Batch of Professors
           </button>
         </div>
       </header>
