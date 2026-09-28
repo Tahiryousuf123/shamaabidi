@@ -1,0 +1,126 @@
+{
+  "candidate_profile": {
+    "full_name": "Shama Abidi",
+    "official_email": "shama.abidi80@gmail.com",
+    "current_designation": "Senior Pharmacist / Clinical Pharmacist",
+    "current_institution": "Department of Pharmacy Services, Liaquat National Hospital and Medical College, Karachi, Pakistan",
+    "highest_degree": "MPhil in Pharmacy Practice",
+    "degree_institution": "Department of Pharmacy Practice, Faculty of Pharmacy and Pharmaceutical Sciences, University of Karachi, Karachi, Pakistan",
+    "core_research_domains": [
+      "Clinical Pharmacy & Hospital Pharmacy Practice",
+      "Antimicrobial Stewardship Programs (ASP) & Carbapenem De-escalation",
+      "Cardiovascular Pharmacotherapy & Pharmacovigilance (Angina, BB vs CCB)",
+      "Medication Safety, High-Alert Medications (HAMs) & ADR Monitoring (Naranjo Scale)",
+      "Artificial Intelligence vs Clinical Pharmacist Interventions in ICU/Tertiary Care"
+    ],
+    "statistical_and_clinical_tools": [
+      "SPSS (v21.0 / v26.0) — Chi-Square, Fisher's Exact Test, Mann-Whitney U, One-Way ANOVA, Post-Hoc LSD",
+      "GraphPad Prism v9.0",
+      "Naranjo ADR Probability Scale",
+      "Seattle Angina Questionnaire (SAQ-7)",
+      "Renal Dose Adjustment (Creatinine Clearance / eGFR) & Antibiotic De-escalation in ICU/HDU"
+    ],
+    "strict_no_fabrication_policy": {
+      "enabled": true,
+      "unverified_fields": {
+        "gre_score": "UNKNOWN (Not required for UK/EU/Australian Clinical Pharmacy PhDs)",
+        "external_scholarship_grant_code": "TO_VERIFY",
+        "target_intake_semester": "TO_VERIFY (Autumn 2026 / Spring 2027)"
+      }
+    }
+  },
+  "verified_publications": [
+    {
+      "id": "pub-pjps-2024-angina",
+      "title": "Effectiveness and safety assessment of calcium channel blockers compared to beta blockers in patients with angina: An observational study",
+      "authors": [
+        "Shama Abidi (First Author)",
+        "Saira Saeed Khan",
+        "Sadaf Naeem",
+        "Humera Siddiqui",
+        "Sumaira Khadim",
+        "Saima Saleem",
+        "Saira Erum Ejaz",
+        "Syed Ishtiaq Rasool",
+        "Syeda Maheen Zahidi"
+      ],
+      "journal": "Pakistan Journal of Pharmaceutical Sciences (Pak. J. Pharm. Sci.)",
+      "volume_issue": "Vol. 37, No. 3, May 2024, pp. 639-649",
+      "year": 2024,
+      "doi": "10.36721/PJPS.2024.37.3.REG.639-649.1",
+      "ethics_approval": "IBC KU-317/2023 (Institutional Bio-ethical Research Committee, University of Karachi)",
+      "sample_size": "N = 110 angina patients (61 male, 49 female; June 2022 - June 2023)",
+      "key_evidence_summary": "Evaluated Beta Blockers (BB, 36.36%), Calcium Channel Blockers (CCB, 54.4%), and CCB+BB combination (9.8%) in tertiary care cardiology OPDs using Seattle Angina Questionnaire (SAQ-7) and Naranjo ADR scale. Improved angina symptoms in 83/110 patients (p < 0.05). CCB SAQ-7 score (83.97 ± 3.18) and combination (82.64 ± 5.12) outperformed BB (80.46 ± 5.99), with CCB exhibiting fewer Definite/Probable ADRs over long-term angina control."
+    },
+    {
+      "id": "pub-pjps-2022-asp",
+      "title": "Evaluation of carbapenem antimicrobial stewardship program at a tertiary care hospital: A prospective interventional study",
+      "authors": [
+        "Fizzah Ali",
+        "Tabassum Zehra",
+        "Nazir Ahmed Solangi",
+        "Karim Ullah Makki",
+        "Haris Aziz Siddiqui",
+        "Shama Abidi"
+      ],
+      "journal": "Pakistan Journal of Pharmaceutical Sciences (Pak. J. Pharm. Sci.)",
+      "volume_issue": "Vol. 35, No. 6, November 2022, pp. 1595-1601",
+      "year": 2022,
+      "doi": "10.36721/PJPS.2022.35.6.REG.1595-1601.1",
+      "ethics_approval": "App#0592-2020 LNH-ERC (Liaquat National Hospital Ethical Committee)",
+      "sample_size": "N = 134 non-adherent carbapenem prescriptions in Medical ICU/HDU (Dec 2020 - May 2021)",
+      "key_evidence_summary": "Prospective interventional study at Liaquat National Hospital evaluating physician acceptance and clinical outcomes of pharmacist-led Antimicrobial Stewardship Program (ASP) interventions for carbapenem therapy. ASP interventions were accepted in 117/134 (87.3%) patients, resulting in 7-day clinical improvement in 99 (84.6%) patients and a significant reduction in 30-day readmission due to re-infection (p = 0.036). Interventions included renal dose adjustment for creatinine clearance (62.7%, n=84) and antibiotic de-escalation (25.4%, n=34)."
+    },
+    {
+      "id": "pub-jppp-2025-ham",
+      "title": "Evaluating knowledge of high-alert medications among nurses, pharmacists, and clinicians to improve medication safety",
+      "authors": [
+        "Fatima Baig",
+        "Aqsa Bilekhia",
+        "Shama Abidi",
+        "Safia Ahmed"
+      ],
+      "journal": "Journal of Pharmaceutical Policy and Practice (Abstract 223, PESP Conference 2025 Part A)",
+      "volume_issue": "Vol. 18, No. S2, 2485639, pp. 146-147",
+      "year": 2025,
+      "doi": "10.1080/20523211.2025.2485639",
+      "ethics_approval": "Liaquat National Hospital and Medical College, Karachi",
+      "sample_size": "N = 60 healthcare professionals (20 clinicians, 20 nurses, 20 pharmacists) + 6-month HAM consumption audit",
+      "key_evidence_summary": "Assessed hospital staff knowledge and 6-month consumption patterns (June-Nov 2024) of High-Alert Medications (HAMs), specifically electrolytes. Pharmacists achieved the highest knowledge score (80%), followed by nurses (75%) and clinicians (70%), identifying targeted gaps in drug compatibility, storage, and labeling."
+    },
+    {
+      "id": "pub-jppp-2025-ai-vs-pharmacist",
+      "title": "AI meets human expertise: Comparision between clinical pharmacist interventions and artificial intelligence at a tertiary care hospital in Pakistan",
+      "authors": [
+        "Fatima Baig",
+        "Haris Aziz Siddiqui",
+        "Aqsa Bilekhia",
+        "Shama Abidi",
+        "Safia Ahmed"
+      ],
+      "journal": "Journal of Pharmaceutical Policy and Practice (Abstract 225, PESP Conference 2025 Part A)",
+      "volume_issue": "Vol. 18, No. S2, 2485639, p. 149",
+      "year": 2025,
+      "doi": "10.1080/20523211.2025.2485639",
+      "ethics_approval": "Liaquat National Hospital and Medical College, Karachi",
+      "sample_size": "N = 60 patients over 6 months (June - November 2024)",
+      "key_evidence_summary": "Prospective study comparing clinical pharmacist interventions with AI (ChatGPT 4.0) across drug-drug interactions, renal-adjusted antibiotic dosing, and electrolyte imbalance management. Validated by 3 independent clinical pharmacists; demonstrated that while AI detected DDIs and electrolyte issues, human clinical pharmacists were indispensable for accurate renal-adjusted antibiotic dosing in ICU settings."
+    },
+    {
+      "id": "pub-jppp-2025-angina-abstract",
+      "title": "Effectiveness and safety assessment of calcium channel blockers compared to beta blockers in patients with angina: An observational study (Conference Abstract 227)",
+      "authors": [
+        "Shama Abidi",
+        "Sadaf Naeem",
+        "Saira Saeed Khan"
+      ],
+      "journal": "Journal of Pharmaceutical Policy and Practice (Abstract 227, PESP Conference 2025 Part A)",
+      "volume_issue": "Vol. 18, No. S2, 2485639, p. 150",
+      "year": 2025,
+      "doi": "10.1080/20523211.2025.2485639",
+      "ethics_approval": "IBC KU-317/2023",
+      "sample_size": "N = 110 patients across two tertiary care cardiac hospitals",
+      "key_evidence_summary": "International conference presentation of Shama Abidi's observational study on antianginal therapy (BB vs CCB vs CCB+BB), highlighting superior long-term ADR tolerability of CCBs in middle-aged South Asian patients."
+    }
+  ]
+}
