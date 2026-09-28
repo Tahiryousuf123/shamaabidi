@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -54,8 +52,16 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql+asyncpg://shama_admin:secure_local_password@postgres:5432/shama_phd_intelligence
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-shama_admin}:${POSTGRES_PASSWORD:-secure_local_password}@postgres:5432/${POSTGRES_DB:-shama_phd_intelligence}
       - QDRANT_URL=http://qdrant:6333
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      - OPENROUTER_MODEL=${OPENROUTER_MODEL:-meta-llama/llama-3.1-8b-instruct:free}
+      - GMAIL_SENDER_EMAIL=${GMAIL_SENDER_EMAIL:-shama.abidi80@gmail.com}
+      - GMAIL_OAUTH_CLIENT_ID=${GMAIL_OAUTH_CLIENT_ID:-}
+      - GMAIL_OAUTH_CLIENT_SECRET=${GMAIL_OAUTH_CLIENT_SECRET:-}
+      - WHATSAPP_WEBHOOK_URL=${WHATSAPP_WEBHOOK_URL:-}
+      - WHATSAPP_API_TOKEN=${WHATSAPP_API_TOKEN:-}
+      - WHATSAPP_RECIPIENT_PHONE=${WHATSAPP_RECIPIENT_PHONE:-+923000000000}
       - STRICT_NO_FABRICATION=true
       - HUMAN_APPROVAL_REQUIRED=true
     depends_on:
@@ -63,6 +69,27 @@ services:
         condition: service_healthy
       qdrant:
         condition: service_started
+
+  autonomous_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: shama_phd_autonomous_worker
+    restart: unless-stopped
+    command: ["python", "worker_scheduler.py", "--daemon"]
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-shama_admin}:${POSTGRES_PASSWORD:-secure_local_password}@postgres:5432/${POSTGRES_DB:-shama_phd_intelligence}
+      - QDRANT_URL=http://qdrant:6333
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      - OPENROUTER_MODEL=${OPENROUTER_MODEL:-meta-llama/llama-3.1-8b-instruct:free}
+      - GMAIL_SENDER_EMAIL=${GMAIL_SENDER_EMAIL:-shama.abidi80@gmail.com}
+      - WHATSAPP_WEBHOOK_URL=${WHATSAPP_WEBHOOK_URL:-}
+      - WHATSAPP_API_TOKEN=${WHATSAPP_API_TOKEN:-}
+      - WHATSAPP_RECIPIENT_PHONE=${WHATSAPP_RECIPIENT_PHONE:-+923000000000}
+      - WORKER_CRON_INTERVAL_HOURS=${WORKER_CRON_INTERVAL_HOURS:-24}
+    depends_on:
+      - backend
+      - qdrant
 
 volumes:
   postgres_data:
