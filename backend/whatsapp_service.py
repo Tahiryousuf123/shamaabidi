@@ -28,12 +28,21 @@ def push_whatsapp_notification(
       - A new personalized email draft is ready in the CRM Approval Queue
       - A professor replies in her Gmail inbox (shama.abidi80@gmail.com)
     """
-    recipient_phone = os.getenv("WHATSAPP_RECIPIENT_PHONE", "+923000000000").strip()
+    raw_phone = os.getenv("WHATSAPP_RECIPIENT_PHONE", "+923002460274").strip()
+    digits_only = "".join(ch for ch in raw_phone if ch.isdigit())
+    if digits_only.startswith("03") and len(digits_only) == 11:
+        clean_phone = "92" + digits_only[1:]
+    elif digits_only.startswith("92"):
+        clean_phone = digits_only
+    else:
+        clean_phone = digits_only or "923002460274"
+    recipient_phone = f"+{clean_phone}"
+
     phone_number_id = os.getenv("WHATSAPP_PHONE_NUMBER_ID", "").strip()
     api_token = os.getenv("WHATSAPP_API_TOKEN", "").strip()
     webhook_url = os.getenv("WHATSAPP_WEBHOOK_URL", "").strip()
     callmebot_key = os.getenv("CALLMEBOT_API_KEY", "").strip()
-    ntfy_topic = os.getenv("NTFY_TOPIC", "shama_abidi_phd_alerts_80").strip()
+    ntfy_topic = os.getenv("NTFY_TOPIC", "shama_abidi_phd_alerts_03002460274").strip()
     dashboard_url = os.getenv(
         "CRM_DASHBOARD_URL",
         "https://aspnetaptech-cyber.github.io/shama-abidi-phd-system/",
@@ -47,12 +56,7 @@ def push_whatsapp_notification(
         f"{dashboard_url}"
     )
 
-    clean_phone = recipient_phone.replace("+", "").replace("-", "").replace(" ", "")
-    wa_direct_url = (
-        f"https://wa.me/{clean_phone}?text={urllib.parse.quote(message_text)}"
-        if clean_phone and clean_phone != "923000000000"
-        else f"https://wa.me/?text={urllib.parse.quote(message_text)}"
-    )
+    wa_direct_url = f"https://wa.me/{clean_phone}?text={urllib.parse.quote(message_text)}"
 
     provider_used = "DASHBOARD_QUEUE_ONLY"
     status = "QUEUED_IN_DASHBOARD"

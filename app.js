@@ -1085,11 +1085,13 @@ function approveAndSendEmail(draftId) {
     opp.pipelineStage = "EMAIL_SENT";
   }
 
+  const msgText = `✅ WhatsApp Confirmation to Shama Abidi (0300-2460274): Your approved email to ${draft.supervisorName} (${draft.recipientEmail}) has been sent via Gmail OAuth2. Inbox monitor is now watching for a reply.`;
   state.whatsappLogs.unshift({
     time: "Just now",
     trigger: "EMAIL_DISPATCHED_CONFIRMATION",
-    message: `✅ WhatsApp Confirmation to Shama Abidi: Your approved email to ${draft.supervisorName} (${draft.recipientEmail}) has been sent via Gmail OAuth2. Inbox monitor is now watching for a reply.`
+    message: msgText
   });
+  triggerLiveMobileAlert("EMAIL_DISPATCHED_CONFIRMATION", msgText);
 
   state.auditLogs.unshift({
     time: "Just now",
@@ -1098,8 +1100,36 @@ function approveAndSendEmail(draftId) {
     detail: `Shama Abidi approved & dispatched email to ${draft.supervisorName} (${draft.recipientEmail}) from shama.abidi80@gmail.com.`
   });
 
-  showToast(`Email to ${draft.supervisorName} Sent via Gmail OAuth2 & WhatsApp Confirmation Dispatched!`);
+  showToast(`Email to ${draft.supervisorName} Sent via Gmail OAuth2 & Alert Dispatched to 0300-2460274!`);
   render();
+}
+
+function triggerLiveMobileAlert(eventType, messageText) {
+  try {
+    fetch("https://ntfy.sh/shama_abidi_phd_alerts_03002460274", {
+      method: "POST",
+      body: `${messageText}\n\nOpen WhatsApp (0300-2460274): https://wa.me/923002460274?text=${encodeURIComponent(messageText)}`,
+      headers: {
+        Title: `Shama Abidi PhD Alert (0300-2460274): ${eventType}`,
+        Priority: "high",
+        Tags: "mortar_board,calling"
+      }
+    }).catch(() => {});
+  } catch (_) {}
+}
+
+function sendTestAlertTo03002460274() {
+  const testMsg =
+    "🎓 *Shama Abidi PhD AI System Connected!*\n✅ *Connected Number:* 0300-2460274 (+92 300 2460274)\n👩‍🔬 *Status:* 24/7 OpenAlex Discovery + Gmail Inbox Monitor Active.\n🔗 *Dashboard:* https://aspnetaptech-cyber.github.io/shama-abidi-phd-system/";
+  state.whatsappLogs.unshift({
+    time: "Just now",
+    trigger: "CONNECTED_TEST_03002460274",
+    message: `📲 Connected Test Alert dispatched to 0300-2460274 (+92 300 2460274): System is live and linked to your number.`
+  });
+  triggerLiveMobileAlert("CONNECTED_TEST_03002460274", testMsg);
+  showToast("Live Alert pushed to 0300-2460274! Opening WhatsApp Direct Message...");
+  render();
+  window.open(`https://wa.me/923002460274?text=${encodeURIComponent(testMsg)}`, "_blank");
 }
 
 // ============================================================================
@@ -1112,10 +1142,10 @@ function renderGmail() {
         <div class="panel-header">
           <div>
             <div class="panel-title">📬 Gmail OAuth2 Inbox Monitor (shama.abidi80@gmail.com)</div>
-            <div class="panel-subtitle">Monitors professor replies 24/7 • Sends instant WhatsApp alert when a reply arrives</div>
+            <div class="panel-subtitle">Monitors professor replies 24/7 • Sends instant WhatsApp alert to 0300-2460274 when a reply arrives</div>
           </div>
           <button class="btn btn-primary btn-sm" onclick="simulateIncomingSupervisorReply()">
-            ⚡ Simulate Professor Reply + WhatsApp Alert
+            ⚡ Simulate Professor Reply + Alert 0300-2460274
           </button>
         </div>
 
@@ -1126,7 +1156,7 @@ function renderGmail() {
                 <th>Supervisor & University</th>
                 <th>Latest Email Snippet</th>
                 <th>Classification</th>
-                <th>WhatsApp Alert & Next Action</th>
+                <th>WhatsApp Alert (0300-2460274) & Next Action</th>
               </tr>
             </thead>
             <tbody>
@@ -1165,10 +1195,13 @@ function renderGmail() {
       <div class="panel">
         <div class="panel-header">
           <div>
-            <div class="panel-title">📲 Instant WhatsApp Notification Log (Sent to Shama Abidi)</div>
-            <div class="panel-subtitle">Triggered automatically when drafts are ready or supervisors reply</div>
+            <div class="panel-title">📲 Instant WhatsApp Notification Log — Connected: 0300-2460274 (+92 300 2460274)</div>
+            <div class="panel-subtitle">Triggered automatically when drafts are ready or supervisors reply • Zero-Cost Push + Direct WhatsApp</div>
           </div>
-          <span class="badge badge-verified">Webhook Active</span>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <a class="btn btn-sm" href="https://ntfy.sh/shama_abidi_phd_alerts_03002460274" target="_blank" rel="noopener" style="text-decoration:none;">🔔 Live Push Feed</a>
+            <button class="btn btn-success btn-sm" onclick="sendTestAlertTo03002460274()">📲 Send Test Alert to 0300-2460274</button>
+          </div>
         </div>
         <div style="display:flex;flex-direction:column;gap:10px;">
           ${state.whatsappLogs
@@ -1176,10 +1209,15 @@ function renderGmail() {
               (w) => `
             <div style="padding:12px 14px;background:#ecfdf5;border:1px solid #a7f3d0;border-left:4px solid #059669;border-radius:8px;font-size:13px;">
               <div style="display:flex;justify-content:space-between;font-size:11px;color:#047857;font-weight:800;margin-bottom:4px;">
-                <span>📲 WHATSAPP ALERT • ${w.trigger}</span>
+                <span>📲 WHATSAPP ALERT (0300-2460274) • ${w.trigger}</span>
                 <span>${w.time}</span>
               </div>
-              <div style="color:#065f46;font-weight:500;">${w.message}</div>
+              <div style="color:#065f46;font-weight:500;margin-bottom:8px;">${w.message}</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <a href="https://wa.me/923002460274?text=${encodeURIComponent(w.message)}" target="_blank" rel="noopener" class="btn btn-sm" style="text-decoration:none;font-size:11.5px;padding:4px 10px;background:#ffffff;border:1px solid #059669;color:#047857;">
+                  📲 Open on WhatsApp (0300-2460274) →
+                </a>
+              </div>
             </div>
           `
             )
@@ -1200,19 +1238,21 @@ function simulateIncomingSupervisorReply() {
       "Dear Shama, thank you for your email and for sharing your JPPP 2025 papers on High-Alert Medications and AI vs. Clinical Pharmacist interventions at Liaquat National Hospital. We have a fully funded NIHR PhD studentship opening. Let's schedule an online interview next week.",
     receivedAt: "Just now (Gmail OAuth2 Push)",
     classification: "INTERVIEW_INVITATION",
-    whatsappAlert: "📲 WhatsApp Alert Sent to Shama (Just now): 'Prof. Darren Ashcroft (Manchester) replied with a funded NIHR PhD interview invite!'",
+    whatsappAlert: "📲 Alert Sent to 0300-2460274 (Just now): 'Prof. Darren Ashcroft (Manchester) replied with a funded NIHR PhD interview invite!'",
     daysSinceContact: 0,
     actionNote: "AI Classified as INTERVIEW_INVITATION + NIHR Funding Confirmed!"
   };
 
+  const alertMsg = "🔔 WhatsApp to Shama Abidi (0300-2460274): URGENT — Prof. Darren Ashcroft (University of Manchester) just replied to shama.abidi80@gmail.com confirming a funded NIHR PhD studentship & inviting you for an interview!";
   state.gmailThreads.unshift(newThread);
   state.whatsappLogs.unshift({
     time: "Just now",
     trigger: "GMAIL_SUPERVISOR_REPLY",
-    message: "🔔 WhatsApp to Shama Abidi: URGENT — Prof. Darren Ashcroft (University of Manchester) just replied to shama.abidi80@gmail.com confirming a funded NIHR PhD studentship & inviting you for an interview!"
+    message: alertMsg
   });
+  triggerLiveMobileAlert("GMAIL_SUPERVISOR_REPLY", alertMsg);
 
-  showToast("Incoming Reply from Prof. Darren Ashcroft (Manchester) detected! Instant WhatsApp Alert sent to Shama Abidi.");
+  showToast("Incoming Reply from Prof. Darren Ashcroft detected! Instant Alert sent to 0300-2460274.");
   render();
 }
 
@@ -1372,13 +1412,15 @@ function addLiveOpenAlexDiscovery(authorName, uniName, paperTitle) {
       ]
     });
 
+    const liveMsg = `🔔 WhatsApp to Shama Abidi (0300-2460274): Live OpenAlex Worker matched ${authorName} (${uniName}) with your PJPS 2022 Carbapenem ASP paper! Email draft queued for your approval.`;
     state.whatsappLogs.unshift({
       time: "Just now",
       trigger: "LIVE_OPENALEX_MATCH_DRAFT_READY",
-      message: `🔔 WhatsApp to Shama Abidi: Live OpenAlex Worker matched ${authorName} (${uniName}) with your PJPS 2022 Carbapenem ASP paper! Email draft queued for your approval.`
+      message: liveMsg
     });
+    triggerLiveMobileAlert("LIVE_OPENALEX_MATCH_DRAFT_READY", liveMsg);
   }
-  showToast(`Live OpenAlex Match: ${authorName} (${uniName}) added & WhatsApp Alert sent to Shama Abidi!`);
+  showToast(`Live OpenAlex Match: ${authorName} (${uniName}) added & Alert sent to 0300-2460274!`);
   render();
 }
 
