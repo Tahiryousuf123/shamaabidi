@@ -526,7 +526,7 @@ def run_job_research_discovery(target_min: int = 35, target_max: int = 85) -> Di
 
     raw_discovered: List[Dict[str, Any]] = []
     for idx, q_item in enumerate(DISCOVERY_SEARCH_QUERIES):
-        page_to_fetch = ((cursor_page - 1 + idx) % 5) + 1
+        page_to_fetch = ((cursor_page - 1 + idx) % 500) + 1
         eupmc_batch = fetch_candidates_from_europe_pmc(
             q_item["eupmc_query"],
             q_item["topic"],
@@ -707,7 +707,7 @@ def run_job_research_discovery(target_min: int = 35, target_max: int = 85) -> Di
     conn.close()
 
     # Advance discovery pagination cursor for next daily batch
-    next_cursor = (cursor_page % 5) + 1
+    next_cursor = (cursor_page % 500) + 1
     update_setting("discovery_cursor_page", str(next_cursor))
 
     summary_msg = (

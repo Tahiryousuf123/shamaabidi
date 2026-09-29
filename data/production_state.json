@@ -1,6 +1,6 @@
 {
   "schema_version": "4.0.0-production",
-  "generated_at": "2026-09-29T19:24:42Z",
+  "generated_at": "2026-09-29T19:37:06Z",
   "database_engine": "SQLite / PostgreSQL 19-Table Production Relational Schema",
   "dashboard_kpis": {
     "new_candidates": 140,
@@ -38,7 +38,7 @@
     "specializations_json": "[\"Clinical Pharmacy & Pharmacy Practice\", \"Infectious Diseases & Antimicrobial Stewardship\", \"Cardiovascular Outcomes & Pharmacotherapy\", \"Medication Safety & Pharmacovigilance\", \"Digital Health & AI in Clinical Pharmacy\"]",
     "target_phd_themes_json": "[\"Clinical Pharmacy & Hospital Pharmacy Practice\", \"Antimicrobial Stewardship Programs (ASP) & Carbapenem De-escalation\", \"Cardiovascular Pharmacotherapy & Pharmacovigilance (Angina, BB vs CCB)\", \"Medication Safety, High-Alert Medications (HAMs) & ADR Monitoring (Naranjo Scale)\", \"Artificial Intelligence vs Clinical Pharmacist Interventions in ICU/Tertiary Care\"]",
     "source_document_count": 5,
-    "updated_at": "2026-09-29T19:24:42Z",
+    "updated_at": "2026-09-29T19:37:05Z",
     "research_topics": [
       "Antimicrobial Stewardship Programs (ASP) & Carbapenem Optimization in Critical Care (ICU/HDU)",
       "Cardiovascular Pharmacotherapy: Calcium Channel Blockers vs. Beta Blockers in Angina Pectoris",
@@ -16958,13 +16958,13 @@
       "job_id": "job_followup_detection",
       "job_name": "Follow-up Detection",
       "schedule_cron": "0 5 * * * (Daily 10:00 PKT)",
-      "start_time": "2026-09-29T19:24:42Z",
-      "end_time": "2026-09-29T19:24:42Z",
+      "start_time": "2026-09-29T19:37:06Z",
+      "end_time": "2026-09-29T19:37:06Z",
       "status": "COMPLETED",
       "retry_count": 0,
       "error_info": "",
       "items_processed": 0,
-      "last_successful_run": "2026-09-29T19:24:42Z",
+      "last_successful_run": "2026-09-29T19:37:06Z",
       "next_scheduled_run": "2026-09-30T03:00:00Z",
       "execution_summary": "Checked 0 active email threads; generated 0 follow-up drafts (Auto-Send DISABLED)."
     },
@@ -17028,18 +17028,36 @@
       "job_id": "job_system_health_check",
       "job_name": "Health Check",
       "schedule_cron": "*/30 * * * * (Every 30 Minutes)",
-      "start_time": "2026-09-29T19:10:37Z",
-      "end_time": "2026-09-29T19:10:37Z",
+      "start_time": "2026-09-29T19:24:43Z",
+      "end_time": "2026-09-29T19:24:43Z",
       "status": "COMPLETED",
       "retry_count": 0,
       "error_info": "",
       "items_processed": 7,
-      "last_successful_run": "2026-09-29T19:10:37Z",
+      "last_successful_run": "2026-09-29T19:24:43Z",
       "next_scheduled_run": "2026-09-30T03:00:00Z",
       "execution_summary": "System Health Verified: Database READY, Scholarly Discovery APIs FREE & ONLINE, Gmail OAuth (REQUIRES GMAIL OAUTH AUTHORIZATION), WhatsApp API (REQUIRES META WHATSAPP BUSINESS API CREDENTIALS)."
     }
   ],
   "activity_logs": [
+    {
+      "id": "log_e0114bd2c7a206c2",
+      "event_type": "DOCUMENT_UPLOADED_AND_INDEXED",
+      "module_name": "Research Knowledge Base",
+      "actor": "USER_OR_AGENT",
+      "summary": "Uploaded and indexed 'Validation Study of Pharmacist Interventions in ICU' (Test_Upload_Validation.pdf) through all 7 pipeline stages -> READY.",
+      "details_json": "{\"doc_id\": \"doc_725feb9afeaf194e\", \"filename\": \"Test_Upload_Validation.pdf\", \"pages\": 1}",
+      "created_at": "2026-09-29T19:37:05Z"
+    },
+    {
+      "id": "log_0a6c7024b98ed20f",
+      "event_type": "DOCUMENT_DELETED",
+      "module_name": "Research Knowledge Base",
+      "actor": "USER_ADMIN",
+      "summary": "Deleted document doc_725feb9afeaf194e and re-synchronized research profile.",
+      "details_json": "{}",
+      "created_at": "2026-09-29T19:37:05Z"
+    },
     {
       "id": "log_3a519efe0cbc51eb",
       "event_type": "DOCUMENT_UPLOADED_AND_INDEXED",
