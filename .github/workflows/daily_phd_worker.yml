@@ -1,32 +1,42 @@
-name: Shama Abidi — Daily Autonomous PhD Discovery & WhatsApp Alert (100% Free Cloud Cron)
+name: Shama Abidi — Autonomous AI Research Agent (Daily Discovery, Matching, Gmail Drafts & Cloud DB Sync)
 
 on:
   schedule:
-    # Runs automatically every day at 08:00 AM Pakistan Time (03:00 UTC) — Laptop band hone par bhi chalega!
+    # Runs automatically in the cloud at 08:00 AM & 08:00 PM Pakistan Time (03:00 & 15:00 UTC) with Laptop OFF
     - cron: "0 3 * * *"
+    - cron: "0 15 * * *"
   workflow_dispatch: # Allows manual 1-click run from GitHub Actions tab anytime
 
+permissions:
+  contents: write
+
 jobs:
-  autonomous-phd-discovery:
+  autonomous-research-agent-batch:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.12 (100% Free GitHub Runner)
+      - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: Verify Shama Abidi Knowledge Base Ingestion
-        run: python backend/ingest_knowledge_base.py
-
-      - name: Run Autonomous OpenAlex Discovery & Send WhatsApp Alert
+      - name: Execute All 7 Scheduled Autonomous Jobs (Discovery, Matching, Funding, Gmail Drafts, Replies, Follow-ups, Health)
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          WHATSAPP_RECIPIENT_PHONE: ${{ secrets.WHATSAPP_RECIPIENT_PHONE }}
-          CALLMEBOT_API_KEY: ${{ secrets.CALLMEBOT_API_KEY }}
           GMAIL_OAUTH_CLIENT_ID: ${{ secrets.GMAIL_OAUTH_CLIENT_ID }}
           GMAIL_OAUTH_CLIENT_SECRET: ${{ secrets.GMAIL_OAUTH_CLIENT_SECRET }}
           GMAIL_OAUTH_REFRESH_TOKEN: ${{ secrets.GMAIL_OAUTH_REFRESH_TOKEN }}
-        run: python backend/worker_scheduler.py
+          WHATSAPP_PHONE_NUMBER_ID: ${{ secrets.WHATSAPP_PHONE_NUMBER_ID }}
+          WHATSAPP_API_TOKEN: ${{ secrets.WHATSAPP_API_TOKEN }}
+          WHATSAPP_RECIPIENT_PHONE: ${{ secrets.WHATSAPP_RECIPIENT_PHONE }}
+        run: python backend/autonomous_pipeline.py --run-all-jobs
+
+      - name: Commit & Sync Updated Persistent Database Snapshot to Cloud
+        run: |
+          git config user.name "Shama Abidi Autonomous Cloud Agent"
+          git config user.email "shama.abidi80@gmail.com"
+          git add data/production_state.json data/shama_production.db
+          git diff --staged --quiet || git commit -m "chore(autonomous-batch): sync daily international professors, funding evidence & Gmail drafts"
+          git push

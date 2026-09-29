@@ -1,27 +1,53 @@
 """
-Shama Abidi — Automated Clinical Pharmacy PhD AI Discovery & CRM System
-FastAPI Backend API (FastAPI + LangGraph + PostgreSQL + Qdrant + OpenAlex + OpenRouter + Gmail OAuth2 + WhatsApp)
+Shama Abidi — Autonomous AI Research Agent & CRM System
+Production FastAPI Server (Sections 2, 4, 21-33)
+
+Exposes REST API endpoints for:
+  - Full 19-table CRM state snapshot (`GET /api/state`, `GET /api/v1/health`)
+  - Research Knowledge Base document upload, deletion, and reprocessing (`POST /api/documents/upload`, `DELETE /api/documents/{doc_id}`, `POST /api/documents/reprocess`)
+  - Event-driven execution of any of the 7 scheduled jobs (`POST /api/jobs/run`)
+  - Gmail Draft creation & marking a draft as manually sent (`POST /api/drafts/{draft_id}/mark-sent`, `POST /api/drafts/create-gmail`)
+  - Updating system settings (`POST /api/settings/update`)
 """
 
 from datetime import datetime, timezone
-import os
+from pathlib import Path
 from typing import Any, Dict, Optional
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from agents.phd_workflow import PhDResearchMultiAgentGraph
-from gmail_service import check_unread_professor_replies, send_email_via_gmail_oauth
-from ingest_knowledge_base import build_qdrant_rag_points, load_verified_knowledge_base
-from whatsapp_service import push_whatsapp_notification
-from worker_scheduler import run_discovery_cycle
+from autonomous_pipeline import (
+    mark_draft_as_manually_sent_and_track_thread,
+    run_all_scheduled_jobs,
+    run_job_email_draft_generation,
+    run_job_followup_detection,
+    run_job_funding_and_candidate_verification,
+    run_job_gmail_reply_monitoring,
+    run_job_professor_matching,
+    run_job_research_discovery,
+    run_job_system_health_check,
+)
+from database import (
+    export_production_state_snapshot,
+    init_database,
+    update_setting,
+)
+from document_processor import (
+    delete_research_document,
+    ingest_verified_knowledge_base_to_db,
+    upload_custom_research_document,
+)
+from gmail_service import create_gmail_draft
+
 
 app = FastAPI(
-    title="Shama Abidi — Clinical Pharmacy PhD AI Discovery & CRM API",
-    version="2.0.0",
+    title="Dr. Shama Abidi — Autonomous AI Research Agent & CRM API",
+    version="4.0.0",
     description=(
-        "100% Free & Open-Source Autonomous PhD Discovery, Qdrant Knowledge Base RAG, "
-        "OpenAlex/Semantic Scholar Worker, WhatsApp Alerts, and Human-in-the-Loop Gmail OAuth2 CRM."
+        "Autonomous Cloud PhD Supervisor Discovery, Evidence-Based Research Matching, "
+        "Funding Verification, Human-in-the-Loop Gmail Drafts, and WhatsApp Business API Notifications."
     ),
 )
 
@@ -33,125 +59,150 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-workflow_engine = PhDResearchMultiAgentGraph(strict_no_fabrication=True)
+
+class DocumentUploadPayload(BaseModel):
+    filename: str
+    title: str
+    extracted_text: str
+    document_type: str = "PUBLICATION_PDF"
+    publication_year: int = 2025
+    journal_or_venue: str = "Uploaded Research Document"
+    doi: str = ""
+    page_count: int = 1
 
 
-class EmailApprovalRequest(BaseModel):
-    draft_id: str
-    approved_by_human: bool
-    reviewer_name: str = "Shama Abidi"
-    sender_email: str = "shama.abidi80@gmail.com"
-    recipient_email: str = "darren.ashcroft@manchester.ac.uk"
-    supervisor_name: str = "Prof. Darren M. Ashcroft"
-    university: str = "University of Manchester"
-    edited_subject: Optional[str] = "Prospective Funded PhD Applicant — Shama Abidi, MPhil"
-    edited_body: Optional[str] = ""
+class JobRunPayload(BaseModel):
+    job_id: str = "ALL"
+
+
+class SettingUpdatePayload(BaseModel):
+    setting_key: str
+    setting_value: str
+    description: Optional[str] = None
+
+
+class DraftComposePayload(BaseModel):
+    recipient_email: str
+    subject: str
+    body_text: str
+
+
+@app.on_event("startup")
+def on_startup() -> None:
+    init_database()
+
+
+@app.get("/api/state")
+@app.get("/api/v1/state")
+def get_full_crm_state() -> Dict[str, Any]:
+    """Returns the live 19-table relational database snapshot."""
+    init_database()
+    snapshot = export_production_state_snapshot()
+    health = run_job_system_health_check()
+    snapshot["service_health_matrix"] = health["services"]
+    return snapshot
 
 
 @app.get("/api/v1/health")
-def health_check() -> Dict[str, Any]:
-    kb = load_verified_knowledge_base()
+@app.get("/api/health")
+def get_system_health() -> Dict[str, Any]:
+    init_database()
+    health = run_job_system_health_check()
+    snapshot = export_production_state_snapshot()
     return {
         "status": "healthy",
-        "candidate": kb["candidate_profile"]["full_name"],
-        "official_email": kb["candidate_profile"]["official_email"],
-        "verified_publications_count": len(kb["verified_publications"]),
-        "strict_no_fabrication_mode": True,
-        "human_in_the_loop_lock": "ENABLED (AI Auto-Send Disabled)",
-        "env_configuration": {
-            "openrouter_configured": bool(os.getenv("OPENROUTER_API_KEY")),
-            "gmail_oauth_configured": bool(os.getenv("GMAIL_OAUTH_REFRESH_TOKEN")),
-            "whatsapp_configured": bool(
-                os.getenv("WHATSAPP_PHONE_NUMBER_ID")
-                or os.getenv("WHATSAPP_WEBHOOK_URL")
-                or os.getenv("CALLMEBOT_API_KEY")
-            ),
-            "qdrant_url": os.getenv("QDRANT_URL", "http://qdrant:6333"),
-        },
+        "schema_version": snapshot["schema_version"],
+        "dashboard_kpis": snapshot["dashboard_kpis"],
+        "services": health["services"],
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
 
+@app.post("/api/documents/upload")
+@app.post("/api/v1/knowledge-base/upload")
+def upload_document_endpoint(payload: DocumentUploadPayload) -> Dict[str, Any]:
+    res = upload_custom_research_document(
+        filename=payload.filename,
+        title=payload.title,
+        extracted_text=payload.extracted_text,
+        document_type=payload.document_type,
+        publication_year=payload.publication_year,
+        journal_or_venue=payload.journal_or_venue,
+        doi=payload.doi,
+        page_count=payload.page_count,
+    )
+    run_job_professor_matching()
+    snapshot = export_production_state_snapshot()
+    return {"result": res, "state": snapshot}
+
+
+@app.delete("/api/documents/{doc_id}")
+def delete_document_endpoint(doc_id: str) -> Dict[str, Any]:
+    res = delete_research_document(doc_id)
+    snapshot = export_production_state_snapshot()
+    return {"result": res, "state": snapshot}
+
+
+@app.post("/api/documents/reprocess")
 @app.post("/api/v1/knowledge-base/ingest")
-def ingest_knowledge_base_endpoint() -> Dict[str, Any]:
-    kb = load_verified_knowledge_base()
-    points = build_qdrant_rag_points(kb)
-    return {
-        "status": "INGESTED_INTO_QDRANT_AND_POSTGRES",
-        "candidate": kb["candidate_profile"]["full_name"],
-        "ingested_points_count": len(points),
-        "points": points,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-    }
+def reprocess_knowledge_base_endpoint() -> Dict[str, Any]:
+    res = ingest_verified_knowledge_base_to_db(force_reprocess=True)
+    run_job_professor_matching()
+    snapshot = export_production_state_snapshot()
+    return {"result": res, "state": snapshot}
 
 
+@app.post("/api/jobs/run")
 @app.post("/api/v1/worker/run-openalex")
-def trigger_autonomous_openalex_worker() -> Dict[str, Any]:
-    results = run_discovery_cycle(per_query=3)
-    return {
-        "status": "OPENALEX_DISCOVERY_AND_WHATSAPP_ALERTS_COMPLETED",
-        "discovered_count": len(results),
-        "results": results,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-    }
+def trigger_scheduled_job(payload: Optional[JobRunPayload] = None) -> Dict[str, Any]:
+    job_id = payload.job_id if payload else "ALL"
+    init_database()
+    if job_id == "job_research_discovery":
+        res = run_job_research_discovery()
+    elif job_id == "job_professor_matching":
+        res = run_job_professor_matching()
+    elif job_id == "job_funding_verification":
+        res = run_job_funding_and_candidate_verification()
+    elif job_id == "job_email_draft_generation":
+        res = run_job_email_draft_generation()
+    elif job_id == "job_gmail_reply_monitoring":
+        res = run_job_gmail_reply_monitoring()
+    elif job_id == "job_followup_detection":
+        res = run_job_followup_detection()
+    elif job_id == "job_system_health_check":
+        res = run_job_system_health_check()
+    else:
+        res = run_all_scheduled_jobs()
+
+    snapshot = export_production_state_snapshot()
+    return {"job_id": job_id, "execution_result": res, "state": snapshot}
 
 
-@app.post("/api/v1/emails/approve-and-send")
-def approve_and_send_email(payload: EmailApprovalRequest) -> Dict[str, Any]:
-    """
-    Human-in-the-Loop Gate Endpoint:
-    Refuses to send any email via Gmail OAuth2 unless `approved_by_human` is explicitly True.
-    When approved, dispatches via Gmail OAuth2 (`gmail_service.py`) and pushes a WhatsApp confirmation.
-    """
-    if not payload.approved_by_human:
-        raise HTTPException(
-            status_code=403,
-            detail="SECURITY_POLICY_BLOCK: AI cannot send emails without explicit Human Approval from Shama Abidi.",
-        )
+@app.post("/api/drafts/{draft_id}/mark-sent")
+def mark_draft_sent_endpoint(draft_id: str) -> Dict[str, Any]:
+    try:
+        res = mark_draft_as_manually_sent_and_track_thread(draft_id)
+        snapshot = export_production_state_snapshot()
+        return {"result": res, "state": snapshot}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
-    gmail_result = send_email_via_gmail_oauth(
+
+@app.post("/api/drafts/create-gmail")
+def create_gmail_draft_endpoint(payload: DraftComposePayload) -> Dict[str, Any]:
+    return create_gmail_draft(
         recipient_email=payload.recipient_email,
-        subject=payload.edited_subject or "Prospective Funded PhD Applicant — Shama Abidi, MPhil",
-        body_text=payload.edited_body or "Attached is my CV and verified Clinical Pharmacy publications.",
-        sender_email=payload.sender_email,
+        subject=payload.subject,
+        body_text=payload.body_text,
     )
 
-    whatsapp_confirmation = push_whatsapp_notification(
-        event_type="EMAIL_SENT_VIA_GMAIL_OAUTH",
-        supervisor_name=payload.supervisor_name,
-        university=payload.university,
-        summary=f"Approved email dispatched from {payload.sender_email} to {payload.recipient_email} ({gmail_result['dispatch_mode']}).",
-    )
 
-    return {
-        "status": "SENT_VIA_GMAIL_OAUTH",
-        "draft_id": payload.draft_id,
-        "gmail_dispatch": gmail_result,
-        "whatsapp_confirmation": whatsapp_confirmation,
-        "approved_by": payload.reviewer_name,
-        "approved_at": datetime.now(timezone.utc).isoformat(),
-        "followup_scheduled_in_days": 7,
-    }
-
-
-@app.post("/api/v1/gmail/check-inbox-and-alert")
-def check_inbox_and_send_whatsapp_alert() -> Dict[str, Any]:
-    """
-    Polls shama.abidi80@gmail.com via OAuth2 for unread professor replies and immediately
-    pushes a WhatsApp alert to Shama Abidi.
-    """
-    replies = check_unread_professor_replies(max_results=5)
-    alerts_sent = []
-    for r in replies:
-        alert = push_whatsapp_notification(
-            event_type="GMAIL_SUPERVISOR_REPLY_RECEIVED",
-            supervisor_name=r["from"],
-            university="Professor Reply in Gmail",
-            summary=f"Subject: {r['subject']} | Snippet: {r['snippet'][:120]}",
-        )
-        alerts_sent.append({"reply": r, "whatsapp_alert": alert})
-    return {
-        "unread_replies_found": len(replies),
-        "alerts": alerts_sent,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-    }
+@app.post("/api/settings/update")
+def update_settings_endpoint(payload: SettingUpdatePayload) -> Dict[str, Any]:
+    # Enforce hard safety lock: initial_email_auto_send can NEVER be enabled
+    if payload.setting_key in ("initial_email_auto_send", "followup_email_auto_send", "professor_reply_auto_send"):
+        update_setting(payload.setting_key, "DISABLED", payload.description)
+    else:
+        update_setting(payload.setting_key, payload.setting_value, payload.description)
+    snapshot = export_production_state_snapshot()
+    return {"status": "UPDATED", "state": snapshot}

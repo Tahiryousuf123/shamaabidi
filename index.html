@@ -3,175 +3,673 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
-  <title>Shama Abidi — Clinical Pharmacy PhD AI Discovery & CRM System</title>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232563eb'/%3E%3Ctext x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' fill='%23ffffff' font-family='Arial,sans-serif' font-weight='bold' font-size='28'%3ESA%3C/text%3E%3C/svg%3E" />
+  <title>Dr. Shama Abidi — Autonomous AI Research Agent &amp; International PhD CRM</title>
+  <meta name="description" content="Autonomous Cloud AI Research Agent for Dr. Shama Abidi (PharmD, MPhil Pharmacy Practice) — Daily International Professor Discovery, Semantic Research Matching, Funding Verification, Gmail Drafts &amp; WhatsApp Cloud API Alerts." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
+  <!-- PDF.js for client-side PDF text extraction in the Research Knowledge Base -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" defer></script>
 </head>
 <body>
-  <!-- Mobile Sidebar Backdrop -->
-  <div id="sidebar-backdrop" class="sidebar-backdrop" onclick="closeMobileSidebar()"></div>
+  <!-- Mobile Top Bar -->
+  <header class="mobile-topbar">
+    <div class="mobile-brand">
+      <span class="brand-badge">SA</span>
+      <div>
+        <div class="mobile-title">Dr. Shama Abidi</div>
+        <div class="mobile-subtitle">Autonomous PhD Research Agent</div>
+      </div>
+    </div>
+    <button id="mobileMenuBtn" class="mobile-menu-btn" aria-label="Toggle Navigation Menu">
+      ☰ Menu
+    </button>
+  </header>
 
   <div class="app-shell">
-    <!-- Left Sidebar (Slide-Over Drawer on Mobile) -->
-    <aside id="app-sidebar" class="sidebar">
-      <div class="brand-box">
-        <div>
-          <div class="brand-badge">💊 Clinical Pharmacy AI</div>
-          <div class="brand-title">Shama Abidi</div>
-          <div class="brand-sub">MPhil Pharmacy Practice • Senior Pharmacist (Liaquat National Hospital)</div>
+    <!-- Sidebar Navigation (All 12 Required CRM Views) -->
+    <aside id="sidebarNav" class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand-avatar">SA</div>
+        <div class="brand-meta">
+          <h1>Dr. Shama Abidi</h1>
+          <p>PharmD, MPhil (Pharmacy Practice)</p>
+          <span class="status-pill live-pill">● Cloud Agent Active</span>
         </div>
-        <button class="sidebar-close-btn" onclick="closeMobileSidebar()" aria-label="Close Menu">✕</button>
       </div>
 
-      <div class="nav-section-label">Autonomous PhD CRM</div>
-      <ul class="nav-list">
-        <li>
-          <button class="nav-btn active" data-tab="overview" onclick="switchTab('overview')">
-            <span class="nav-btn-left">📊 Knowledge Base & CRM</span>
-            <span class="nav-pill emerald">5 Papers</span>
-          </button>
-        </li>
-        <li>
-          <button class="nav-btn" data-tab="discovery" onclick="switchTab('discovery')">
-            <span class="nav-btn-left">🌍 OpenAlex PhD Discovery</span>
-            <span id="pill-opps" class="nav-pill">5</span>
-          </button>
-        </li>
-        <li>
-          <button class="nav-btn" data-tab="supervisors" onclick="switchTab('supervisors')">
-            <span class="nav-btn-left">👩‍🔬 Supervisor RAG Fit</span>
-            <span id="pill-sups" class="nav-pill">6</span>
-          </button>
-        </li>
-        <li>
-          <button class="nav-btn" data-tab="emails" onclick="switchTab('emails')">
-            <span class="nav-btn-left">✉️ Email Approval Gate</span>
-            <span id="pill-drafts" class="nav-pill amber">6</span>
-          </button>
-        </li>
-        <li>
-          <button class="nav-btn" data-tab="gmail" onclick="switchTab('gmail')">
-            <span class="nav-btn-left">📲 WhatsApp & Gmail Sync</span>
-            <span class="nav-pill emerald">24/7 Auto</span>
-          </button>
-        </li>
-      </ul>
+      <div class="safety-banner-mini">
+        <strong>🔒 Human-in-the-Loop Lock</strong>
+        <span>AI creates Gmail Drafts only. Auto-Send is strictly DISABLED.</span>
+      </div>
+
+      <nav class="nav-list" aria-label="Primary CRM Views">
+        <button class="nav-item active" data-view="dashboard">
+          <span class="nav-icon">📊</span>
+          <span class="nav-label">1. Dashboard</span>
+          <span class="nav-badge" id="navBadgeCandidates">0</span>
+        </button>
+        <button class="nav-item" data-view="knowledge-base">
+          <span class="nav-icon">📚</span>
+          <span class="nav-label">2. Research Knowledge Base</span>
+          <span class="nav-badge" id="navBadgeDocs">0</span>
+        </button>
+        <button class="nav-item" data-view="professors">
+          <span class="nav-icon">🌍</span>
+          <span class="nav-label">3. Professors</span>
+          <span class="nav-badge" id="navBadgeVerified">0</span>
+        </button>
+        <button class="nav-item" data-view="funding">
+          <span class="nav-icon">🏛️</span>
+          <span class="nav-label">4. Funding</span>
+          <span class="nav-badge" id="navBadgeFunding">0</span>
+        </button>
+        <button class="nav-item" data-view="drafts">
+          <span class="nav-icon">✉️</span>
+          <span class="nav-label">5. Email Drafts</span>
+          <span class="nav-badge highlight" id="navBadgeDrafts">0</span>
+        </button>
+        <button class="nav-item" data-view="sent">
+          <span class="nav-icon">📤</span>
+          <span class="nav-label">6. Sent Emails</span>
+          <span class="nav-badge" id="navBadgeSent">0</span>
+        </button>
+        <button class="nav-item" data-view="replies">
+          <span class="nav-icon">📥</span>
+          <span class="nav-label">7. Replies</span>
+          <span class="nav-badge" id="navBadgeReplies">0</span>
+        </button>
+        <button class="nav-item" data-view="followups">
+          <span class="nav-icon">⏰</span>
+          <span class="nav-label">8. Follow-ups</span>
+          <span class="nav-badge" id="navBadgeFollowups">0</span>
+        </button>
+        <button class="nav-item" data-view="notifications">
+          <span class="nav-icon">📲</span>
+          <span class="nav-label">9. Notifications</span>
+          <span class="nav-badge" id="navBadgeNotifications">0</span>
+        </button>
+        <button class="nav-item" data-view="automation">
+          <span class="nav-icon">⚙️</span>
+          <span class="nav-label">10. Automation</span>
+          <span class="nav-badge" id="navBadgeJobs">7</span>
+        </button>
+        <button class="nav-item" data-view="settings">
+          <span class="nav-icon">🎛️</span>
+          <span class="nav-label">11. Settings</span>
+        </button>
+        <button class="nav-item" data-view="health">
+          <span class="nav-icon">🩺</span>
+          <span class="nav-label">12. System Health</span>
+        </button>
+      </nav>
 
       <div class="sidebar-footer">
-        <div class="candidate-mini-card">
-          <div class="candidate-mini-header">
-            <div class="avatar-circle">SA</div>
-            <div>
-              <div style="font-weight:800;font-size:13.5px;color:#0f172a;">Shama Abidi</div>
-              <div style="font-size:11.5px;color:#059669;font-weight:700;">✓ Qdrant RAG Ingested</div>
-            </div>
-          </div>
-          <div style="font-size:11.5px;color:#475569;line-height:1.45;">
-            <div>• <strong>Email:</strong> shama.abidi80@gmail.com</div>
-            <div>• <strong>WhatsApp:</strong> 0300-2460274 (+923002460274)</div>
-            <div>• <strong>Worker:</strong> 24/7 Live PubMed + OpenAlex</div>
-            <div>• <strong>No Fabrication:</strong> TO_VERIFY Lock</div>
-          </div>
-        </div>
+        <div class="footer-line"><strong>Email:</strong> shama.abidi80@gmail.com</div>
+        <div class="footer-line"><strong>WhatsApp:</strong> +92 300 2460274</div>
+        <div class="footer-line" id="lastSyncTimestamp">Synced: Loading...</div>
       </div>
     </aside>
 
-    <!-- Main Content Area -->
-    <main class="main-area">
-      <!-- Top Header Bar -->
-      <header class="topbar">
-        <div class="topbar-left">
-          <button class="mobile-menu-btn" onclick="toggleMobileSidebar()">
-            ☰ Menu
-          </button>
-          <div class="security-badges">
-            <span id="live-sync-badge" class="sec-badge emerald">🟢 24/7 Auto-Engine Starting...</span>
-            <span id="auto-timer-badge" class="sec-badge blue">⏱️ Next Auto-Discovery: 15s</span>
-            <span class="sec-badge amber">📲 WhatsApp: 0300-2460274</span>
-          </div>
+    <!-- Main Workspace Content -->
+    <main class="main-content">
+      <!-- Top Action Header -->
+      <header class="workspace-header">
+        <div>
+          <h2 id="currentViewTitle">1. Autonomous Research Agent Dashboard</h2>
+          <p id="currentViewSubtitle">
+            Synchronized Cloud Database State • Strictly Outside Pakistan • Evidence-Backed Matching &amp; Human-Approved Gmail Drafts
+          </p>
         </div>
-
-        <div class="topbar-actions">
-          <button id="auto-worker-toggle-btn" class="btn btn-sm" onclick="toggleAutonomousLoop()">
-            ⏸ Pause 24/7 Auto-Worker
+        <div class="header-actions">
+          <button id="btnRunDiscoveryBatch" class="btn btn-primary">
+            ⚡ Run Live Discovery Batch
           </button>
-          <button id="urdu-toggle-btn" class="btn btn-sm" onclick="toggleUrduGuide()">
-            📘 Guide: ON
-          </button>
-          <button class="btn btn-primary btn-sm" onclick="openLiveAgentModal()">
-            ⚡ Scan More Professors Now
+          <button id="btnRefreshState" class="btn btn-secondary">
+            🔄 Sync Cloud DB
           </button>
         </div>
       </header>
 
-      <!-- Main View Content -->
-      <div class="content-wrap">
-        <!-- Step-by-Step Walkthrough Guide Banner -->
-        <div id="urdu-banner" class="urdu-explainer"></div>
+      <!-- Global Toast / Status Banner -->
+      <div id="globalStatusToast" class="status-toast hidden" role="status"></div>
 
-        <!-- Dynamic View Container -->
-        <div id="view-root"></div>
-      </div>
+      <!-- ================================================================
+           VIEW 1: DASHBOARD (10 Required KPI Cards + Funnel + Activity)
+      ================================================================= -->
+      <section id="view-dashboard" class="crm-view active">
+        <div class="kpi-grid" aria-label="10 Required Dashboard KPI Cards">
+          <article class="kpi-card" data-goto="professors">
+            <div class="kpi-header">
+              <span class="kpi-title">1. New Candidates</span>
+              <span class="kpi-icon">🌍</span>
+            </div>
+            <div class="kpi-value" id="kpiNewCandidates">0</div>
+            <div class="kpi-foot">International professors outside Pakistan</div>
+          </article>
+
+          <article class="kpi-card" data-goto="professors">
+            <div class="kpi-header">
+              <span class="kpi-title">2. Verified Professors</span>
+              <span class="kpi-icon">✅</span>
+            </div>
+            <div class="kpi-value" id="kpiVerifiedProfessors">0</div>
+            <div class="kpi-foot">Identity, affiliation &amp; active papers verified</div>
+          </article>
+
+          <article class="kpi-card" data-goto="funding">
+            <div class="kpi-header">
+              <span class="kpi-title">3. Funding Opportunities</span>
+              <span class="kpi-icon">🏛️</span>
+            </div>
+            <div class="kpi-value" id="kpiFundingOpportunities">0</div>
+            <div class="kpi-foot">Verified / Partially Verified grant records</div>
+          </article>
+
+          <article class="kpi-card highlight-card" data-goto="drafts">
+            <div class="kpi-header">
+              <span class="kpi-title">4. Drafts Waiting</span>
+              <span class="kpi-icon">✉️</span>
+            </div>
+            <div class="kpi-value" id="kpiDraftsWaiting">0</div>
+            <div class="kpi-foot">Ready for Shama to review &amp; send in Gmail</div>
+          </article>
+
+          <article class="kpi-card" data-goto="sent">
+            <div class="kpi-header">
+              <span class="kpi-title">5. Sent Emails</span>
+              <span class="kpi-icon">📤</span>
+            </div>
+            <div class="kpi-value" id="kpiSentEmails">0</div>
+            <div class="kpi-foot">Manually sent threads under monitoring</div>
+          </article>
+
+          <article class="kpi-card" data-goto="replies">
+            <div class="kpi-header">
+              <span class="kpi-title">6. Replies</span>
+              <span class="kpi-icon">📥</span>
+            </div>
+            <div class="kpi-value" id="kpiReplies">0</div>
+            <div class="kpi-foot">Classified professor responses</div>
+          </article>
+
+          <article class="kpi-card" data-goto="replies">
+            <div class="kpi-header">
+              <span class="kpi-title">7. Interested</span>
+              <span class="kpi-icon">🌟</span>
+            </div>
+            <div class="kpi-value" id="kpiInterested">0</div>
+            <div class="kpi-foot">Positive / Interested / Meeting invites</div>
+          </article>
+
+          <article class="kpi-card" data-goto="replies">
+            <div class="kpi-header">
+              <span class="kpi-title">8. CV Requests</span>
+              <span class="kpi-icon">📄</span>
+            </div>
+            <div class="kpi-value" id="kpiCvRequests">0</div>
+            <div class="kpi-foot">Professors requesting CV or proposal</div>
+          </article>
+
+          <article class="kpi-card" data-goto="followups">
+            <div class="kpi-header">
+              <span class="kpi-title">9. Follow-ups</span>
+              <span class="kpi-icon">⏰</span>
+            </div>
+            <div class="kpi-value" id="kpiFollowups">0</div>
+            <div class="kpi-foot">7-day follow-up drafts waiting</div>
+          </article>
+
+          <article class="kpi-card" data-goto="automation">
+            <div class="kpi-header">
+              <span class="kpi-title">10. Failed Jobs</span>
+              <span class="kpi-icon">🛡️</span>
+            </div>
+            <div class="kpi-value" id="kpiFailedJobs">0</div>
+            <div class="kpi-foot">Scheduled cloud batch job errors</div>
+          </article>
+        </div>
+
+        <!-- Staged Funnel & Profile Summary Row -->
+        <div class="two-col-grid">
+          <div class="panel-card">
+            <h3>🎯 Staged Daily Discovery &amp; Verification Funnel (Section 30)</h3>
+            <p class="panel-desc">
+              Event-driven cloud batch processing discovers 30–100 international candidates/day, filters duplicates by ORCID/Name+University/Email/URL, verifies active publications &amp; grant evidence, and prepares the top 10 personalized Gmail drafts.
+            </p>
+            <div id="dashboardFunnelContainer" class="funnel-list"></div>
+          </div>
+
+          <div class="panel-card">
+            <h3>👩‍🔬 Dr. Shama Abidi — Verified Research Profile Summary</h3>
+            <div id="dashboardProfileSummary" class="profile-summary-box"></div>
+          </div>
+        </div>
+
+        <!-- Top Ready Drafts & Recent Autonomous Activity Logs -->
+        <div class="two-col-grid">
+          <div class="panel-card">
+            <div class="panel-head-inline">
+              <h3>✉️ Latest Personalized Outreach Drafts (Auto-Send DISABLED)</h3>
+              <button class="btn btn-sm btn-secondary" data-goto-btn="drafts">View All Drafts →</button>
+            </div>
+            <div id="dashboardRecentDrafts" class="compact-list"></div>
+          </div>
+
+          <div class="panel-card">
+            <div class="panel-head-inline">
+              <h3>📜 Autonomous Cloud Activity Log</h3>
+              <button class="btn btn-sm btn-secondary" data-goto-btn="automation">Automation Jobs →</button>
+            </div>
+            <div id="dashboardActivityLogs" class="compact-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================
+           VIEW 2: RESEARCH KNOWLEDGE BASE (Sections 7, 8, 23.2)
+      ================================================================= -->
+      <section id="view-knowledge-base" class="crm-view">
+        <div class="panel-card">
+          <div class="panel-head-inline">
+            <div>
+              <h3>📤 Upload &amp; Process Research Document (PDF / Paper / CV / Thesis)</h3>
+              <p class="panel-desc">
+                Pipeline Stages: <code>UPLOAD → PROCESSING → TEXT EXTRACTION → RESEARCH INFORMATION EXTRACTION → EMBEDDINGS → INDEXING → READY</code>
+              </p>
+            </div>
+            <button id="btnReprocessKB" class="btn btn-secondary">🔄 Reprocess All Documents</button>
+          </div>
+
+          <form id="pdfUploadForm" class="upload-form">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="uploadPdfFile">Select PDF or Text Document</label>
+                <input type="file" id="uploadPdfFile" accept=".pdf,.txt,.md" />
+              </div>
+              <div class="form-group">
+                <label for="uploadDocTitle">Document / Publication Title</label>
+                <input type="text" id="uploadDocTitle" placeholder="e.g., Clinical Pharmacist Interventions in Critical Care (2025)" required />
+              </div>
+              <div class="form-group">
+                <label for="uploadDocType">Document Category</label>
+                <select id="uploadDocType">
+                  <option value="PUBLICATION_PDF">Peer-Reviewed Publication (PDF)</option>
+                  <option value="ABSTRACT_BOOK">Conference Abstract (PDF)</option>
+                  <option value="THESIS_PDF">MPhil / PharmD Thesis</option>
+                  <option value="CV_DOCUMENT">Curriculum Vitae (CV)</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="uploadDocJournal">Journal / Venue</label>
+                <input type="text" id="uploadDocJournal" placeholder="e.g., Pakistan Journal of Pharmaceutical Sciences" />
+              </div>
+              <div class="form-group">
+                <label for="uploadDocYear">Publication Year</label>
+                <input type="number" id="uploadDocYear" value="2025" min="2000" max="2030" />
+              </div>
+              <div class="form-group">
+                <label for="uploadDocDoi">DOI (if applicable)</label>
+                <input type="text" id="uploadDocDoi" placeholder="e.g., 10.36721/PJPS.2024..." />
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="uploadDocExtractedText">Extracted Text / Abstract / Findings (Auto-filled when you select a PDF)</label>
+              <textarea id="uploadDocExtractedText" rows="4" placeholder="Select a PDF above to extract text automatically via PDF.js, or paste abstract/findings here..."></textarea>
+            </div>
+            <div class="pipeline-stepper" id="uploadPipelineStepper">
+              <span class="step-badge active">1. UPLOAD</span>
+              <span class="step-badge">2. PROCESSING</span>
+              <span class="step-badge">3. TEXT EXTRACTION</span>
+              <span class="step-badge">4. RESEARCH INFO EXTRACTION</span>
+              <span class="step-badge">5. EMBEDDINGS (64-D)</span>
+              <span class="step-badge">6. INDEXING</span>
+              <span class="step-badge">7. READY</span>
+            </div>
+            <button type="submit" class="btn btn-primary">📥 Run 7-Stage Ingestion &amp; Update Profile</button>
+          </form>
+        </div>
+
+        <div class="panel-card">
+          <h3>📄 Indexed Research Documents (<span id="kbDocCount">0</span>)</h3>
+          <div id="kbDocumentsList" class="cards-stack"></div>
+        </div>
+
+        <div class="two-col-grid">
+          <div class="panel-card">
+            <h3>🧬 Extracted Research Topics, Methods &amp; Keywords (No-Fabrication Locked)</h3>
+            <div id="kbExtractedProfileBox"></div>
+          </div>
+          <div class="panel-card">
+            <h3>📌 Source-Attributed Research Facts (<span id="kbFactsCount">0</span>)</h3>
+            <div id="kbFactsList" class="compact-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================
+           VIEW 3: PROFESSORS (Sections 5, 6, 9, 10, 12, 23.3)
+      ================================================================= -->
+      <section id="view-professors" class="crm-view">
+        <div class="panel-card filter-bar">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="profSearchInput">Search Name, University, Topic, or Paper</label>
+              <input type="search" id="profSearchInput" placeholder="e.g., carbapenem, angina, Manchester, Monash, Karolinska..." />
+            </div>
+            <div class="form-group">
+              <label for="profCountryFilter">Country (Outside Pakistan Only)</label>
+              <select id="profCountryFilter">
+                <option value="ALL">All International Countries</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="profFundingFilter">Funding Status</label>
+              <select id="profFundingFilter">
+                <option value="ALL">All Funding Statuses</option>
+                <option value="VERIFIED">VERIFIED</option>
+                <option value="PARTIALLY VERIFIED">PARTIALLY VERIFIED</option>
+                <option value="NOT CONFIRMED">NOT CONFIRMED</option>
+                <option value="NO EVIDENCE FOUND">NO EVIDENCE FOUND</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="profVerificationFilter">Verification Status</label>
+              <select id="profVerificationFilter">
+                <option value="ALL">All Verification Statuses</option>
+                <option value="VERIFIED">VERIFIED</option>
+                <option value="PARTIALLY VERIFIED">PARTIALLY VERIFIED</option>
+                <option value="NEEDS REVIEW">NEEDS REVIEW</option>
+                <option value="NOT VERIFIED">NOT VERIFIED</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-card">
+          <div class="panel-head-inline">
+            <h3>🌍 Discovered International Professors (<span id="profFilteredCount">0</span>)</h3>
+            <span class="status-pill">Strict Filter: Outside Pakistan Only • Deduplicated by ORCID / Name+Uni / Email / URL</span>
+          </div>
+          <div id="professorsTableContainer" class="table-responsive"></div>
+        </div>
+      </section>
+
+      <!-- ================================================================
+           VIEW 4: FUNDING (Sections 11, 23.4)
+      ================================================================= -->
+      <section id="view-funding" class="crm-view">
+        <div class="panel-card">
+          <div class="panel-head-inline">
+            <div>
+              <h3>🏛️ Evidence-Based PhD Funding &amp; Grant Verification (Section 11)</h3>
+              <p class="panel-desc">
+                Never labels a professor "funded" merely because they are a faculty member. Classifications require explicit grant metadata from Europe PMC (<code>grantsList</code>), OpenAlex (<code>grants</code>), or Crossref (<code>funder</code>).
+              </p>
+            </div>
+            <div class="filter-pills" id="fundingCategoryPills">
+              <button class="pill-btn active" data-fstatus="ALL">All Records</button>
+              <button class="pill-btn" data-fstatus="VERIFIED">VERIFIED</button>
+              <button class="pill-btn" data-fstatus="PARTIALLY VERIFIED">PARTIALLY VERIFIED</button>
+              <button class="pill-btn" data-fstatus="NOT CONFIRMED">NOT CONFIRMED</button>
+              <button class="pill-btn" data-fstatus="NO EVIDENCE FOUND">NO EVIDENCE FOUND</button>
+            </div>
+          </div>
+          <div id="fundingListContainer" class="cards-stack"></div>
+        </div>
+      </section>
+
+      <!-- ================================================================
+           VIEW 5: EMAIL DRAFTS (Sections 14, 15, 23.5)
+      ================================================================= -->
+      <section id="view-drafts" class="crm-view">
+        <div class="panel-card safety-callout">
+          <div>
+            <h3>🔒 Mandatory Human-in-the-Loop Gmail Draft Policy (Section 15)</h3>
+            <p>
+              The AI generates <strong>10 personalized outreach drafts per day</strong> referencing each professor's real paper and Shama Abidi's verified PJPS/JPPP publications.
+              <strong>The AI NEVER automatically sends initial outreach emails or follow-up emails.</strong>
+              Click <em>"Open in Gmail Draft / Compose"</em> below, review the email in Gmail, attach your CV, and manually click <strong>SEND</strong>.
+            </p>
+          </div>
+          <button id="btnGenerateTop10Drafts" class="btn btn-primary">✨ Generate / Refresh Top 10 Drafts</button>
+        </div>
+
+        <div id="draftsListContainer" class="cards-stack"></div>
+      </section>
+
+      <!-- ================================================================
+           VIEW 6: SENT EMAILS (Sections 15, 16, 23.6)
+      ================================================================= -->
+      <section id="view-sent" class="crm-view">
+        <div class="panel-card">
+          <div class="panel-head-inline">
+            <div>
+              <h3>📤 Manually Sent Outreach Emails &amp; Active Thread Tracker</h3>
+              <p class="panel-desc">
+                Tracks emails that Dr. Shama Abidi has manually sent from <code>shama.abidi80@gmail.com</code>. Threads without a reply after 7 days automatically receive a follow-up draft.
+              </p>
+            </div>
+          </div>
+          <div id="sentThreadsContainer" class="cards-stack"></div>
+        </div>
+      </section>
+
+      <!-- ================================================================
+           VIEW 7: REPLIES (Sections 16, 23.7)
+      ================================================================= -->
+      <section id="view-replies" class="crm-view">
+        <div class="panel-card">
+          <div class="panel-head-inline">
+            <div>
+              <h3>📥 Professor Replies &amp; 8-Category AI Classification (Section 16)</h3>
+              <p class="panel-desc">
+                Supported Categories: <code>INTERESTED</code> • <code>CV REQUESTED</code> • <code>MEETING REQUEST</code> • <code>MORE INFORMATION</code> • <code>POSITIVE</code> • <code>DECLINED</code> • <code>NOT RELEVANT</code> • <code>OTHER</code>.
+                <strong>AI never auto-replies to professors.</strong>
+              </p>
+            </div>
+            <button id="btnCheckGmailRepliesNow" class="btn btn-secondary">🔍 Poll Gmail Inbox Now</button>
+          </div>
+
+          <!-- Interactive Reply Classifier / Simulator for testing Section 16 & Section 36 #13 -->
+          <details class="reply-tester-box">
+            <summary>🧪 Test / Record Incoming Professor Reply Classification</summary>
+            <form id="recordReplyForm" class="upload-form">
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="replyProfSelect">Select Professor</label>
+                  <select id="replyProfSelect"></select>
+                </div>
+                <div class="form-group">
+                  <label for="replySubjectInput">Reply Subject</label>
+                  <input type="text" id="replySubjectInput" value="Re: Prospective PhD Application Inquiry — Dr. Shama Abidi" required />
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="replyBodyInput">Professor Reply Message Text</label>
+                <textarea id="replyBodyInput" rows="3" required>Dear Dr. Abidi, thank you for reaching out. Your antimicrobial stewardship and ICU carbapenem research is a strong fit for our group. Could you please send your full CV and a 1-page research proposal so we can schedule a Zoom interview?</textarea>
+              </div>
+              <button type="submit" class="btn btn-primary">Classify Reply &amp; Log WhatsApp Alert</button>
+            </form>
+          </details>
+
+          <div id="repliesListContainer" class="cards-stack"></div>
+        </div>
+      </section>
+
+      <!-- ================================================================
+           VIEW 8: FOLLOW-UPS (Sections 17, 23.8)
+      ================================================================= -->
+      <section id="view-followups" class="crm-view">
+        <div class="panel-card">
+          <div class="panel-head-inline">
+            <div>
+              <h3>⏰ 7-Day Follow-up Detection &amp; Draft Queue (Section 17)</h3>
+              <p class="panel-desc">
+                When a sent email receives no reply after the configured follow-up window (default: 7 days), the system generates a polite follow-up Gmail draft and notifies Shama. <strong>Follow-up emails are NEVER auto-sent.</strong>
+              </p>
+            </div>
+            <button id="btnRunFollowupCheck" class="btn btn-secondary">⏰ Run Follow-up Detection Now</button>
+          </div>
+          <div id="followupsListContainer" class="cards-stack"></div>
+        </div>
+      </section>
+
+      <!-- ================================================================
+           VIEW 9: NOTIFICATIONS (Sections 18, 29, 32, 23.9)
+      ================================================================= -->
+      <section id="view-notifications" class="crm-view">
+        <div class="panel-card">
+          <div class="panel-head-inline">
+            <div>
+              <h3>📲 Grouped WhatsApp Business Cloud API Notifications (Sections 18 &amp; 32)</h3>
+              <p class="panel-desc">
+                Uses legitimate <strong>Meta WhatsApp Business Cloud API</strong> (<code>WHATSAPP_PHONE_NUMBER_ID</code> + <code>WHATSAPP_API_TOKEN</code>) for recipient <code>+923002460274</code>. Unsafe QR-code web scraping is strictly prohibited. Daily discoveries are grouped into a single summary alert to prevent notification spam.
+              </p>
+            </div>
+          </div>
+          <div id="whatsappStatusBanner" class="service-banner"></div>
+          <div id="notificationsListContainer" class="cards-stack"></div>
+        </div>
+      </section>
+
+      <!-- ================================================================
+           VIEW 10: AUTOMATION (Sections 24, 25, 23.10)
+      ================================================================= -->
+      <section id="view-automation" class="crm-view">
+        <div class="panel-card">
+          <div class="panel-head-inline">
+            <div>
+              <h3>⚙️ Scheduled Cloud Batch Jobs &amp; Retry Telemetry (Sections 24 &amp; 25)</h3>
+              <p class="panel-desc">
+                Event-driven batch execution (<code>SCHEDULE → START JOB → PROCESS BATCH → SAVE RESULTS → EXIT</code>) via GitHub Actions Cron &amp; Netlify Scheduled Functions. Operates 24/7 with your laptop OFF.
+              </p>
+            </div>
+            <button id="btnRunAllJobsNow" class="btn btn-primary">🚀 Execute All 7 Jobs Now</button>
+          </div>
+          <div id="automationJobsContainer" class="cards-stack"></div>
+        </div>
+      </section>
+
+      <!-- ================================================================
+           VIEW 11: SETTINGS (Section 23.11)
+      ================================================================= -->
+      <section id="view-settings" class="crm-view">
+        <div class="panel-card">
+          <h3>🎛️ Autonomous Agent Configuration &amp; Safety Locks (Section 23.11)</h3>
+          <form id="settingsForm" class="upload-form">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="setTargetCountries">Target Countries (Outside Pakistan)</label>
+                <input type="text" id="setTargetCountries" />
+              </div>
+              <div class="form-group">
+                <label for="setExcludedCountries">Strictly Excluded Country</label>
+                <input type="text" id="setExcludedCountries" value="Pakistan" readonly />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="setDailyDiscoveryTarget">Daily Discovery Target (30–100 Candidates/Day)</label>
+                <input type="number" id="setDailyDiscoveryTarget" min="30" max="100" value="60" />
+              </div>
+              <div class="form-group">
+                <label for="setDailyDraftLimit">Daily Gmail Draft Limit (Default: 10/Day)</label>
+                <input type="number" id="setDailyDraftLimit" min="1" max="25" value="10" />
+              </div>
+              <div class="form-group">
+                <label for="setFollowupDays">Follow-up Reminder Days (Default: 7 Days)</label>
+                <input type="number" id="setFollowupDays" min="3" max="30" value="7" />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="setGmailAccount">Dr. Shama Abidi Gmail Account</label>
+                <input type="email" id="setGmailAccount" value="shama.abidi80@gmail.com" />
+              </div>
+              <div class="form-group">
+                <label for="setWhatsappPhone">Dr. Shama Abidi WhatsApp Number</label>
+                <input type="text" id="setWhatsappPhone" value="+923002460274" />
+              </div>
+            </div>
+
+            <div class="safety-locks-grid">
+              <div class="lock-box">
+                <strong>🔒 Initial Email Auto-Send</strong>
+                <span class="badge-danger">DISABLED (HARD LOCKED — GMAIL DRAFTS ONLY)</span>
+              </div>
+              <div class="lock-box">
+                <strong>🔒 Follow-up Email Auto-Send</strong>
+                <span class="badge-danger">DISABLED (HARD LOCKED — GMAIL DRAFTS ONLY)</span>
+              </div>
+              <div class="lock-box">
+                <strong>🔒 Professor Reply Auto-Send</strong>
+                <span class="badge-danger">DISABLED (HARD LOCKED — HUMAN REPLY ONLY)</span>
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary">💾 Save Settings to Persistent Database</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- ================================================================
+           VIEW 12: SYSTEM HEALTH (Sections 19, 20, 26, 23.12)
+      ================================================================= -->
+      <section id="view-health" class="crm-view">
+        <div class="panel-card">
+          <h3>🩺 Honest Service &amp; Credential Classification Matrix (Sections 19 &amp; 20)</h3>
+          <p class="panel-desc">
+            Every external integration is honestly classified as <code>FREE</code>, <code>FREE WITH LIMITS</code>, <code>PAID</code>, or <code>REQUIRES ACCOUNT/AUTHORIZATION</code>. No integration is ever marked "Connected" unless real credentials are verified.
+          </p>
+          <div id="healthServicesContainer" class="cards-stack"></div>
+        </div>
+
+        <div class="panel-card">
+          <h3>🗄️ 19-Entity Relational Database Integrity Audit (Section 26)</h3>
+          <div id="healthDatabaseEntitiesGrid" class="kpi-grid"></div>
+        </div>
+      </section>
     </main>
   </div>
 
-  <!-- Mobile Bottom Quick-Navigation Bar -->
-  <nav class="mobile-bottom-nav" aria-label="Mobile Quick Navigation">
-    <div class="mobile-bottom-nav-inner">
-      <button class="mob-tab-btn active" data-tab="overview" onclick="switchTab('overview')">
-        <span>📊</span>
-        <span>KB & CRM</span>
-      </button>
-      <button class="mob-tab-btn" data-tab="discovery" onclick="switchTab('discovery')">
-        <span>🌍</span>
-        <span>OpenAlex</span>
-      </button>
-      <button class="mob-tab-btn" data-tab="supervisors" onclick="switchTab('supervisors')">
-        <span>👩‍🔬</span>
-        <span>RAG Fit</span>
-      </button>
-      <button class="mob-tab-btn" data-tab="emails" onclick="switchTab('emails')">
-        <span>✉️</span>
-        <span>Approve</span>
-      </button>
-      <button class="mob-tab-btn" data-tab="gmail" onclick="switchTab('gmail')">
-        <span>📲</span>
-        <span>WhatsApp</span>
-      </button>
-    </div>
-  </nav>
-
-  <!-- Live Autonomous Worker Execution Modal -->
-  <div id="agent-modal" class="modal-backdrop hidden">
-    <div class="modal-card">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border-subtle);">
-        <div>
-          <div style="font-size:16px;font-weight:800;color:#0f172a;">
-            ⚙️ Autonomous Background Worker (OpenAlex + Semantic Scholar + Qdrant RAG)
-          </div>
-          <div style="font-size:12.5px;color:#475569;">
-            Querying OpenAlex API -> Matching Shama Abidi's Clinical Pharmacy Papers -> Drafting Email -> Sending WhatsApp Alert
-          </div>
-        </div>
-        <button class="btn btn-sm" onclick="closeLiveAgentModal()">✕ Close</button>
+  <!-- Modal for Inspecting / Editing Email Draft Before Opening in Gmail -->
+  <div id="draftModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="draftModalTitle">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="draftModalTitle">✉️ Review Personalized Gmail Outreach Draft</h3>
+        <button id="closeDraftModalBtn" class="modal-close" aria-label="Close">✕</button>
       </div>
-
-      <div id="agent-steps-container"></div>
-
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-top:16px;padding-top:12px;border-top:1px solid var(--border-subtle);">
-        <div style="font-size:12px;color:#047857;font-weight:700;">
-          📲 WhatsApp Alert Sent to Shama Abidi • Email Locked Until Human Click
+      <div class="modal-body">
+        <div class="safety-banner-mini">
+          <strong>🔒 Human Send Required:</strong> Opening this draft in Gmail lets you attach your CV and manually click SEND.
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn btn-sm" onclick="closeLiveAgentModal(); switchTab('discovery');">View Discovered Professor</button>
-          <button class="btn btn-sm btn-primary" onclick="closeLiveAgentModal(); switchTab('emails');">Approve & Send Email →</button>
+        <div class="form-group">
+          <label for="modalRecipientInput">Recipient Professor Email</label>
+          <input type="text" id="modalRecipientInput" />
         </div>
+        <div class="form-group">
+          <label for="modalSubjectInput">Email Subject</label>
+          <input type="text" id="modalSubjectInput" />
+        </div>
+        <div class="form-group">
+          <label for="modalBodyInput">Personalized Email Body</label>
+          <textarea id="modalBodyInput" rows="12"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <a id="modalOpenGmailComposeLink" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
+          ✉️ Open in Gmail Draft / Compose
+        </a>
+        <button id="modalMarkSentBtn" class="btn btn-secondary">
+          ✅ I Clicked Send in Gmail (Track Thread)
+        </button>
       </div>
     </div>
   </div>
-
-  <!-- Toast Notification Container -->
-  <div id="toast-container" class="toast-container"></div>
 
   <script src="app.js"></script>
 </body>

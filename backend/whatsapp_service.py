@@ -1,12 +1,12 @@
 """
-Unified WhatsApp & Mobile Alert Service for Shama Abidi PhD AI System
-Supports 4 Free / Zero-Cost Providers Out-of-the-Box:
-  1. Meta Official WhatsApp Cloud API (WHATSAPP_PHONE_NUMBER_ID + WHATSAPP_API_TOKEN)
-  2. Self-Hosted n8n / Evolution API / Baileys Webhook (WHATSAPP_WEBHOOK_URL)
-  3. CallMeBot Free Personal WhatsApp API (CALLMEBOT_API_KEY + WHATSAPP_RECIPIENT_PHONE)
-     Current CallMeBot Bot Number: +34 644 78 13 70
-  4. Built-in Zero-Key Instant Mobile Push via ntfy.sh (NTFY_TOPIC=shama_abidi_phd_alerts_80)
-     Works immediately with ZERO API keys, ZERO registration, and ZERO cost!
+Shama Abidi — Autonomous AI Research Agent & CRM System
+Legitimate WhatsApp Business Cloud API Notification Service (Sections 18, 19, 29, 32)
+
+Strict Production Rules:
+  1. Uses legitimate Meta WhatsApp Business Cloud API (`WHATSAPP_PHONE_NUMBER_ID` + `WHATSAPP_API_TOKEN`).
+  2. Never uses unsafe WhatsApp Web QR browser automation.
+  3. Never fakes "Connected" or "Sent" status when WhatsApp Business API credentials are not configured.
+  4. Groups daily discovery & draft notifications into concise batch summaries (Section 32).
 """
 
 from datetime import datetime, timezone
@@ -17,51 +17,70 @@ import urllib.parse
 import urllib.request
 
 
-def push_whatsapp_notification(
-    event_type: str,
-    supervisor_name: str,
-    university: str,
-    summary: str,
-) -> Dict[str, Any]:
-    """
-    Pushes an instant WhatsApp / Mobile notification to Shama Abidi when:
-      - A new personalized email draft is ready in the CRM Approval Queue
-      - A professor replies in her Gmail inbox (shama.abidi80@gmail.com)
-    """
-    raw_phone = os.getenv("WHATSAPP_RECIPIENT_PHONE", "+923002460274").strip()
-    digits_only = "".join(ch for ch in raw_phone if ch.isdigit())
-    if digits_only.startswith("03") and len(digits_only) == 11:
-        clean_phone = "92" + digits_only[1:]
-    elif digits_only.startswith("92"):
-        clean_phone = digits_only
-    else:
-        clean_phone = digits_only or "923002460274"
-    recipient_phone = f"+{clean_phone}"
+def normalize_pakistan_phone(raw_phone: str) -> str:
+    digits = "".join(ch for ch in (raw_phone or "+923002460274") if ch.isdigit())
+    if digits.startswith("03") and len(digits) == 11:
+        return "92" + digits[1:]
+    if digits.startswith("92"):
+        return digits
+    return digits or "923002460274"
 
+
+def check_whatsapp_api_status() -> Dict[str, Any]:
+    """
+    Section 19: Honestly classifies WhatsApp Business Cloud API status without faking connection.
+    """
     phone_number_id = os.getenv("WHATSAPP_PHONE_NUMBER_ID", "").strip()
     api_token = os.getenv("WHATSAPP_API_TOKEN", "").strip()
-    webhook_url = os.getenv("WHATSAPP_WEBHOOK_URL", "").strip()
-    callmebot_key = os.getenv("CALLMEBOT_API_KEY", "").strip()
-    ntfy_topic = os.getenv("NTFY_TOPIC", "shama_abidi_phd_alerts_03002460274").strip()
-    dashboard_url = os.getenv(
-        "CRM_DASHBOARD_URL",
-        "https://aspnetaptech-cyber.github.io/shama-abidi-phd-system/",
-    ).strip()
+    recipient = f"+{normalize_pakistan_phone(os.getenv('WHATSAPP_RECIPIENT_PHONE', '+923002460274'))}"
 
-    message_text = (
-        f"🎓 *Shama Abidi PhD AI Alert ({event_type})*\n"
-        f"👩‍🔬 *Supervisor:* {supervisor_name} ({university})\n"
-        f"📋 *Update:* {summary}\n"
-        f"🔒 *Action:* Open CRM Dashboard to review & click 'Approve & Send via Gmail OAuth2':\n"
-        f"{dashboard_url}"
+    is_configured = bool(
+        phone_number_id
+        and api_token
+        and not phone_number_id.startswith("your_")
+        and not api_token.startswith("your_")
     )
 
-    wa_direct_url = f"https://wa.me/{clean_phone}?text={urllib.parse.quote(message_text)}"
+    if is_configured:
+        return {
+            "service": "Meta WhatsApp Business Cloud API",
+            "classification": "REQUIRES ACCOUNT/AUTHORIZATION",
+            "connected": True,
+            "status_label": "CONNECTED (META CLOUD API CONFIGURED)",
+            "recipient_phone": recipient,
+            "detail": f"Configured with Phone Number ID {phone_number_id[:6]}*** for recipient {recipient}.",
+        }
+    return {
+        "service": "Meta WhatsApp Business Cloud API",
+        "classification": "REQUIRES ACCOUNT/AUTHORIZATION",
+        "connected": False,
+        "status_label": "REQUIRES META WHATSAPP BUSINESS API CREDENTIALS",
+        "recipient_phone": recipient,
+        "detail": (
+            "Set WHATSAPP_PHONE_NUMBER_ID and WHATSAPP_API_TOKEN in .env / Cloud Secrets to enable "
+            "automatic server-to-WhatsApp Cloud API delivery. All alerts are logged in the CRM Notifications "
+            "table with 1-click official wa.me links."
+        ),
+    }
 
-    provider_used = "DASHBOARD_QUEUE_ONLY"
-    status = "QUEUED_IN_DASHBOARD"
 
-    # 1. Meta Official WhatsApp Cloud API
+def send_grouped_whatsapp_notification(
+    event_category: str,
+    message_body: str,
+) -> Dict[str, Any]:
+    """
+    Dispatches a grouped notification via Meta WhatsApp Business Cloud API when
+    credentials are configured; otherwise records honest status `PENDING_WHATSAPP_API_CREDENTIALS`.
+    """
+    clean_phone = normalize_pakistan_phone(os.getenv("WHATSAPP_RECIPIENT_PHONE", "+923002460274"))
+    recipient_phone = f"+{clean_phone}"
+    phone_number_id = os.getenv("WHATSAPP_PHONE_NUMBER_ID", "").strip()
+    api_token = os.getenv("WHATSAPP_API_TOKEN", "").strip()
+
+    wa_direct_url = f"https://wa.me/{clean_phone}?text={urllib.parse.quote(message_body)}"
+    delivery_channel = "PENDING_WHATSAPP_API_CREDENTIALS"
+    delivery_status = "LOGGED_IN_CRM_AWAITING_META_CLOUD_API_TOKEN"
+
     if (
         phone_number_id
         and api_token
@@ -75,7 +94,7 @@ def push_whatsapp_notification(
                     "messaging_product": "whatsapp",
                     "to": clean_phone,
                     "type": "text",
-                    "text": {"preview_url": False, "body": message_text},
+                    "text": {"preview_url": False, "body": message_body},
                 }
             ).encode("utf-8")
             req = urllib.request.Request(
@@ -89,96 +108,36 @@ def push_whatsapp_notification(
             )
             with urllib.request.urlopen(req, timeout=15) as resp:
                 if 200 <= resp.status < 300:
-                    provider_used = "META_WHATSAPP_CLOUD_API"
-                    status = "SENT_LIVE_WHATSAPP"
+                    delivery_channel = "META_WHATSAPP_CLOUD_API"
+                    delivery_status = "SENT_VIA_META_CLOUD_API"
         except Exception as e:
-            status = f"META_API_ERROR: {e}"
-
-    # 2. Self-Hosted n8n / Evolution API / Baileys Webhook
-    elif webhook_url and not webhook_url.startswith("https://your-"):
-        try:
-            headers = {"Content-Type": "application/json"}
-            if api_token and not api_token.startswith("your_"):
-                headers["Authorization"] = f"Bearer {api_token}"
-            payload = json.dumps(
-                {
-                    "to": recipient_phone,
-                    "recipient_name": "Shama Abidi",
-                    "event_type": event_type,
-                    "supervisor_name": supervisor_name,
-                    "university": university,
-                    "message": message_text,
-                }
-            ).encode("utf-8")
-            req = urllib.request.Request(
-                webhook_url,
-                data=payload,
-                headers=headers,
-                method="POST",
-            )
-            with urllib.request.urlopen(req, timeout=12) as resp:
-                if 200 <= resp.status < 300:
-                    provider_used = "N8N_OR_EVOLUTION_WEBHOOK"
-                    status = "SENT_LIVE_WHATSAPP"
-        except Exception as e:
-            status = f"WEBHOOK_ERROR: {e}"
-
-    # 3. CallMeBot Free Personal WhatsApp API
-    elif callmebot_key and not callmebot_key.startswith("your_"):
-        try:
-            params = urllib.parse.urlencode(
-                {
-                    "phone": recipient_phone,
-                    "text": message_text,
-                    "apikey": callmebot_key,
-                }
-            )
-            req = urllib.request.Request(
-                f"https://api.callmebot.com/whatsapp.php?{params}"
-            )
-            with urllib.request.urlopen(req, timeout=12) as resp:
-                if 200 <= resp.status < 300:
-                    provider_used = "CALLMEBOT_FREE_API"
-                    status = "SENT_LIVE_WHATSAPP"
-        except Exception as e:
-            status = f"CALLMEBOT_ERROR: {e}"
-
-    # 4. Zero-Key Instant Mobile Push via ntfy.sh (100% Free, No API Key Required!)
-    if status != "SENT_LIVE_WHATSAPP" and ntfy_topic:
-        try:
-            ntfy_body = (
-                f"Supervisor: {supervisor_name} ({university})\n"
-                f"Update: {summary}\n"
-                f"Dashboard: {dashboard_url}\n"
-                f"Share to WhatsApp: {wa_direct_url}"
-            ).encode("utf-8")
-            req = urllib.request.Request(
-                f"https://ntfy.sh/{ntfy_topic}",
-                data=ntfy_body,
-                headers={
-                    "Title": f"Shama Abidi PhD Alert: {event_type}",
-                    "Priority": "high",
-                    "Tags": "mortar_board,incoming_envelope",
-                    "Click": dashboard_url,
-                },
-                method="POST",
-            )
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                if 200 <= resp.status < 300:
-                    provider_used = f"NTFY_FREE_MOBILE_PUSH (https://ntfy.sh/{ntfy_topic})"
-                    status = "SENT_LIVE_MOBILE_PUSH"
-        except Exception as e:
-            status = f"NTFY_PUSH_ERROR: {e}"
+            delivery_channel = "META_WHATSAPP_CLOUD_API"
+            delivery_status = f"META_API_ERROR: {str(e)[:120]}"
 
     return {
-        "recipient_name": "Shama Abidi",
+        "event_category": event_category,
         "recipient_phone": recipient_phone,
-        "provider": provider_used,
-        "event_type": event_type,
-        "message": message_text,
+        "message_body": message_body,
+        "delivery_channel": delivery_channel,
+        "delivery_status": delivery_status,
         "whatsapp_direct_link": wa_direct_url,
-        "ntfy_channel_url": f"https://ntfy.sh/{ntfy_topic}",
-        "status": status,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
 
+
+def push_whatsapp_notification(
+    event_type: str,
+    supervisor_name: str,
+    university: str,
+    summary: str,
+) -> Dict[str, Any]:
+    """Backward-compatible wrapper for single-event notifications."""
+    body = (
+        f"Shama Abidi Research Agent ({event_type})\n"
+        f"Professor: {supervisor_name} ({university})\n"
+        f"Summary: {summary}"
+    )
+    return send_grouped_whatsapp_notification(
+        event_category="DAILY_DISCOVERY_SUMMARY",
+        message_body=body,
+    )

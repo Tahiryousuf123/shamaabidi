@@ -1,0 +1,20 @@
+[build]
+  publish = "."
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+  included_files = ["data/**", "backend/knowledge_base/**"]
+
+# Scheduled Cloud Job 1: Daily Professor Discovery, Matching, Funding Verification & 10 Gmail Drafts (08:00 AM PKT / 03:00 UTC)
+[functions."scheduled-discovery"]
+  schedule = "0 3 * * *"
+
+# Scheduled Cloud Job 2: Gmail Reply Monitoring & 7-Day Follow-up Detection (Every 6 hours)
+[functions."scheduled-gmail-monitor"]
+  schedule = "0 */6 * * *"
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200

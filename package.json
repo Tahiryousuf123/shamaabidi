@@ -1,0 +1,13 @@
+{
+  "name": "shama-abidi-autonomous-research-agent",
+  "version": "4.0.0",
+  "description": "Dr. Shama Abidi — Autonomous AI Research Agent & CRM System (Cloud Scheduled Batch Pipeline + 12-Module CRM)",
+  "private": true,
+  "scripts": {
+    "build": "echo 'Static CRM + Netlify Serverless & Scheduled Functions Ready'",
+    "pipeline": "python backend/autonomous_pipeline.py --run-all-jobs"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
