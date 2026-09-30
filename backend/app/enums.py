@@ -1,0 +1,75 @@
+"""
+Shama Abidi PhD System — Controlled Domain Enums (`backend/app/enums.py`)
+Enforces Section 7, Section 13, Section 14, and Section 29 controlled state machines.
+"""
+
+from enum import Enum
+
+
+class RoleEnum(str, Enum):
+    ADMIN = "ADMIN"
+    RESEARCHER = "RESEARCHER"
+    VIEWER = "VIEWER"
+
+
+class VerificationStatusEnum(str, Enum):
+    UNVERIFIED = "UNVERIFIED"
+    PENDING = "PENDING"
+    VERIFIED = "VERIFIED"
+    REJECTED = "REJECTED"
+
+
+class FundingVerificationEnum(str, Enum):
+    UNVERIFIED = "UNVERIFIED"
+    PENDING = "PENDING"
+    VERIFIED = "VERIFIED"
+    PARTIALLY_VERIFIED = "PARTIALLY_VERIFIED"
+    NO_EVIDENCE = "NO_EVIDENCE"
+
+
+class ApplicationStatusEnum(str, Enum):
+    DRAFT = "DRAFT"
+    PREPARED = "PREPARED"
+    SUBMITTED = "SUBMITTED"
+    FOLLOW_UP = "FOLLOW_UP"
+    REPLIED = "REPLIED"
+    INTERVIEW = "INTERVIEW"
+    ACCEPTED = "ACCEPTED"
+    REJECTED = "REJECTED"
+    CLOSED = "CLOSED"
+
+
+class EmailStatusEnum(str, Enum):
+    DRAFT = "DRAFT"
+    APPROVED = "APPROVED"
+    QUEUED = "QUEUED"
+    SENT = "SENT"
+    FAILED = "FAILED"
+    BOUNCED = "BOUNCED"
+    REPLIED = "REPLIED"
+
+
+class ReplyCategoryEnum(str, Enum):
+    INTERESTED = "INTERESTED"
+    CV_REQUESTED = "CV_REQUESTED"
+    MEETING_REQUEST = "MEETING_REQUEST"
+    MORE_INFORMATION = "MORE_INFORMATION"
+    POSITIVE = "POSITIVE"
+    DECLINED = "DECLINED"
+    NOT_RELEVANT = "NOT_RELEVANT"
+    OTHER = "OTHER"
+
+
+class JobStatusEnum(str, Enum):
+    PENDING = "PENDING"
+    RUNNING = "RUNNING"
+    SUCCESS = "SUCCESS"
+    FAILED = "FAILED"
+    CANCELLED = "CANCELLED"
+
+
+class TaskStatusEnum(str, Enum):
+    TODO = "TODO"
+    IN_PROGRESS = "IN_PROGRESS"
+    COMPLETED = "COMPLETED"
+    CANCELLED = "CANCELLED"

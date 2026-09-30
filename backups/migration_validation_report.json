@@ -1,0 +1,25 @@
+{
+  "migration_timestamp": "2026-09-30T13:49:29.816489+00:00",
+  "backups_created": [
+    "C:\\Users\\Lenovo\\Desktop\\demo p\\backups\\production_state_backup_20260930_134825.json",
+    "C:\\Users\\Lenovo\\Desktop\\demo p\\backups\\shama_production_backup_20260930_134825.db"
+  ],
+  "entity_counts": {
+    "users": 3,
+    "universities": 98,
+    "departments": 100,
+    "professors_total": 140,
+    "professors_verified": 140,
+    "professors_unverified": 0,
+    "publications": 89,
+    "funding_opportunities": 7,
+    "funding_evidence": 7,
+    "emails_in_draft_state": 12
+  },
+  "relationship_integrity_checks": {
+    "orphaned_professors_without_university": 0,
+    "pakistan_universities_present": 0,
+    "auto_sent_emails_without_approval": 0
+  },
+  "validation_passed": true
+}
