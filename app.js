@@ -105,14 +105,61 @@ function getVerificationBadgeClass(status) {
 
 function buildGmailComposeUrl(to, subject, body) {
   const cleanTo = (to && to.includes("@") && !to.startsWith("verify-")) ? to : "";
+  // Ensure query string is within safe length for Gmail Web (under 1400 chars)
+  const safeBody = (body || "").slice(0, 1400);
   return (
     "https://mail.google.com/mail/?view=cm&fs=1" +
-    `&authuser=${encodeURIComponent("shamaabidiphd@gmail.com")}` +
     `&to=${encodeURIComponent(cleanTo)}` +
     `&su=${encodeURIComponent(subject || "")}` +
-    `&body=${encodeURIComponent(body || "")}`
+    `&body=${encodeURIComponent(safeBody)}`
   );
 }
+
+function buildMailtoUrl(to, subject, body) {
+  const cleanTo = (to && to.includes("@") && !to.startsWith("verify-")) ? to : "";
+  const safeBody = (body || "").slice(0, 1200);
+  return `mailto:${encodeURIComponent(cleanTo)}?subject=${encodeURIComponent(subject || "")}&body=${encodeURIComponent(safeBody)}`;
+}
+
+window.handleOpenGmailWithCVNotice = function (draftId, event = null) {
+  // 1. Automatically trigger download of official CV PDF
+  try {
+    const a = document.createElement("a");
+    a.href = "data/documents/Dr_Shama_Abidi_Academic_CV_2026.pdf";
+    a.download = "Dr_Shama_Abidi_Academic_CV_2026.pdf";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  } catch (e) {
+    console.warn("Auto-download fallback:", e);
+  }
+
+  // 2. Also copy full text to clipboard for convenience
+  if (appState && appState.email_drafts) {
+    const draft = appState.email_drafts.find((d) => d.id === draftId);
+    if (draft && navigator.clipboard) {
+      navigator.clipboard.writeText(draft.body_text).catch(() => {});
+    }
+  }
+
+  showToast(
+    "📥 Dr. Shama's CV (PDF) has been downloaded to your computer! In Gmail, click the 📎 paperclip (or drag & drop the PDF) to attach it. (A direct cloud link is also already in the email!)"
+  );
+};
+
+window.copyDraftText = function (draftId) {
+  if (!appState || !appState.email_drafts) return;
+  const d = appState.email_drafts.find((item) => item.id === draftId);
+  if (!d) return;
+  const fullText = `To: ${d.recipient_email}\nSubject: ${d.subject}\n\n${d.body_text}`;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(fullText).then(() => {
+      showToast("📋 Full email (To, Subject & Body) copied to clipboard! You can paste it directly into Gmail.");
+    });
+  } else {
+    showToast("📋 Text selected. Press Ctrl+C to copy.");
+  }
+};
 
 /**
  * Fetches the authoritative persistent database state from `/api/state` or `data/production_state.json`.
@@ -741,11 +788,14 @@ function renderDraftsView() {
           <pre style="white-space:pre-wrap;padding:12px;border-radius:8px;background:#0f172a;color:#e2e8f0;font-family:inherit;font-size:0.83rem;border:1px solid var(--border-color);">${escapeHtml(d.body_text)}</pre>
         </div>
         <div class="item-card-actions">
-          <a href="${escapeHtml(composeUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
-            ✉️ Open in Gmail Draft (From: shamaabidiphd@gmail.com)
+          <a href="${escapeHtml(composeUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-primary" onclick="handleOpenGmailWithCVNotice('${escapeHtml(d.id)}', event)">
+            ✉️ Open in Gmail Draft &amp; Download CV
           </a>
-          <a href="data/documents/Dr_Shama_Abidi_Academic_CV_2026.pdf" target="_blank" class="btn btn-secondary" style="border-color:#38bdf8;color:#38bdf8;">
-            📄 View Attached CV (PDF)
+          <button type="button" class="btn btn-secondary" onclick="copyDraftText('${escapeHtml(d.id)}')">
+            📋 Copy Email Text
+          </button>
+          <a href="data/documents/Dr_Shama_Abidi_Academic_CV_2026.pdf" download="Dr_Shama_Abidi_Academic_CV_2026.pdf" class="btn btn-secondary" style="border-color:#38bdf8;color:#38bdf8;">
+            📄 Download CV (PDF)
           </a>
           <button class="btn btn-secondary" onclick="openDraftModal('${escapeHtml(d.id)}')">
             ✏️ Edit Draft Text
@@ -1140,7 +1190,15 @@ window.openDraftModal = function (draftId) {
     const to = document.getElementById("modalRecipientInput").value;
     const sub = document.getElementById("modalSubjectInput").value;
     const body = document.getElementById("modalBodyInput").value;
-    document.getElementById("modalOpenGmailComposeLink").href = buildGmailComposeUrl(to, sub, body);
+    const gmailLink = document.getElementById("modalOpenGmailComposeLink");
+    if (gmailLink) {
+      gmailLink.href = buildGmailComposeUrl(to, sub, body);
+      gmailLink.onclick = () => handleOpenGmailWithCVNotice(draft.id);
+    }
+    const mailtoLink = document.getElementById("modalOpenMailtoLink");
+    if (mailtoLink) {
+      mailtoLink.href = buildMailtoUrl(to, sub, body);
+    }
   };
   updateComposeHref();
   ["modalRecipientInput", "modalSubjectInput", "modalBodyInput"].forEach((id) => {
@@ -1148,6 +1206,20 @@ window.openDraftModal = function (draftId) {
   });
 
   document.getElementById("draftModal").classList.remove("hidden");
+};
+
+window.copyModalFullEmail = function () {
+  const to = document.getElementById("modalRecipientInput")?.value || "";
+  const sub = document.getElementById("modalSubjectInput")?.value || "";
+  const body = document.getElementById("modalBodyInput")?.value || "";
+  const fullText = `To: ${to}\nSubject: ${sub}\n\n${body}`;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(fullText).then(() => {
+      showToast("📋 Full email (To, Subject & Body) copied to clipboard! You can paste it directly into Gmail or Outlook.");
+    });
+  } else {
+    showToast("📋 Text selected. Press Ctrl+C to copy.");
+  }
 };
 
 window.openOrCreateDraftForProfessor = function (profId) {
