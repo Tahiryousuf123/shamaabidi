@@ -1083,9 +1083,9 @@ def run_job_email_draft_generation(daily_limit: Optional[int] = None) -> Dict[st
     now = utc_now_iso()
     batch_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     if daily_limit is None:
-        daily_limit = int(get_setting("daily_draft_limit", "10") or "10")
+        daily_limit = int(get_setting("daily_draft_limit", "300") or "300")
 
-    # Select top candidates without existing initial drafts, prioritizing published emails & funding
+    # Select ALL discovered professors without existing initial drafts (100% Coverage: Funded OR Unfunded)
     candidates = [
         dict(r)
         for r in conn.execute(
@@ -1093,7 +1093,8 @@ def run_job_email_draft_generation(daily_limit: Optional[int] = None) -> Dict[st
             SELECT p.* FROM professors p
             LEFT JOIN email_drafts d ON d.professor_id = p.id AND d.draft_type = 'INITIAL_OUTREACH'
             WHERE d.id IS NULL
-              AND p.verification_status IN ('VERIFIED', 'PARTIALLY VERIFIED')
+              AND p.country_code != 'PK'
+              AND LOWER(p.country) NOT LIKE '%pakistan%'
             ORDER BY
               CASE WHEN p.official_email != '' THEN 1 ELSE 0 END DESC,
               CASE WHEN p.funding_status = 'VERIFIED' THEN 2
