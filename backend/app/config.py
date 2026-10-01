@@ -79,7 +79,7 @@ class Settings:
     EMAIL_AUTOMATION_ENABLED: bool = (
         os.getenv("EMAIL_AUTOMATION_ENABLED", "false").strip().lower() == "true"
     )
-    SMTP_FROM: str = os.getenv("SMTP_FROM", "shama.abidi80@gmail.com")
+    SMTP_FROM: str = os.getenv("SMTP_FROM", "shamaabidiphd@gmail.com")
     SENTRY_DSN: str = os.getenv("SENTRY_DSN", "")
 
 

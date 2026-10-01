@@ -36,7 +36,7 @@ jobs:
       - name: Commit & Sync Updated Persistent Database Snapshot to Cloud
         run: |
           git config user.name "Shama Abidi Autonomous Cloud Agent"
-          git config user.email "shama.abidi80@gmail.com"
+          git config user.email "shamaabidiphd@gmail.com"
           git add data/production_state.json data/shama_production.db
           git diff --staged --quiet || git commit -m "chore(autonomous-batch): sync daily international professors, funding evidence & Gmail drafts"
           git push

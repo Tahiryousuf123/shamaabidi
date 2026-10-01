@@ -360,7 +360,7 @@ def fetch_candidates_from_europe_pmc(
     url = f"https://www.ebi.ac.uk/europepmc/webservices/rest/search?{params}"
     req = urllib.request.Request(
         url,
-        headers={"User-Agent": "ShamaAbidiPhDAgent/4.0 (mailto:shama.abidi80@gmail.com)"},
+        headers={"User-Agent": "ShamaAbidiPhDAgent/4.0 (mailto:shamaabidiphd@gmail.com)"},
     )
     candidates: List[Dict[str, Any]] = []
     try:
@@ -459,7 +459,7 @@ def fetch_candidates_from_openalex(
     per_page: int = 20,
 ) -> List[Dict[str, Any]]:
     """
-    Queries the free OpenAlex Works API with polite pool `mailto=shama.abidi80@gmail.com`,
+    Queries the free OpenAlex Works API with polite pool `mailto=shamaabidiphd@gmail.com`,
     filtering strictly for institutions outside Pakistan (`country_code != 'PK'`).
     """
     params = urllib.parse.urlencode(
@@ -468,13 +468,13 @@ def fetch_candidates_from_openalex(
             "filter": "from_publication_date:2023-01-01",
             "per-page": per_page,
             "page": page,
-            "mailto": "shama.abidi80@gmail.com",
+            "mailto": "shamaabidiphd@gmail.com",
         }
     )
     url = f"https://api.openalex.org/works?{params}"
     req = urllib.request.Request(
         url,
-        headers={"User-Agent": "ShamaAbidiPhDAgent/4.0 (mailto:shama.abidi80@gmail.com)"},
+        headers={"User-Agent": "ShamaAbidiPhDAgent/4.0 (mailto:shamaabidiphd@gmail.com)"},
     )
     candidates: List[Dict[str, Any]] = []
     try:
@@ -1038,43 +1038,105 @@ def compose_personalized_outreach_email(prof: Dict[str, Any]) -> Tuple[str, str]
     real publication, Shama Abidi's matched publication, and her clinical pharmacy background.
     """
     prof_name = prof.get("full_name", "Professor")
+    clean_salutation = prof_name
+    if not clean_salutation.startswith(("Prof.", "Dr.", "Professor", "Associate Professor")):
+        clean_salutation = f"Professor {prof_name}"
+
     uni_name = prof.get("university_name", "your university")
     country = prof.get("country", "")
     paper_title = prof.get("recent_paper_title", "your recent clinical pharmacy research")
     paper_year = prof.get("recent_paper_year") or 2024
     paper_doi = prof.get("recent_paper_doi") or ""
-    shama_paper = prof.get(
-        "matched_shama_Work_title",
-        "Evaluation of Carbapenem Antimicrobial Stewardship Program in Intensive Care Units (PJPS, 2022)",
-    )
-    why_match = prof.get("why_matches_shama", "")
     funding_status = prof.get("funding_status", "NO EVIDENCE FOUND")
+    research_topic = prof.get("research_topic") or prof.get("department") or "Clinical Pharmacy"
 
-    subject = f"Prospective PhD Application Inquiry — Clinical Pharmacy & Outcomes Research (Dr. Shama Abidi, PharmD, MPhil)"
+    # Determine primary research pillar synergy
+    topic_hay = f"{paper_title} {research_topic} {prof.get('why_matches_shama', '')}".lower()
 
-    doi_clause = f" (DOI: {paper_doi})" if paper_doi else ""
-    funding_line = (
-        "I also noticed your research group's externally supported work in this area and would be grateful to learn whether funded PhD studentships or doctoral scholarship nominations may be available for the upcoming intake."
-        if funding_status in ("VERIFIED", "PARTIALLY VERIFIED")
-        else "I would be very grateful to learn whether your research group anticipates PhD supervision capacity for the upcoming academic intake, and whether university or international doctoral scholarship tracks might be applicable."
-    )
+    if any(k in topic_hay for k in ["antimicrobial", "stewardship", "carbapenem", "antibiotic", "infection", "sepsis", "icu", "meropenem", "resistance"]):
+        subject = f"Prospective PhD Inquiry: Antimicrobial Stewardship & Intensive Care Pharmacotherapy — Dr. Shama Abidi (PharmD, MPhil)"
+        synergy_paragraph = (
+            "My prospective interventional research at Liaquat National Hospital evaluated a multidisciplinary carbapenem "
+            "antimicrobial stewardship program across medical/surgical ICUs (N=134, published in PJPS, 2022). That study demonstrated "
+            "an 87.3% physician intervention acceptance rate and achieved 62.7% renal dose adjustments based on calculated creatinine "
+            f"clearance (p=0.036). Connecting this with your work on \"{paper_title}\", I am eager to investigate clinical pharmacist-led "
+            "stewardship models, therapeutic drug monitoring, and precision dosing for resistant pathogens."
+        )
+    elif any(k in topic_hay for k in ["cardio", "angina", "ischemi", "heart", "calcium channel", "beta blocker", "hypertension", "vascular"]):
+        subject = f"Prospective PhD Inquiry: Cardiovascular Pharmacotherapy & Patient-Reported Outcomes — Dr. Shama Abidi (PharmD, MPhil)"
+        synergy_paragraph = (
+            "For my MPhil in Pharmacy Practice at the University of Karachi (supervised by Dr. Saira Saeed Khan), my thesis investigated "
+            "the comparative effectiveness and safety of calcium channel blockers versus beta blockers in angina pectoris (N=110, PJPS 2024). "
+            "Utilizing the Seattle Angina Questionnaire (SAQ-7) and the Naranjo adverse drug reaction causality algorithm, we quantified "
+            f"significant gains in physical limitation and treatment satisfaction. Your findings in \"{paper_title}\" strongly inspire my "
+            "plan to expand cardiovascular outcomes research and drug safety evaluations."
+        )
+    elif any(k in topic_hay for k in ["ai", "artificial intelligence", "decision support", "digital", "machine learning", "algorithm", "electronic health"]):
+        subject = f"Prospective PhD Inquiry: Clinical Pharmacist Interventions vs. AI Clinical Decision Support — Dr. Shama Abidi"
+        synergy_paragraph = (
+            "At Liaquat National Hospital, I co-investigated prospective trials comparing clinical pharmacist bedside interventions directly "
+            "against AI-powered clinical decision support systems (JPPP, 2025). We analyzed high-alert medication safety and rule-based algorithmic "
+            f"error detection. Given your contributions in \"{paper_title}\", I am very keen to examine how clinical AI tools can be integrated into "
+            "hospital pharmacy workflows without compromising clinical judgment."
+        )
+    elif any(k in topic_hay for k in ["medication safety", "pharmacovigilance", "adverse", "high-alert", "error", "safety"]):
+        subject = f"Prospective PhD Inquiry: Medication Safety, High-Alert Medications & Pharmacovigilance — Dr. Shama Abidi"
+        synergy_paragraph = (
+            "With over 18 years as Senior Clinical Pharmacist in tertiary care (Liaquat National Hospital), my focus centers on institutional "
+            "medication safety and multidisciplinary pharmacovigilance. My 2025 JPPP publication examined knowledge, risk perceptions, and "
+            f"safety practices for high-alert medications across clinical teams. Your work in \"{paper_title}\" offers directly complementary "
+            "perspectives for designing robust hospital error-prevention systems."
+        )
+    else:
+        subject = f"Prospective PhD Application Inquiry — Clinical Pharmacy Practice & Implementation Research (Dr. Shama Abidi, PharmD, MPhil)"
+        synergy_paragraph = (
+            "Drawing on 18 years of tertiary-care hospital experience (Liaquat National Hospital) and leadership as Vice President of the "
+            "Pakistan Pharmacist Association (Sindh Cabinet), my recent research (FIP World Congress Montreal 2026; PJPS 2022/2024) explores "
+            f"evidence-based pharmacy implementation and health-system outcomes. Your publication \"{paper_title}\" provides an exceptional "
+            "foundation for my proposed doctoral investigation."
+        )
+
+    doi_text = f" (DOI: {paper_doi})" if paper_doi else ""
+
+    if funding_status in ("VERIFIED", "PARTIALLY VERIFIED"):
+        funding_block = (
+            "I noted your research group's active externally funded grants and would be grateful to discuss whether funded PhD studentships, "
+            "graduate assistantships, or university doctoral scholarship nominations are anticipated for the 2026/2027 academic cycle."
+        )
+    else:
+        funding_block = (
+            "I would be very grateful to learn whether your lab has supervision capacity for a prospective PhD candidate, and whether university "
+            "or international doctoral fellowship tracks (e.g., graduate research/teaching assistantships) might be applicable."
+        )
+
+    cv_link = "https://aspnetaptech-cyber.github.io/shama-abidi-phd-system/data/documents/Dr_Shama_Abidi_Academic_CV_2026.pdf"
 
     body = (
-        f"Dear {prof_name},\n\n"
-        f"I hope this email finds you well. I am writing to express my strong interest in pursuing a PhD under your supervision at {uni_name} ({country}).\n\n"
-        f"I recently read your {paper_year} publication, \"{paper_title}\"{doi_clause}, and found its focus directly aligned with my clinical research experience.\n\n"
-        f"I hold a Doctor of Pharmacy (PharmD) and an MPhil in Pharmacy Practice from the University of Karachi, and I currently serve as a Senior Clinical Pharmacist at Liaquat National Hospital and Medical College. "
-        f"My published work includes \"{shama_paper}\", as well as prospective cohort studies on ICU carbapenem antimicrobial stewardship (N=134, achieving an 87.3% physician intervention acceptance rate and 62.7% renal CrCl dose adjustments, p=0.036; PJPS 2022), "
-        f"comparative antianginal pharmacotherapy using the Seattle Angina Questionnaire (SAQ-7) and Naranjo ADR scale (N=110; PJPS 2024), and clinical evaluations of AI decision support versus clinical pharmacist interventions (JPPP 2025).\n\n"
-        f"Research Alignment Rationale:\n"
-        f"- {why_match}\n\n"
-        f"{funding_line}\n\n"
-        f"I have attached my Curriculum Vitae and published research papers for your review, and I would be honored to discuss a brief PhD research concept note at your convenience.\n\n"
-        f"Thank you very much for your time and consideration.\n\n"
+        f"Dear {clean_salutation},\n\n"
+        f"I hope this email finds you well. I am writing to express my strong interest in pursuing a PhD under your supervision in the {prof.get('department') or 'Department'} at {uni_name} ({country}).\n\n"
+        f"I recently studied your {paper_year} publication, \"{paper_title}\"{doi_text}, and found its methodology and clinical implications deeply inspiring.\n\n"
+        f"{synergy_paragraph}\n\n"
+        f"Candidate Academic Summary:\n"
+        f"• Current Role: Senior Pharmacist / Clinical Pharmacy, Liaquat National Hospital and Medical College (2007–Present; 18+ years of inpatient, ICU, and clinical practice)\n"
+        f"• MPhil in Pharmacy Practice: Faculty of Pharmacy, University of Karachi (Thesis: CCBs vs. Beta Blockers in Angina; Supervisor: Dr. Saira Saeed Khan)\n"
+        f"• Doctor of Pharmacy (PharmD): Federal Urdu University of Arts, Sciences and Technology\n"
+        f"• Peer-Reviewed Publications: PJPS (2020, 2022, 2024), JPPP (2025), FIP World Congress Montreal (2026)\n"
+        f"• Professional Leadership: Vice President, Pakistan Pharmacist Association (PPA) Sindh Cabinet (Appointed 2023)\n\n"
+        f"Research Synergy Alignment:\n"
+        f"- {prof.get('why_matches_shama', 'Demonstrated clinical and methodological overlap with your laboratory focus.')}\n\n"
+        f"{funding_block}\n\n"
+        f"Curriculum Vitae & Verified Credentials (Attached & Accessible Online):\n"
+        f"• Complete Academic CV (PDF): {cv_link}\n"
+        f"• Official ORCID Record: https://orcid.org/0009-0008-3714-1675\n"
+        f"• LinkedIn Profile: https://www.linkedin.com/in/shama-abidi-5a41a0304/\n\n"
+        f"I have also attached my Academic CV and published research papers to this email for your immediate review. I would welcome the opportunity to discuss a brief PhD research concept note or schedule a brief virtual meeting at your convenience.\n\n"
+        f"Thank you very much for your time, consideration, and leadership in the field.\n\n"
         f"Warm regards,\n"
         f"Dr. Shama Abidi, PharmD, MPhil (Pharmacy Practice)\n"
         f"Senior Clinical Pharmacist, Liaquat National Hospital & Medical College\n"
-        f"Email: shama.abidi80@gmail.com | WhatsApp: +92 300 2460274"
+        f"Vice President, Pakistan Pharmacist Association (PPA) Sindh Cabinet\n"
+        f"Email: shamaabidiphd@gmail.com | WhatsApp: +92 300 2460474\n"
+        f"ORCID: 0009-0008-3714-1675 | LinkedIn: https://www.linkedin.com/in/shama-abidi-5a41a0304/"
     )
     return subject, body
 
@@ -1128,7 +1190,7 @@ def run_job_email_draft_generation(daily_limit: Optional[int] = None) -> Dict[st
             recipient_email=recipient,
             subject=subject,
             body_text=body_text,
-            sender_email="shama.abidi80@gmail.com",
+            sender_email="shamaabidiphd@gmail.com",
         )
 
         draft_id = make_id("draft", f"{prof['id']}_INITIAL")
@@ -1345,7 +1407,7 @@ def run_job_followup_detection() -> Dict[str, Any]:
                 f"Warm regards,\n"
                 f"Dr. Shama Abidi, PharmD, MPhil\n"
                 f"Senior Clinical Pharmacist, Liaquat National Hospital & Medical College\n"
-                f"shama.abidi80@gmail.com | +92 300 2460274"
+                f"shamaabidiphd@gmail.com | +92 300 2460474"
             )
 
             gmail_res = create_gmail_draft(

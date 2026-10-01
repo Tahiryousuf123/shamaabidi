@@ -1,11 +1,11 @@
 """
-One-Time Helper Script to Generate GMAIL_OAUTH_REFRESH_TOKEN for shama.abidi80@gmail.com
+One-Time Helper Script to Generate GMAIL_OAUTH_REFRESH_TOKEN for shamaabidiphd@gmail.com
 Zero Password Storage — Official Google OAuth 2.0 Flow
 
 Usage:
   1. Set GMAIL_OAUTH_CLIENT_ID and GMAIL_OAUTH_CLIENT_SECRET in your .env (or enter when prompted)
   2. Run: python backend/gmail_oauth_setup.py
-  3. Log in with shama.abidi80@gmail.com in the browser window that opens
+  3. Log in with shamaabidiphd@gmail.com in the browser window that opens
   4. Copy the printed GMAIL_OAUTH_REFRESH_TOKEN into your .env file!
 """
 
@@ -68,12 +68,12 @@ def main():
             "scope": SCOPES,
             "access_type": "offline",
             "prompt": "consent",
-            "login_hint": "shama.abidi80@gmail.com",
+            "login_hint": "shamaabidiphd@gmail.com",
         }
     )
     auth_url = f"https://accounts.google.com/o/oauth2/v2/auth?{auth_params}"
 
-    print("\n1. Opening your browser for Google OAuth2 login (shama.abidi80@gmail.com)...")
+    print("\n1. Opening your browser for Google OAuth2 login (shamaabidiphd@gmail.com)...")
     print(f"   If it does not open automatically, visit:\n   {auth_url}\n")
     webbrowser.open(auth_url)
 

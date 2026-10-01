@@ -48,7 +48,7 @@ def check_gmail_oauth_status() -> Dict[str, Any]:
             "classification": "REQUIRES ACCOUNT/AUTHORIZATION",
             "connected": False,
             "status_label": "REQUIRES GMAIL OAUTH AUTHORIZATION",
-            "account": "shama.abidi80@gmail.com",
+            "account": "shamaabidiphd@gmail.com",
             "detail": "Set GMAIL_OAUTH_CLIENT_ID, GMAIL_OAUTH_CLIENT_SECRET, and GMAIL_OAUTH_REFRESH_TOKEN in .env / Cloud Secrets to enable automatic syncing directly into Gmail Drafts folder. Until authorized, drafts are saved in the CRM database with 1-click 'Open in Gmail Compose' links.",
         }
 
@@ -65,7 +65,7 @@ def check_gmail_oauth_status() -> Dict[str, Any]:
                 "classification": "REQUIRES ACCOUNT/AUTHORIZATION",
                 "connected": True,
                 "status_label": "CONNECTED (LIVE OAUTH 2.0)",
-                "account": prof.get("emailAddress", "shama.abidi80@gmail.com"),
+                "account": prof.get("emailAddress", "shamaabidiphd@gmail.com"),
                 "detail": "Live Gmail OAuth 2.0 verified for Draft creation and Reply monitoring.",
             }
     except Exception as e:
@@ -74,7 +74,7 @@ def check_gmail_oauth_status() -> Dict[str, Any]:
             "classification": "REQUIRES ACCOUNT/AUTHORIZATION",
             "connected": False,
             "status_label": "OAUTH TOKEN INVALID OR EXPIRED",
-            "account": "shama.abidi80@gmail.com",
+            "account": "shamaabidiphd@gmail.com",
             "detail": f"OAuth token exchange failed: {e}",
         }
 
@@ -118,7 +118,7 @@ def create_gmail_draft(
     recipient_email: str,
     subject: str,
     body_text: str,
-    sender_email: str = "shama.abidi80@gmail.com",
+    sender_email: str = "shamaabidiphd@gmail.com",
 ) -> Dict[str, Any]:
     """
     Section 14 & 15: Creates an email draft inside Shama Abidi's Gmail Drafts folder
@@ -261,7 +261,7 @@ def classify_professor_reply_text(subject: str, body_text: str) -> Dict[str, str
 
 def check_unread_professor_replies(max_results: int = 10) -> List[Dict[str, Any]]:
     """
-    Polls shama.abidi80@gmail.com via OAuth2 for unread replies and classifies them.
+    Polls shamaabidiphd@gmail.com via OAuth2 for unread replies and classifies them.
     """
     try:
         access_token = get_gmail_access_token()
@@ -311,7 +311,7 @@ def send_email_via_gmail_oauth(
     recipient_email: str,
     subject: str,
     body_text: str,
-    sender_email: str = "shama.abidi80@gmail.com",
+    sender_email: str = "shamaabidiphd@gmail.com",
 ) -> Dict[str, Any]:
     """
     Backward-compatible helper that creates a Gmail Draft (or sends only when explicitly

@@ -141,6 +141,21 @@ def seed_roles_users_and_jobs(db: Session) -> None:
     db.commit()
 
     # 3. Default Users (Admin: Dr. Shama Abidi, Researcher, Viewer)
+    if not db.query(User).filter(User.email == "shamaabidiphd@gmail.com").first():
+        db.add(
+            User(
+                id="user_admin_shama_phd",
+                email="shamaabidiphd@gmail.com",
+                full_name="Dr. Shama Abidi",
+                password_hash=hash_password("ShamaPhD#2026!Secure"),
+                role=RoleEnum.ADMIN.value,
+                is_active=True,
+                totp_secret="JBSWY3DPEHPK3PXP",
+                totp_enabled=False,
+                degree_title="PharmD, MPhil in Pharmacy Practice",
+                institution="Liaquat National Hospital & University of Karachi",
+            )
+        )
     if not db.query(User).filter(User.email == "shama.abidi80@gmail.com").first():
         db.add(
             User(
@@ -206,7 +221,7 @@ def seed_roles_users_and_jobs(db: Session) -> None:
                     "Dear {professor_name},\n\n"
                     "I am writing to express my interest in pursuing a PhD under your supervision at {university_name}.\n"
                     "I recently studied your work, \"{paper_title}\", which aligns with my peer-reviewed clinical pharmacy research in PJPS (2022, 2024) and JPPP (2025).\n\n"
-                    "Warm regards,\nDr. Shama Abidi, PharmD, MPhil\nshama.abidi80@gmail.com"
+                    "Warm regards,\nDr. Shama Abidi, PharmD, MPhil\nshamaabidiphd@gmail.com"
                 ),
             )
         )
@@ -1032,7 +1047,7 @@ def schedule_followup_for_email(
         draft_body=(
             f"Dear {prof_name},\n\n"
             f"I hope you are well. I am writing to politely follow up on my earlier PhD supervision inquiry.\n\n"
-            f"Warm regards,\nDr. Shama Abidi, PharmD, MPhil\nshama.abidi80@gmail.com"
+            f"Warm regards,\nDr. Shama Abidi, PharmD, MPhil\nshamaabidiphd@gmail.com"
         ),
     )
     db.add(fl)
@@ -1204,7 +1219,7 @@ def _run_job_logic(db: Session, job_type: str) -> Tuple[int, int, int, int]:
                 f"Dear {p.full_name},\n\n"
                 f"I am writing to express my strong interest in pursuing a PhD under your supervision at {uni_name}.\n"
                 f"Alignment Rationale: {p.why_matches}\n\n"
-                f"Warm regards,\nDr. Shama Abidi, PharmD, MPhil\nshama.abidi80@gmail.com"
+                f"Warm regards,\nDr. Shama Abidi, PharmD, MPhil\nshamaabidiphd@gmail.com"
             )
             _, is_new = create_safe_email_draft(db, p.id, subj, body, p.email)
             if is_new:

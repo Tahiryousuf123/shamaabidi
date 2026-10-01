@@ -107,6 +107,7 @@ function buildGmailComposeUrl(to, subject, body) {
   const cleanTo = (to && to.includes("@") && !to.startsWith("verify-")) ? to : "";
   return (
     "https://mail.google.com/mail/?view=cm&fs=1" +
+    `&authuser=${encodeURIComponent("shamaabidiphd@gmail.com")}` +
     `&to=${encodeURIComponent(cleanTo)}` +
     `&su=${encodeURIComponent(subject || "")}` +
     `&body=${encodeURIComponent(body || "")}`
@@ -567,7 +568,12 @@ function renderProfessorsView() {
         <td data-label="University &amp; Country">
           <div style="font-weight:600;color:#e2e8f0;">${escapeHtml(p.university_name)}</div>
           <div style="font-size:0.76rem;color:var(--text-muted);">${escapeHtml(p.department)}</div>
-          <span class="status-pill" style="margin-top:3px;font-size:0.72rem;">🌍 ${escapeHtml(p.country)}</span>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:4px;">
+            <span class="status-pill" style="font-size:0.72rem;">🌍 ${escapeHtml(p.country)}</span>
+            <a href="${escapeHtml(paperLink)}" target="_blank" rel="noopener noreferrer" style="font-size:0.72rem;color:#38bdf8;background:rgba(56,189,248,0.12);padding:2px 7px;border-radius:4px;border:1px solid rgba(56,189,248,0.3);text-decoration:none;font-weight:600;">
+              🔗 Source Link ↗
+            </a>
+          </div>
         </td>
         <td data-label="Discovery Source &amp; Paper Provenance">
           <div style="margin-bottom:3px;">${srcBadge}</div>
@@ -728,11 +734,18 @@ function renderDraftsView() {
             <strong>Referenced Professor Paper:</strong> "${escapeHtml(d.referenced_professor_paper)}"<br/>
             <strong>Matched Shama Publication:</strong> "${escapeHtml(d.referenced_shama_paper)}"
           </div>
+          <div style="margin-bottom:8px;padding:8px 12px;background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.25);border-radius:6px;font-size:0.78rem;color:#bae6fd;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+            <span>📎 <strong>Academic CV Attached:</strong> Dr. Shama Abidi 2026 Academic CV (PDF link embedded in email body for 1-click professor access)</span>
+            <a href="data/documents/Dr_Shama_Abidi_Academic_CV_2026.pdf" target="_blank" style="color:#38bdf8;font-weight:600;text-decoration:underline;">📥 View/Download CV PDF</a>
+          </div>
           <pre style="white-space:pre-wrap;padding:12px;border-radius:8px;background:#0f172a;color:#e2e8f0;font-family:inherit;font-size:0.83rem;border:1px solid var(--border-color);">${escapeHtml(d.body_text)}</pre>
         </div>
         <div class="item-card-actions">
           <a href="${escapeHtml(composeUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
-            ✉️ Open in Gmail Draft / Compose (Attach CV &amp; Click Send)
+            ✉️ Open in Gmail Draft (From: shamaabidiphd@gmail.com)
+          </a>
+          <a href="data/documents/Dr_Shama_Abidi_Academic_CV_2026.pdf" target="_blank" class="btn btn-secondary" style="border-color:#38bdf8;color:#38bdf8;">
+            📄 View Attached CV (PDF)
           </a>
           <button class="btn btn-secondary" onclick="openDraftModal('${escapeHtml(d.id)}')">
             ✏️ Edit Draft Text
@@ -816,7 +829,7 @@ function renderRepliesView() {
       <div class="item-card">
         <div class="item-card-title">No Professor Replies Recorded Yet</div>
         <div class="item-card-body">
-          When professors reply to <code>shama.abidi80@gmail.com</code>, the Gmail Reply Monitor matches the thread and classifies the response into one of the 8 required categories (<code>INTERESTED</code>, <code>CV REQUESTED</code>, <code>MEETING REQUEST</code>, <code>MORE INFORMATION</code>, <code>POSITIVE</code>, <code>DECLINED</code>, <code>NOT RELEVANT</code>, <code>OTHER</code>).
+          When professors reply to <code>shamaabidiphd@gmail.com</code>, the Gmail Reply Monitor matches the thread and classifies the response into one of the 8 required categories (<code>INTERESTED</code>, <code>CV REQUESTED</code>, <code>MEETING REQUEST</code>, <code>MORE INFORMATION</code>, <code>POSITIVE</code>, <code>DECLINED</code>, <code>NOT RELEVANT</code>, <code>OTHER</code>).
           You can also test the classifier above using <em>"Test / Record Incoming Professor Reply Classification"</em>.
         </div>
       </div>
@@ -991,8 +1004,8 @@ function renderSettingsView() {
   setVal("setDailyDiscoveryTarget", s.daily_discovery_target || "60");
   setVal("setDailyDraftLimit", s.daily_draft_limit || "10");
   setVal("setFollowupDays", s.followup_days || "7");
-  setVal("setGmailAccount", s.gmail_account || "shama.abidi80@gmail.com");
-  setVal("setWhatsappPhone", s.whatsapp_recipient_number || "+923002460274");
+  setVal("setGmailAccount", s.gmail_account || "shamaabidiphd@gmail.com");
+  setVal("setWhatsappPhone", s.whatsapp_recipient_number || "+923002460474");
 }
 
 function renderHealthView() {
@@ -1150,8 +1163,12 @@ window.openOrCreateDraftForProfessor = function (profId) {
       `I recently read your ${prof.recent_paper_year || 2024} publication, "${prof.recent_paper_title}", and found its focus directly aligned with my clinical research experience.\n\n` +
       `I hold a Doctor of Pharmacy (PharmD) and an MPhil in Pharmacy Practice from the University of Karachi, and I currently serve as a Senior Clinical Pharmacist at Liaquat National Hospital and Medical College. My published work includes "${prof.matched_shama_Work_title || "Evaluation of Carbapenem Antimicrobial Stewardship Program in Intensive Care Units (PJPS, 2022)"}", as well as prospective cohort studies on antianginal pharmacotherapy using the Seattle Angina Questionnaire (SAQ-7) and Naranjo ADR scale (PJPS 2024) and clinical evaluations of AI decision support versus clinical pharmacist interventions (JPPP 2025).\n\n` +
       `Research Alignment Rationale:\n- ${prof.why_matches_shama}\n\n` +
-      `I have attached my Curriculum Vitae and published research papers for your review, and I would be honored to discuss a brief PhD research concept note at your convenience.\n\n` +
-      `Warm regards,\nDr. Shama Abidi, PharmD, MPhil (Pharmacy Practice)\nSenior Clinical Pharmacist, Liaquat National Hospital & Medical College\nEmail: shama.abidi80@gmail.com | WhatsApp: +92 300 2460274`;
+      `Curriculum Vitae & Verified Credentials (Attached & Accessible Online):\n` +
+      `• Complete Academic CV (PDF): https://aspnetaptech-cyber.github.io/shama-abidi-phd-system/data/documents/Dr_Shama_Abidi_Academic_CV_2026.pdf\n` +
+      `• Official ORCID Record: https://orcid.org/0009-0008-3714-1675\n` +
+      `• LinkedIn Profile: https://www.linkedin.com/in/shama-abidi-5a41a0304/\n\n` +
+      `I have attached my Academic CV and published research papers for your review, and I would be honored to discuss a brief PhD research concept note at your convenience.\n\n` +
+      `Warm regards,\nDr. Shama Abidi, PharmD, MPhil (Pharmacy Practice)\nSenior Clinical Pharmacist, Liaquat National Hospital & Medical College\nVice President, Pakistan Pharmacist Association (PPA) Sindh Cabinet\nEmail: shamaabidiphd@gmail.com | WhatsApp: +92 300 2460474`;
 
     draft = {
       id: `draft_${prof.id}`,
@@ -1199,8 +1216,12 @@ window.openOrCreateDraftForOpportunity = function (oppId) {
       `- Antianginal pharmacotherapy outcomes using the SAQ-7 and Naranjo adverse drug reaction causality assessment (N=110; PJPS 2024)\n` +
       `- Artificial intelligence clinical decision support versus clinical pharmacist interventions (JPPP 2025)\n\n` +
       `Research Alignment Rationale:\n- ${opp.match_rationale || "Direct alignment with clinical pharmacy and pharmacotherapy research."}\n\n` +
-      `I have attached my Curriculum Vitae and published research papers for your review, and I would be honored to discuss a brief PhD research concept note at your convenience.\n\n` +
-      `Warm regards,\nDr. Shama Abidi, PharmD, MPhil (Pharmacy Practice)\nSenior Clinical Pharmacist, Liaquat National Hospital & Medical College\nEmail: shama.abidi80@gmail.com | WhatsApp: +92 300 2460274`;
+      `Curriculum Vitae & Verified Credentials (Attached & Accessible Online):\n` +
+      `• Complete Academic CV (PDF): https://aspnetaptech-cyber.github.io/shama-abidi-phd-system/data/documents/Dr_Shama_Abidi_Academic_CV_2026.pdf\n` +
+      `• Official ORCID Record: https://orcid.org/0009-0008-3714-1675\n` +
+      `• LinkedIn Profile: https://www.linkedin.com/in/shama-abidi-5a41a0304/\n\n` +
+      `I have attached my Academic CV and published research papers for your review, and I would be honored to discuss a brief PhD research concept note at your convenience.\n\n` +
+      `Warm regards,\nDr. Shama Abidi, PharmD, MPhil (Pharmacy Practice)\nSenior Clinical Pharmacist, Liaquat National Hospital & Medical College\nVice President, Pakistan Pharmacist Association (PPA) Sindh Cabinet\nEmail: shamaabidiphd@gmail.com | WhatsApp: +92 300 2460474`;
 
     draft = {
       id: `draft_opp_${opp.id}`,
@@ -1443,8 +1464,12 @@ async function executeLiveDiscoveryBatch(jobId = "ALL") {
             `I recently studied your ${p.recent_paper_year || 2025} publication, "${p.recent_paper_title}", and noted deep methodological synergy with my clinical research in antimicrobial optimization, pharmacovigilance, and AI-assisted clinical decision support.\n\n` +
             `I hold a Doctor of Pharmacy (PharmD) and an MPhil in Pharmacy Practice from the University of Karachi, and serve as Senior Clinical Pharmacist at Liaquat National Hospital & Medical College. My published work includes "${p.matched_shama_Work_title}", along with prospective studies in the Pakistan Journal of Pharmaceutical Sciences (PJPS, 2022/2024) and the Journal of Pharmaceutical Policy and Practice (JPPP, 2025).\n\n` +
             `Research Alignment Rationale:\n- ${p.why_matches_shama}\n\n` +
+            `Curriculum Vitae & Verified Credentials (Attached & Accessible Online):\n` +
+            `• Complete Academic CV (PDF): https://aspnetaptech-cyber.github.io/shama-abidi-phd-system/data/documents/Dr_Shama_Abidi_Academic_CV_2026.pdf\n` +
+            `• Official ORCID Record: https://orcid.org/0009-0008-3714-1675\n` +
+            `• LinkedIn Profile: https://www.linkedin.com/in/shama-abidi-5a41a0304/\n\n` +
             `I have attached my detailed Curriculum Vitae and published papers for your review, and I would be honored to discuss a brief PhD research concept note at your convenience.\n\n` +
-            `Warm regards,\nDr. Shama Abidi, PharmD, MPhil (Pharmacy Practice)\nSenior Clinical Pharmacist, Liaquat National Hospital & Medical College\nEmail: shama.abidi80@gmail.com | WhatsApp: +92 300 2460274`;
+            `Warm regards,\nDr. Shama Abidi, PharmD, MPhil (Pharmacy Practice)\nSenior Clinical Pharmacist, Liaquat National Hospital & Medical College\nVice President, Pakistan Pharmacist Association (PPA) Sindh Cabinet\nEmail: shamaabidiphd@gmail.com | WhatsApp: +92 300 2460474`;
 
           return {
             id: `draft_${p.id}`,

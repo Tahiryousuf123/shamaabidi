@@ -72,8 +72,8 @@ def init_database() -> None:
             "Liaquat National Hospital and Medical College & University of Karachi",
             "Karachi",
             "Pakistan",
-            "shama.abidi80@gmail.com",
-            "+923002460274",
+            "shamaabidiphd@gmail.com",
+            "+923002460474",
             now,
             now,
         ),
@@ -81,7 +81,7 @@ def init_database() -> None:
 
     # 19. Seed default system_settings (Section 23.11)
     default_settings = [
-        ("target_countries", "United Kingdom, Germany, Australia, Sweden, Netherlands, Canada, United States, Switzerland, Denmark, New Zealand, Ireland, Belgium, Norway, Finland, Singapore, Japan", "Target countries outside Pakistan for PhD supervisor discovery"),
+        ("target_countries", "United States of America, Canada, Australia, New Zealand, United Kingdom, Ireland, Germany, France, Netherlands, Belgium, Switzerland, Austria, Sweden, Norway, Denmark, Finland, Iceland, Luxembourg, Italy, Spain, Portugal, Greece, Poland, Czechia, Singapore, Japan, South Korea, Hong Kong", "Strict approved target countries outside Pakistan for PhD supervisor discovery"),
         ("excluded_countries", "Pakistan", "Countries strictly excluded from professor discovery"),
         ("daily_discovery_target", "60", "Target number of new international candidates discovered per daily batch (30-100)"),
         ("daily_draft_limit", "300", "Maximum personalized Gmail outreach drafts created per day (100% coverage of discovered professors, funded and unfunded)"),
@@ -89,8 +89,8 @@ def init_database() -> None:
         ("initial_email_auto_send", "DISABLED", "HARD SAFETY LOCK: AI only creates Gmail Drafts; Shama manually clicks Send"),
         ("followup_email_auto_send", "DISABLED", "HARD SAFETY LOCK: Follow-up emails are generated as drafts only"),
         ("professor_reply_auto_send", "DISABLED", "HARD SAFETY LOCK: AI never auto-replies to professors"),
-        ("whatsapp_recipient_number", "+923002460274", "Dr. Shama Abidi's WhatsApp alert number"),
-        ("gmail_account", "shama.abidi80@gmail.com", "Dr. Shama Abidi's Gmail account for drafts and reply monitoring"),
+        ("whatsapp_recipient_number", "+923002460474", "Dr. Shama Abidi's WhatsApp alert number"),
+        ("gmail_account", "shamaabidiphd@gmail.com", "Dr. Shama Abidi's Gmail account for drafts and reply monitoring"),
         ("discovery_cursor_page", "1", "Rotating pagination cursor so every daily batch discovers fresh professors"),
     ]
     for k, v, desc in default_settings:
