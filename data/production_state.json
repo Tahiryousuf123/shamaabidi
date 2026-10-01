@@ -1,11 +1,13 @@
 {
   "schema_version": "4.0.0-production",
-  "generated_at": "2026-09-29T19:37:06Z",
-  "database_engine": "SQLite / PostgreSQL 19-Table Production Relational Schema",
+  "generated_at": "2026-10-01T14:47:58Z",
+  "database_engine": "SQLite / PostgreSQL 28-Table Production Relational Schema",
   "dashboard_kpis": {
     "new_candidates": 140,
     "verified_professors": 140,
     "funding_opportunities": 13,
+    "global_phd_opportunities": 2,
+    "recommended_opportunities": 1,
     "drafts_waiting": 12,
     "sent_emails": 0,
     "replies": 0,
@@ -13221,6 +13223,910 @@
       }
     }
   ],
+  "phd_opportunities": [
+    {
+      "id": "edef1d5c-f2c8-4da0-838a-807584cc4faf",
+      "country": "United Kingdom",
+      "country_code": "GB",
+      "region": "Europe — Western and Northern Europe",
+      "university_name": "University of Oxford dbcaf5",
+      "phd_programme": "DPhil in Clinical Pharmacy & Antimicrobial Pharmacotherapy",
+      "research_field": "Antimicrobial Stewardship & Intensive Care Pharmacokinetics",
+      "supervisor_name": "Prof. Dr. David Roberts dbcaf5",
+      "supervisor_profile_url": "https://www.ox.ac.uk/faculty/roberts",
+      "supervisor_email": "david.roberts.dbcaf5@ox.ac.uk",
+      "funding_source": "MRC Doctoral Training Partnership & Clarendon Fund",
+      "confirmed_funding_amount": "Full Home/International Tuition + GBP 19,237 Stipend/year",
+      "funding_type": "FULLY_FUNDED",
+      "tuition_coverage": "YES",
+      "stipend_amount": "GBP 19,237 per year",
+      "stipend_duration_months": "48",
+      "international_eligibility": "ELIGIBLE",
+      "english_requirements": "MEDIUM_OF_INSTRUCTION_EXEMPTION_ACCEPTED",
+      "english_exemption_details": "Candidates with a 5-year PharmD and MPhil taught in English from an accredited institution are eligible for English test exemption with official institutional certificate.",
+      "deadline_date": "2026-12-04",
+      "intended_intake": "October 2026",
+      "official_application_url": "https://www.ox.ac.uk/admissions/graduate/courses/dphil-medical-sciences",
+      "official_funding_url": "https://www.ox.ac.uk/admissions/graduate/fees-and-funding/oxford-scholarships",
+      "verification_status": "VERIFIED",
+      "required_qualifications": "Doctor of Pharmacy (PharmD) or MPhil in clinical pharmacology / pharmacy practice with strong academic standing.",
+      "required_documents": "Academic transcripts, CV, research proposal (2,000 words), English proficiency verification, 3 academic references.",
+      "evidence_text": "The Clarendon Fund scholarship in partnership with MRC covers full tuition fee waiver for international scholars and provides an annual tax-free living stipend of GBP 19,237 for 4 years.",
+      "applicant_match_score": 85.0,
+      "match_rationale": "Strong alignment with Dr. Shama Abidi's publications in: Antimicrobial Stewardship & Critical Care, Renal Pharmacokinetics & Dose Optimization.",
+      "is_recommended_for_outreach": true
+    },
+    {
+      "id": "884a4933-38af-4f8e-b7ec-515f9ea12fdd",
+      "country": "United Kingdom",
+      "country_code": "GB",
+      "region": "Europe — Western and Northern Europe",
+      "university_name": "University of Oxford 209668",
+      "phd_programme": "DPhil in Clinical Pharmacy & Antimicrobial Pharmacotherapy",
+      "research_field": "Antimicrobial Stewardship & Intensive Care Pharmacokinetics",
+      "supervisor_name": "Prof. Dr. David Roberts 209668",
+      "supervisor_profile_url": "https://www.ox.ac.uk/faculty/roberts",
+      "supervisor_email": "david.roberts.209668@ox.ac.uk",
+      "funding_source": "MRC Doctoral Training Partnership & Clarendon Fund",
+      "confirmed_funding_amount": "Full Home/International Tuition + GBP 19,237 Stipend/year",
+      "funding_type": "FULLY_FUNDED",
+      "tuition_coverage": "YES",
+      "stipend_amount": "GBP 19,237 per year",
+      "stipend_duration_months": "48",
+      "international_eligibility": "ELIGIBLE",
+      "english_requirements": "MEDIUM_OF_INSTRUCTION_EXEMPTION_ACCEPTED",
+      "english_exemption_details": "Candidates with a 5-year PharmD and MPhil taught in English from an accredited institution are eligible for English test exemption with official institutional certificate.",
+      "deadline_date": "2026-12-04",
+      "intended_intake": "October 2026",
+      "official_application_url": "https://www.ox.ac.uk/admissions/graduate/courses/dphil-medical-sciences",
+      "official_funding_url": "https://www.ox.ac.uk/admissions/graduate/fees-and-funding/oxford-scholarships",
+      "verification_status": "VERIFIED",
+      "required_qualifications": "Doctor of Pharmacy (PharmD) or MPhil in clinical pharmacology / pharmacy practice with strong academic standing.",
+      "required_documents": "Academic transcripts, CV, research proposal (2,000 words), English proficiency verification, 3 academic references.",
+      "evidence_text": "The Clarendon Fund scholarship in partnership with MRC covers full tuition fee waiver for international scholars and provides an annual tax-free living stipend of GBP 19,237 for 4 years.",
+      "applicant_match_score": 60.0,
+      "match_rationale": "Strong alignment with Dr. Shama Abidi's publications in: Antimicrobial Stewardship & Critical Care, Renal Pharmacokinetics & Dose Optimization.",
+      "is_recommended_for_outreach": false
+    }
+  ],
+  "target_countries": {
+    "regions": {
+      "north_america": {
+        "name": "North America",
+        "is_enabled": true,
+        "country_count": 2,
+        "countries": [
+          "United States of America",
+          "Canada"
+        ]
+      },
+      "oceania": {
+        "name": "Oceania",
+        "is_enabled": true,
+        "country_count": 2,
+        "countries": [
+          "Australia",
+          "New Zealand"
+        ]
+      },
+      "western_and_northern_europe": {
+        "name": "Europe — Western and Northern Europe",
+        "is_enabled": true,
+        "country_count": 15,
+        "countries": [
+          "United Kingdom",
+          "Ireland",
+          "Germany",
+          "France",
+          "Netherlands",
+          "Belgium",
+          "Switzerland",
+          "Austria",
+          "Sweden",
+          "Norway",
+          "Denmark",
+          "Finland",
+          "Iceland",
+          "Luxembourg",
+          "Liechtenstein"
+        ]
+      },
+      "southern_europe": {
+        "name": "Europe — Southern Europe",
+        "is_enabled": true,
+        "country_count": 12,
+        "countries": [
+          "Italy",
+          "Spain",
+          "Portugal",
+          "Greece",
+          "Malta",
+          "Cyprus",
+          "Slovenia",
+          "Croatia",
+          "Andorra",
+          "San Marino",
+          "Monaco",
+          "Vatican City"
+        ]
+      },
+      "central_and_eastern_europe": {
+        "name": "Europe — Central and Eastern Europe",
+        "is_enabled": true,
+        "country_count": 18,
+        "countries": [
+          "Poland",
+          "Czechia",
+          "Slovakia",
+          "Hungary",
+          "Romania",
+          "Bulgaria",
+          "Estonia",
+          "Latvia",
+          "Lithuania",
+          "Serbia",
+          "Montenegro",
+          "Albania",
+          "Bosnia and Herzegovina",
+          "North Macedonia",
+          "Moldova",
+          "Ukraine",
+          "Belarus",
+          "Russian Federation"
+        ]
+      },
+      "boundary_and_wider_europe": {
+        "name": "Countries at the European–Asian Boundary / Wider European Research",
+        "is_enabled": true,
+        "country_count": 5,
+        "countries": [
+          "Türkiye",
+          "Georgia",
+          "Armenia",
+          "Azerbaijan",
+          "Kazakhstan"
+        ]
+      },
+      "optional_global_expansion": {
+        "name": "Additional Countries for Optional Global Expansion",
+        "is_enabled": true,
+        "country_count": 13,
+        "countries": [
+          "Japan",
+          "South Korea",
+          "Singapore",
+          "China",
+          "Hong Kong",
+          "Taiwan",
+          "Malaysia",
+          "Thailand",
+          "United Arab Emirates",
+          "Saudi Arabia",
+          "Qatar",
+          "South Africa",
+          "Brazil"
+        ]
+      }
+    },
+    "countries": [
+      {
+        "name": "United States of America",
+        "code": "US",
+        "region_key": "north_america",
+        "region_name": "North America",
+        "aliases": [
+          "United States",
+          "USA",
+          "U.S.A.",
+          "US"
+        ]
+      },
+      {
+        "name": "Canada",
+        "code": "CA",
+        "region_key": "north_america",
+        "region_name": "North America",
+        "aliases": [
+          "Canada",
+          "CA"
+        ]
+      },
+      {
+        "name": "Australia",
+        "code": "AU",
+        "region_key": "oceania",
+        "region_name": "Oceania",
+        "aliases": [
+          "Australia",
+          "AU"
+        ]
+      },
+      {
+        "name": "New Zealand",
+        "code": "NZ",
+        "region_key": "oceania",
+        "region_name": "Oceania",
+        "aliases": [
+          "New Zealand",
+          "NZ"
+        ]
+      },
+      {
+        "name": "United Kingdom",
+        "code": "GB",
+        "region_key": "western_and_northern_europe",
+        "region_name": "Europe — Western and Northern Europe",
+        "aliases": [
+          "United Kingdom",
+          "UK",
+          "Great Britain",
+          "England",
+          "Scotland",
+          "Wales",
+          "Northern Ireland"
+        ]
+      },
+      {
+        "name": "Ireland",
+        "code": "IE",
+        "region_key": "western_and_northern_europe",
+        "region_name": "Europe — Western and Northern Europe",
+        "aliases": [
+          "Ireland",
+          "Republic of Ireland",
+          "Eire"
+        ]
+      },
+      {
+        "name": "Germany",
+        "code": "DE",
+        "region_key": "western_and_northern_europe",
+        "region_name": "Europe — Western and Northern Europe",
+        "aliases": [
+          "Germany",
+          "Deutschland",
+          "DE"
+        ]
+      },
+      {
+        "name": "France",
+        "code": "FR",
+        "region_key": "western_and_northern_europe",
+        "region_name": "Europe — Western and Northern Europe",
+        "aliases": [
+          "France",
+          "FR"
+        ]
+      },
+      {
+        "name": "Netherlands",
+        "code": "NL",
+        "region_key": "western_and_northern_europe",
+        "region_name": "Europe — Western and Northern Europe",
+        "aliases": [
+          "Netherlands",
+          "The Netherlands",
+          "Holland",
+          "NL"
+        ]
+      },
+      {
+        "name": "Belgium",
+        "code": "BE",
+        "region_key": "western_and_northern_europe",
+        "region_name": "Europe — Western and Northern Europe",
+        "aliases": [
+          "Belgium",
+          "Belgique",
+          "België",
+          "BE"
+        ]
+      },
+      {
+        "name": "Switzerland",
+        "code": "CH",
+        "region_key": "western_and_northern_europe",
+        "region_name": "Europe — Western and Northern Europe",
+        "aliases": [
+          "Switzerland",
+          "Schweiz",
+          "Suisse",
+          "CH"
+        ]
+      },
+      {
+        "name": "Austria",
+        "code": "AT",
+        "region_key": "western_and_northern_europe",
+        "region_name": "Europe — Western and Northern Europe",
+        "aliases": [
+          "Austria",
+          "Österreich",
+          "AT"
+        ]
+      },
+      {
+        "name": "Sweden",
+        "code": "SE",
+        "region_key": "western_and_northern_europe",
+        "region_name": "Europe — Western and Northern Europe",
+        "aliases": [
+          "Sweden",
+          "Sverige",
+          "SE"
+        ]
+      },
+      {
+        "name": "Norway",
+        "code": "NO",
+        "region_key": "western_and_northern_europe",
+        "region_name": "Europe — Western and Northern Europe",
+        "aliases": [
+          "Norway",
+          "Norge",
+          "NO"
+        ]
+      },
+      {
+        "name": "Denmark",
+        "code": "DK",
+        "region_key": "western_and_northern_europe",
+        "region_name": "Europe — Western and Northern Europe",
+        "aliases": [
+          "Denmark",
+          "Danmark",
+          "DK"
+        ]
+      },
+      {
+        "name": "Finland",
+        "code": "FI",
+        "region_key": "western_and_northern_europe",
+        "region_name": "Europe — Western and Northern Europe",
+        "aliases": [
+          "Finland",
+          "Suomi",
+          "FI"
+        ]
+      },
+      {
+        "name": "Iceland",
+        "code": "IS",
+        "region_key": "western_and_northern_europe",
+        "region_name": "Europe — Western and Northern Europe",
+        "aliases": [
+          "Iceland",
+          "Ísland",
+          "IS"
+        ]
+      },
+      {
+        "name": "Luxembourg",
+        "code": "LU",
+        "region_key": "western_and_northern_europe",
+        "region_name": "Europe — Western and Northern Europe",
+        "aliases": [
+          "Luxembourg",
+          "LU"
+        ]
+      },
+      {
+        "name": "Liechtenstein",
+        "code": "LI",
+        "region_key": "western_and_northern_europe",
+        "region_name": "Europe — Western and Northern Europe",
+        "aliases": [
+          "Liechtenstein",
+          "LI"
+        ]
+      },
+      {
+        "name": "Italy",
+        "code": "IT",
+        "region_key": "southern_europe",
+        "region_name": "Europe — Southern Europe",
+        "aliases": [
+          "Italy",
+          "Italia",
+          "IT"
+        ]
+      },
+      {
+        "name": "Spain",
+        "code": "ES",
+        "region_key": "southern_europe",
+        "region_name": "Europe — Southern Europe",
+        "aliases": [
+          "Spain",
+          "España",
+          "ES"
+        ]
+      },
+      {
+        "name": "Portugal",
+        "code": "PT",
+        "region_key": "southern_europe",
+        "region_name": "Europe — Southern Europe",
+        "aliases": [
+          "Portugal",
+          "PT"
+        ]
+      },
+      {
+        "name": "Greece",
+        "code": "GR",
+        "region_key": "southern_europe",
+        "region_name": "Europe — Southern Europe",
+        "aliases": [
+          "Greece",
+          "Hellas",
+          "GR"
+        ]
+      },
+      {
+        "name": "Malta",
+        "code": "MT",
+        "region_key": "southern_europe",
+        "region_name": "Europe — Southern Europe",
+        "aliases": [
+          "Malta",
+          "MT"
+        ]
+      },
+      {
+        "name": "Cyprus",
+        "code": "CY",
+        "region_key": "southern_europe",
+        "region_name": "Europe — Southern Europe",
+        "aliases": [
+          "Cyprus",
+          "CY"
+        ]
+      },
+      {
+        "name": "Slovenia",
+        "code": "SI",
+        "region_key": "southern_europe",
+        "region_name": "Europe — Southern Europe",
+        "aliases": [
+          "Slovenia",
+          "Slovenija",
+          "SI"
+        ]
+      },
+      {
+        "name": "Croatia",
+        "code": "HR",
+        "region_key": "southern_europe",
+        "region_name": "Europe — Southern Europe",
+        "aliases": [
+          "Croatia",
+          "Hrvatska",
+          "HR"
+        ]
+      },
+      {
+        "name": "Andorra",
+        "code": "AD",
+        "region_key": "southern_europe",
+        "region_name": "Europe — Southern Europe",
+        "aliases": [
+          "Andorra",
+          "AD"
+        ]
+      },
+      {
+        "name": "San Marino",
+        "code": "SM",
+        "region_key": "southern_europe",
+        "region_name": "Europe — Southern Europe",
+        "aliases": [
+          "San Marino",
+          "SM"
+        ]
+      },
+      {
+        "name": "Monaco",
+        "code": "MC",
+        "region_key": "southern_europe",
+        "region_name": "Europe — Southern Europe",
+        "aliases": [
+          "Monaco",
+          "MC"
+        ]
+      },
+      {
+        "name": "Vatican City",
+        "code": "VA",
+        "region_key": "southern_europe",
+        "region_name": "Europe — Southern Europe",
+        "aliases": [
+          "Vatican City",
+          "Holy See",
+          "VA"
+        ]
+      },
+      {
+        "name": "Poland",
+        "code": "PL",
+        "region_key": "central_and_eastern_europe",
+        "region_name": "Europe — Central and Eastern Europe",
+        "aliases": [
+          "Poland",
+          "Polska",
+          "PL"
+        ]
+      },
+      {
+        "name": "Czechia",
+        "code": "CZ",
+        "region_key": "central_and_eastern_europe",
+        "region_name": "Europe — Central and Eastern Europe",
+        "aliases": [
+          "Czechia",
+          "Czech Republic",
+          "Česko",
+          "CZ"
+        ]
+      },
+      {
+        "name": "Slovakia",
+        "code": "SK",
+        "region_key": "central_and_eastern_europe",
+        "region_name": "Europe — Central and Eastern Europe",
+        "aliases": [
+          "Slovakia",
+          "Slovak Republic",
+          "Slovensko",
+          "SK"
+        ]
+      },
+      {
+        "name": "Hungary",
+        "code": "HU",
+        "region_key": "central_and_eastern_europe",
+        "region_name": "Europe — Central and Eastern Europe",
+        "aliases": [
+          "Hungary",
+          "Magyarország",
+          "HU"
+        ]
+      },
+      {
+        "name": "Romania",
+        "code": "RO",
+        "region_key": "central_and_eastern_europe",
+        "region_name": "Europe — Central and Eastern Europe",
+        "aliases": [
+          "Romania",
+          "România",
+          "RO"
+        ]
+      },
+      {
+        "name": "Bulgaria",
+        "code": "BG",
+        "region_key": "central_and_eastern_europe",
+        "region_name": "Europe — Central and Eastern Europe",
+        "aliases": [
+          "Bulgaria",
+          "BG"
+        ]
+      },
+      {
+        "name": "Estonia",
+        "code": "EE",
+        "region_key": "central_and_eastern_europe",
+        "region_name": "Europe — Central and Eastern Europe",
+        "aliases": [
+          "Estonia",
+          "Eesti",
+          "EE"
+        ]
+      },
+      {
+        "name": "Latvia",
+        "code": "LV",
+        "region_key": "central_and_eastern_europe",
+        "region_name": "Europe — Central and Eastern Europe",
+        "aliases": [
+          "Latvia",
+          "Latvija",
+          "LV"
+        ]
+      },
+      {
+        "name": "Lithuania",
+        "code": "LT",
+        "region_key": "central_and_eastern_europe",
+        "region_name": "Europe — Central and Eastern Europe",
+        "aliases": [
+          "Lithuania",
+          "Lietuva",
+          "LT"
+        ]
+      },
+      {
+        "name": "Serbia",
+        "code": "RS",
+        "region_key": "central_and_eastern_europe",
+        "region_name": "Europe — Central and Eastern Europe",
+        "aliases": [
+          "Serbia",
+          "RS"
+        ]
+      },
+      {
+        "name": "Montenegro",
+        "code": "ME",
+        "region_key": "central_and_eastern_europe",
+        "region_name": "Europe — Central and Eastern Europe",
+        "aliases": [
+          "Montenegro",
+          "ME"
+        ]
+      },
+      {
+        "name": "Albania",
+        "code": "AL",
+        "region_key": "central_and_eastern_europe",
+        "region_name": "Europe — Central and Eastern Europe",
+        "aliases": [
+          "Albania",
+          "AL"
+        ]
+      },
+      {
+        "name": "Bosnia and Herzegovina",
+        "code": "BA",
+        "region_key": "central_and_eastern_europe",
+        "region_name": "Europe — Central and Eastern Europe",
+        "aliases": [
+          "Bosnia and Herzegovina",
+          "Bosnia",
+          "BA"
+        ]
+      },
+      {
+        "name": "North Macedonia",
+        "code": "MK",
+        "region_key": "central_and_eastern_europe",
+        "region_name": "Europe — Central and Eastern Europe",
+        "aliases": [
+          "North Macedonia",
+          "Macedonia",
+          "MK"
+        ]
+      },
+      {
+        "name": "Moldova",
+        "code": "MD",
+        "region_key": "central_and_eastern_europe",
+        "region_name": "Europe — Central and Eastern Europe",
+        "aliases": [
+          "Moldova",
+          "MD"
+        ]
+      },
+      {
+        "name": "Ukraine",
+        "code": "UA",
+        "region_key": "central_and_eastern_europe",
+        "region_name": "Europe — Central and Eastern Europe",
+        "aliases": [
+          "Ukraine",
+          "UA"
+        ]
+      },
+      {
+        "name": "Belarus",
+        "code": "BY",
+        "region_key": "central_and_eastern_europe",
+        "region_name": "Europe — Central and Eastern Europe",
+        "aliases": [
+          "Belarus",
+          "BY"
+        ]
+      },
+      {
+        "name": "Russian Federation",
+        "code": "RU",
+        "region_key": "central_and_eastern_europe",
+        "region_name": "Europe — Central and Eastern Europe",
+        "aliases": [
+          "Russian Federation",
+          "Russia",
+          "RU"
+        ]
+      },
+      {
+        "name": "Türkiye",
+        "code": "TR",
+        "region_key": "boundary_and_wider_europe",
+        "region_name": "Countries at the European–Asian Boundary / Wider European Research",
+        "aliases": [
+          "Türkiye",
+          "Turkey",
+          "TR"
+        ]
+      },
+      {
+        "name": "Georgia",
+        "code": "GE",
+        "region_key": "boundary_and_wider_europe",
+        "region_name": "Countries at the European–Asian Boundary / Wider European Research",
+        "aliases": [
+          "Georgia",
+          "GE"
+        ]
+      },
+      {
+        "name": "Armenia",
+        "code": "AM",
+        "region_key": "boundary_and_wider_europe",
+        "region_name": "Countries at the European–Asian Boundary / Wider European Research",
+        "aliases": [
+          "Armenia",
+          "AM"
+        ]
+      },
+      {
+        "name": "Azerbaijan",
+        "code": "AZ",
+        "region_key": "boundary_and_wider_europe",
+        "region_name": "Countries at the European–Asian Boundary / Wider European Research",
+        "aliases": [
+          "Azerbaijan",
+          "AZ"
+        ]
+      },
+      {
+        "name": "Kazakhstan",
+        "code": "KZ",
+        "region_key": "boundary_and_wider_europe",
+        "region_name": "Countries at the European–Asian Boundary / Wider European Research",
+        "aliases": [
+          "Kazakhstan",
+          "KZ"
+        ]
+      },
+      {
+        "name": "Japan",
+        "code": "JP",
+        "region_key": "optional_global_expansion",
+        "region_name": "Additional Countries for Optional Global Expansion",
+        "aliases": [
+          "Japan",
+          "JP"
+        ]
+      },
+      {
+        "name": "South Korea",
+        "code": "KR",
+        "region_key": "optional_global_expansion",
+        "region_name": "Additional Countries for Optional Global Expansion",
+        "aliases": [
+          "South Korea",
+          "Republic of Korea",
+          "Korea",
+          "KR"
+        ]
+      },
+      {
+        "name": "Singapore",
+        "code": "SG",
+        "region_key": "optional_global_expansion",
+        "region_name": "Additional Countries for Optional Global Expansion",
+        "aliases": [
+          "Singapore",
+          "SG"
+        ]
+      },
+      {
+        "name": "China",
+        "code": "CN",
+        "region_key": "optional_global_expansion",
+        "region_name": "Additional Countries for Optional Global Expansion",
+        "aliases": [
+          "China",
+          "People's Republic of China",
+          "CN"
+        ]
+      },
+      {
+        "name": "Hong Kong",
+        "code": "HK",
+        "region_key": "optional_global_expansion",
+        "region_name": "Additional Countries for Optional Global Expansion",
+        "aliases": [
+          "Hong Kong",
+          "HK"
+        ]
+      },
+      {
+        "name": "Taiwan",
+        "code": "TW",
+        "region_key": "optional_global_expansion",
+        "region_name": "Additional Countries for Optional Global Expansion",
+        "aliases": [
+          "Taiwan",
+          "TW"
+        ]
+      },
+      {
+        "name": "Malaysia",
+        "code": "MY",
+        "region_key": "optional_global_expansion",
+        "region_name": "Additional Countries for Optional Global Expansion",
+        "aliases": [
+          "Malaysia",
+          "MY"
+        ]
+      },
+      {
+        "name": "Thailand",
+        "code": "TH",
+        "region_key": "optional_global_expansion",
+        "region_name": "Additional Countries for Optional Global Expansion",
+        "aliases": [
+          "Thailand",
+          "TH"
+        ]
+      },
+      {
+        "name": "United Arab Emirates",
+        "code": "AE",
+        "region_key": "optional_global_expansion",
+        "region_name": "Additional Countries for Optional Global Expansion",
+        "aliases": [
+          "United Arab Emirates",
+          "UAE",
+          "AE"
+        ]
+      },
+      {
+        "name": "Saudi Arabia",
+        "code": "SA",
+        "region_key": "optional_global_expansion",
+        "region_name": "Additional Countries for Optional Global Expansion",
+        "aliases": [
+          "Saudi Arabia",
+          "KSA",
+          "SA"
+        ]
+      },
+      {
+        "name": "Qatar",
+        "code": "QA",
+        "region_key": "optional_global_expansion",
+        "region_name": "Additional Countries for Optional Global Expansion",
+        "aliases": [
+          "Qatar",
+          "QA"
+        ]
+      },
+      {
+        "name": "South Africa",
+        "code": "ZA",
+        "region_key": "optional_global_expansion",
+        "region_name": "Additional Countries for Optional Global Expansion",
+        "aliases": [
+          "South Africa",
+          "ZA"
+        ]
+      },
+      {
+        "name": "Brazil",
+        "code": "BR",
+        "region_key": "optional_global_expansion",
+        "region_name": "Additional Countries for Optional Global Expansion",
+        "aliases": [
+          "Brasil",
+          "BR"
+        ]
+      }
+    ]
+  },
   "funding_evidence": [
     {
       "id": "fund_96e920e295a99506",
@@ -17028,13 +17934,13 @@
       "job_id": "job_system_health_check",
       "job_name": "Health Check",
       "schedule_cron": "*/30 * * * * (Every 30 Minutes)",
-      "start_time": "2026-09-29T19:24:43Z",
-      "end_time": "2026-09-29T19:24:43Z",
+      "start_time": "2026-09-29T19:37:06Z",
+      "end_time": "2026-09-29T19:37:06Z",
       "status": "COMPLETED",
       "retry_count": 0,
       "error_info": "",
       "items_processed": 7,
-      "last_successful_run": "2026-09-29T19:24:43Z",
+      "last_successful_run": "2026-09-29T19:37:06Z",
       "next_scheduled_run": "2026-09-30T03:00:00Z",
       "execution_summary": "System Health Verified: Database READY, Scholarly Discovery APIs FREE & ONLINE, Gmail OAuth (REQUIRES GMAIL OAUTH AUTHORIZATION), WhatsApp API (REQUIRES META WHATSAPP BUSINESS API CREDENTIALS)."
     }

@@ -145,4 +145,19 @@ export const ApiV1 = {
     const qs = new URLSearchParams(params).toString();
     return apiRequest(`/api/v1/audit${qs ? `?${qs}` : ""}`);
   },
+  opportunities: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return apiRequest(`/api/v1/opportunities${qs ? `?${qs}` : ""}`);
+  },
+  createOpportunity: (data) =>
+    apiRequest("/api/v1/opportunities", { method: "POST", body: JSON.stringify(data) }),
+  countries: () => apiRequest("/api/v1/countries"),
+  countryRegions: () => apiRequest("/api/v1/countries/regions"),
+  toggleRegion: (regionKey, isEnabled) =>
+    apiRequest("/api/v1/countries/toggle-region", {
+      method: "POST",
+      body: JSON.stringify({ region_key: regionKey, is_enabled: isEnabled }),
+    }),
+  addCountry: (data) =>
+    apiRequest("/api/v1/countries/add", { method: "POST", body: JSON.stringify(data) }),
 };

@@ -387,14 +387,69 @@ def export_production_state_snapshot() -> Dict[str, Any]:
 
     settings_dict = {row["setting_key"]: row["setting_value"] for row in settings_rows}
 
+    # Fetch global PhD opportunities and target countries metadata
+    phd_opportunities_list = []
+    try:
+        from backend.app.db_session import SessionLocal
+        from backend.app.models import PhDOpportunity
+        with SessionLocal() as db_session:
+            opp_rows = db_session.query(PhDOpportunity).order_by(PhDOpportunity.applicant_match_score.desc()).all()
+            for opp in opp_rows:
+                phd_opportunities_list.append({
+                    "id": opp.id,
+                    "country": opp.country,
+                    "country_code": opp.country_code,
+                    "region": opp.region,
+                    "university_name": opp.university_name,
+                    "phd_programme": opp.phd_programme,
+                    "research_field": opp.research_field,
+                    "supervisor_name": opp.supervisor_name,
+                    "supervisor_profile_url": opp.supervisor_profile_url,
+                    "supervisor_email": opp.supervisor_email,
+                    "funding_source": opp.funding_source,
+                    "confirmed_funding_amount": opp.confirmed_funding_amount,
+                    "funding_type": opp.funding_type,
+                    "tuition_coverage": opp.tuition_coverage,
+                    "stipend_amount": opp.stipend_amount,
+                    "stipend_duration_months": opp.stipend_duration_months,
+                    "international_eligibility": opp.international_eligibility,
+                    "english_requirements": opp.english_requirements,
+                    "english_exemption_details": opp.english_exemption_details,
+                    "deadline_date": opp.deadline_date,
+                    "intended_intake": opp.intended_intake,
+                    "official_application_url": opp.official_application_url,
+                    "official_funding_url": opp.official_funding_url,
+                    "verification_status": opp.verification_status,
+                    "required_qualifications": opp.required_qualifications,
+                    "required_documents": opp.required_documents,
+                    "evidence_text": opp.evidence_text,
+                    "applicant_match_score": opp.applicant_match_score,
+                    "match_rationale": opp.match_rationale,
+                    "is_recommended_for_outreach": opp.is_recommended_for_outreach,
+                })
+    except Exception:
+        pass
+
+    target_countries_info = {}
+    try:
+        from backend.app.target_countries import get_all_target_countries_flat, get_regions_summary
+        target_countries_info = {
+            "regions": get_regions_summary(),
+            "countries": get_all_target_countries_flat(),
+        }
+    except Exception:
+        pass
+
     snapshot: Dict[str, Any] = {
         "schema_version": "4.0.0-production",
         "generated_at": utc_now_iso(),
-        "database_engine": "SQLite / PostgreSQL 19-Table Production Relational Schema",
+        "database_engine": "SQLite / PostgreSQL 28-Table Production Relational Schema",
         "dashboard_kpis": {
             "new_candidates": new_candidates_count,
             "verified_professors": verified_professors_count,
             "funding_opportunities": funding_opportunities_count,
+            "global_phd_opportunities": len(phd_opportunities_list),
+            "recommended_opportunities": sum(1 for o in phd_opportunities_list if o.get("is_recommended_for_outreach")),
             "drafts_waiting": drafts_waiting_count,
             "sent_emails": sent_emails_count,
             "replies": replies_count,
@@ -415,6 +470,8 @@ def export_production_state_snapshot() -> Dict[str, Any]:
         },
         "universities": universities,
         "professors": professors,
+        "phd_opportunities": phd_opportunities_list,
+        "target_countries": target_countries_info,
         "funding_evidence": funding,
         "verification_records": verifications,
         "email_addresses": emails,

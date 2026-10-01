@@ -73,3 +73,30 @@ class TaskStatusEnum(str, Enum):
     IN_PROGRESS = "IN_PROGRESS"
     COMPLETED = "COMPLETED"
     CANCELLED = "CANCELLED"
+
+
+class FundingClassificationEnum(str, Enum):
+    FULLY_FUNDED = "FULLY_FUNDED"
+    PARTIALLY_FUNDED = "PARTIALLY_FUNDED"
+    UNFUNDED = "UNFUNDED"
+    NEEDS_REVIEW = "NEEDS_REVIEW"
+    UNKNOWN = "UNKNOWN"
+
+
+class TuitionCoverageEnum(str, Enum):
+    YES = "YES"
+    NO = "NO"
+    UNKNOWN = "UNKNOWN"
+
+
+class InternationalEligibilityEnum(str, Enum):
+    ELIGIBLE = "ELIGIBLE"
+    RESTRICTED = "RESTRICTED"
+    UNKNOWN = "UNKNOWN"
+
+
+class EnglishRequirementEnum(str, Enum):
+    IELTS_TOEFL_REQUIRED = "IELTS_TOEFL_REQUIRED"
+    MEDIUM_OF_INSTRUCTION_EXEMPTION_ACCEPTED = "MEDIUM_OF_INSTRUCTION_EXEMPTION_ACCEPTED"
+    UNKNOWN = "UNKNOWN"
+

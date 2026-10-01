@@ -1,0 +1,637 @@
+{
+  "version": "1.0.0",
+  "description": "Global Funded PhD Opportunity Search — Target Countries Configuration",
+  "regions": {
+    "north_america": {
+      "name": "North America",
+      "is_enabled": true,
+      "countries": [
+        {
+          "name": "United States of America",
+          "code": "US",
+          "aliases": [
+            "United States",
+            "USA",
+            "U.S.A.",
+            "US"
+          ]
+        },
+        {
+          "name": "Canada",
+          "code": "CA",
+          "aliases": [
+            "Canada",
+            "CA"
+          ]
+        }
+      ]
+    },
+    "oceania": {
+      "name": "Oceania",
+      "is_enabled": true,
+      "countries": [
+        {
+          "name": "Australia",
+          "code": "AU",
+          "aliases": [
+            "Australia",
+            "AU"
+          ]
+        },
+        {
+          "name": "New Zealand",
+          "code": "NZ",
+          "aliases": [
+            "New Zealand",
+            "NZ"
+          ]
+        }
+      ]
+    },
+    "western_and_northern_europe": {
+      "name": "Europe — Western and Northern Europe",
+      "is_enabled": true,
+      "countries": [
+        {
+          "name": "United Kingdom",
+          "code": "GB",
+          "aliases": [
+            "United Kingdom",
+            "UK",
+            "Great Britain",
+            "England",
+            "Scotland",
+            "Wales",
+            "Northern Ireland"
+          ]
+        },
+        {
+          "name": "Ireland",
+          "code": "IE",
+          "aliases": [
+            "Ireland",
+            "Republic of Ireland",
+            "Eire"
+          ]
+        },
+        {
+          "name": "Germany",
+          "code": "DE",
+          "aliases": [
+            "Germany",
+            "Deutschland",
+            "DE"
+          ]
+        },
+        {
+          "name": "France",
+          "code": "FR",
+          "aliases": [
+            "France",
+            "FR"
+          ]
+        },
+        {
+          "name": "Netherlands",
+          "code": "NL",
+          "aliases": [
+            "Netherlands",
+            "The Netherlands",
+            "Holland",
+            "NL"
+          ]
+        },
+        {
+          "name": "Belgium",
+          "code": "BE",
+          "aliases": [
+            "Belgium",
+            "Belgique",
+            "België",
+            "BE"
+          ]
+        },
+        {
+          "name": "Switzerland",
+          "code": "CH",
+          "aliases": [
+            "Switzerland",
+            "Schweiz",
+            "Suisse",
+            "CH"
+          ]
+        },
+        {
+          "name": "Austria",
+          "code": "AT",
+          "aliases": [
+            "Austria",
+            "Österreich",
+            "AT"
+          ]
+        },
+        {
+          "name": "Sweden",
+          "code": "SE",
+          "aliases": [
+            "Sweden",
+            "Sverige",
+            "SE"
+          ]
+        },
+        {
+          "name": "Norway",
+          "code": "NO",
+          "aliases": [
+            "Norway",
+            "Norge",
+            "NO"
+          ]
+        },
+        {
+          "name": "Denmark",
+          "code": "DK",
+          "aliases": [
+            "Denmark",
+            "Danmark",
+            "DK"
+          ]
+        },
+        {
+          "name": "Finland",
+          "code": "FI",
+          "aliases": [
+            "Finland",
+            "Suomi",
+            "FI"
+          ]
+        },
+        {
+          "name": "Iceland",
+          "code": "IS",
+          "aliases": [
+            "Iceland",
+            "Ísland",
+            "IS"
+          ]
+        },
+        {
+          "name": "Luxembourg",
+          "code": "LU",
+          "aliases": [
+            "Luxembourg",
+            "LU"
+          ]
+        },
+        {
+          "name": "Liechtenstein",
+          "code": "LI",
+          "aliases": [
+            "Liechtenstein",
+            "LI"
+          ]
+        }
+      ]
+    },
+    "southern_europe": {
+      "name": "Europe — Southern Europe",
+      "is_enabled": true,
+      "countries": [
+        {
+          "name": "Italy",
+          "code": "IT",
+          "aliases": [
+            "Italy",
+            "Italia",
+            "IT"
+          ]
+        },
+        {
+          "name": "Spain",
+          "code": "ES",
+          "aliases": [
+            "Spain",
+            "España",
+            "ES"
+          ]
+        },
+        {
+          "name": "Portugal",
+          "code": "PT",
+          "aliases": [
+            "Portugal",
+            "PT"
+          ]
+        },
+        {
+          "name": "Greece",
+          "code": "GR",
+          "aliases": [
+            "Greece",
+            "Hellas",
+            "GR"
+          ]
+        },
+        {
+          "name": "Malta",
+          "code": "MT",
+          "aliases": [
+            "Malta",
+            "MT"
+          ]
+        },
+        {
+          "name": "Cyprus",
+          "code": "CY",
+          "aliases": [
+            "Cyprus",
+            "CY"
+          ]
+        },
+        {
+          "name": "Slovenia",
+          "code": "SI",
+          "aliases": [
+            "Slovenia",
+            "Slovenija",
+            "SI"
+          ]
+        },
+        {
+          "name": "Croatia",
+          "code": "HR",
+          "aliases": [
+            "Croatia",
+            "Hrvatska",
+            "HR"
+          ]
+        },
+        {
+          "name": "Andorra",
+          "code": "AD",
+          "aliases": [
+            "Andorra",
+            "AD"
+          ]
+        },
+        {
+          "name": "San Marino",
+          "code": "SM",
+          "aliases": [
+            "San Marino",
+            "SM"
+          ]
+        },
+        {
+          "name": "Monaco",
+          "code": "MC",
+          "aliases": [
+            "Monaco",
+            "MC"
+          ]
+        },
+        {
+          "name": "Vatican City",
+          "code": "VA",
+          "aliases": [
+            "Vatican City",
+            "Holy See",
+            "VA"
+          ]
+        }
+      ]
+    },
+    "central_and_eastern_europe": {
+      "name": "Europe — Central and Eastern Europe",
+      "is_enabled": true,
+      "countries": [
+        {
+          "name": "Poland",
+          "code": "PL",
+          "aliases": [
+            "Poland",
+            "Polska",
+            "PL"
+          ]
+        },
+        {
+          "name": "Czechia",
+          "code": "CZ",
+          "aliases": [
+            "Czechia",
+            "Czech Republic",
+            "Česko",
+            "CZ"
+          ]
+        },
+        {
+          "name": "Slovakia",
+          "code": "SK",
+          "aliases": [
+            "Slovakia",
+            "Slovak Republic",
+            "Slovensko",
+            "SK"
+          ]
+        },
+        {
+          "name": "Hungary",
+          "code": "HU",
+          "aliases": [
+            "Hungary",
+            "Magyarország",
+            "HU"
+          ]
+        },
+        {
+          "name": "Romania",
+          "code": "RO",
+          "aliases": [
+            "Romania",
+            "România",
+            "RO"
+          ]
+        },
+        {
+          "name": "Bulgaria",
+          "code": "BG",
+          "aliases": [
+            "Bulgaria",
+            "BG"
+          ]
+        },
+        {
+          "name": "Estonia",
+          "code": "EE",
+          "aliases": [
+            "Estonia",
+            "Eesti",
+            "EE"
+          ]
+        },
+        {
+          "name": "Latvia",
+          "code": "LV",
+          "aliases": [
+            "Latvia",
+            "Latvija",
+            "LV"
+          ]
+        },
+        {
+          "name": "Lithuania",
+          "code": "LT",
+          "aliases": [
+            "Lithuania",
+            "Lietuva",
+            "LT"
+          ]
+        },
+        {
+          "name": "Serbia",
+          "code": "RS",
+          "aliases": [
+            "Serbia",
+            "RS"
+          ]
+        },
+        {
+          "name": "Montenegro",
+          "code": "ME",
+          "aliases": [
+            "Montenegro",
+            "ME"
+          ]
+        },
+        {
+          "name": "Albania",
+          "code": "AL",
+          "aliases": [
+            "Albania",
+            "AL"
+          ]
+        },
+        {
+          "name": "Bosnia and Herzegovina",
+          "code": "BA",
+          "aliases": [
+            "Bosnia and Herzegovina",
+            "Bosnia",
+            "BA"
+          ]
+        },
+        {
+          "name": "North Macedonia",
+          "code": "MK",
+          "aliases": [
+            "North Macedonia",
+            "Macedonia",
+            "MK"
+          ]
+        },
+        {
+          "name": "Moldova",
+          "code": "MD",
+          "aliases": [
+            "Moldova",
+            "MD"
+          ]
+        },
+        {
+          "name": "Ukraine",
+          "code": "UA",
+          "aliases": [
+            "Ukraine",
+            "UA"
+          ]
+        },
+        {
+          "name": "Belarus",
+          "code": "BY",
+          "aliases": [
+            "Belarus",
+            "BY"
+          ]
+        },
+        {
+          "name": "Russian Federation",
+          "code": "RU",
+          "aliases": [
+            "Russian Federation",
+            "Russia",
+            "RU"
+          ]
+        }
+      ]
+    },
+    "boundary_and_wider_europe": {
+      "name": "Countries at the European–Asian Boundary / Wider European Research",
+      "is_enabled": true,
+      "countries": [
+        {
+          "name": "Türkiye",
+          "code": "TR",
+          "aliases": [
+            "Türkiye",
+            "Turkey",
+            "TR"
+          ]
+        },
+        {
+          "name": "Georgia",
+          "code": "GE",
+          "aliases": [
+            "Georgia",
+            "GE"
+          ]
+        },
+        {
+          "name": "Armenia",
+          "code": "AM",
+          "aliases": [
+            "Armenia",
+            "AM"
+          ]
+        },
+        {
+          "name": "Azerbaijan",
+          "code": "AZ",
+          "aliases": [
+            "Azerbaijan",
+            "AZ"
+          ]
+        },
+        {
+          "name": "Kazakhstan",
+          "code": "KZ",
+          "aliases": [
+            "Kazakhstan",
+            "KZ"
+          ]
+        }
+      ]
+    },
+    "optional_global_expansion": {
+      "name": "Additional Countries for Optional Global Expansion",
+      "is_enabled": true,
+      "countries": [
+        {
+          "name": "Japan",
+          "code": "JP",
+          "aliases": [
+            "Japan",
+            "JP"
+          ]
+        },
+        {
+          "name": "South Korea",
+          "code": "KR",
+          "aliases": [
+            "South Korea",
+            "Republic of Korea",
+            "Korea",
+            "KR"
+          ]
+        },
+        {
+          "name": "Singapore",
+          "code": "SG",
+          "aliases": [
+            "Singapore",
+            "SG"
+          ]
+        },
+        {
+          "name": "China",
+          "code": "CN",
+          "aliases": [
+            "China",
+            "People's Republic of China",
+            "CN"
+          ]
+        },
+        {
+          "name": "Hong Kong",
+          "code": "HK",
+          "aliases": [
+            "Hong Kong",
+            "HK"
+          ]
+        },
+        {
+          "name": "Taiwan",
+          "code": "TW",
+          "aliases": [
+            "Taiwan",
+            "TW"
+          ]
+        },
+        {
+          "name": "Malaysia",
+          "code": "MY",
+          "aliases": [
+            "Malaysia",
+            "MY"
+          ]
+        },
+        {
+          "name": "Thailand",
+          "code": "TH",
+          "aliases": [
+            "Thailand",
+            "TH"
+          ]
+        },
+        {
+          "name": "United Arab Emirates",
+          "code": "AE",
+          "aliases": [
+            "United Arab Emirates",
+            "UAE",
+            "AE"
+          ]
+        },
+        {
+          "name": "Saudi Arabia",
+          "code": "SA",
+          "aliases": [
+            "Saudi Arabia",
+            "KSA",
+            "SA"
+          ]
+        },
+        {
+          "name": "Qatar",
+          "code": "QA",
+          "aliases": [
+            "Qatar",
+            "QA"
+          ]
+        },
+        {
+          "name": "South Africa",
+          "code": "ZA",
+          "aliases": [
+            "South Africa",
+            "ZA"
+          ]
+        },
+        {
+          "name": "Brazil",
+          "code": "BR",
+          "aliases": [
+            "Brasil",
+            "BR"
+          ]
+        }
+      ]
+    }
+  },
+  "excluded_countries": [
+    {
+      "name": "Pakistan",
+      "code": "PK",
+      "reason": "Applicant seeking doctoral positions strictly outside Pakistan"
+    }
+  ]
+}

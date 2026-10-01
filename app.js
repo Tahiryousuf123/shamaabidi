@@ -585,39 +585,78 @@ function renderProfessorsView() {
 }
 
 function renderFundingView() {
+  if (!appState) return;
+
+  // 1. Target Search Regions Overview
+  const regionsContainer = document.getElementById("targetRegionsContainer");
+  if (regionsContainer) {
+    const regions = (appState.target_countries && appState.target_countries.regions) || {};
+    if (window.ShamaProductionModules?.funding?.renderTargetRegionsOverview) {
+      regionsContainer.innerHTML = window.ShamaProductionModules.funding.renderTargetRegionsOverview(regions);
+    }
+  }
+
+  // 2. Global PhD Opportunities & Studentships Table
+  const oppContainer = document.getElementById("phdOpportunitiesContainer");
+  if (oppContainer) {
+    const query = (document.getElementById("oppSearchInput")?.value || "").trim().toLowerCase();
+    const regionFilter = document.getElementById("oppRegionFilter")?.value || "ALL";
+    const fundingFilter = document.getElementById("oppFundingFilter")?.value || "ALL";
+    const exemptionFilter = document.getElementById("oppExemptionFilter")?.value || "ALL";
+
+    const oppList = (appState.phd_opportunities || []).filter((o) => {
+      if (regionFilter !== "ALL" && o.region !== regionFilter) return false;
+      if (fundingFilter !== "ALL" && o.funding_type !== fundingFilter) return false;
+      if (exemptionFilter !== "ALL" && o.english_requirements !== exemptionFilter) return false;
+      if (query) {
+        const corpus = `${o.university_name} ${o.phd_programme} ${o.research_field} ${o.country} ${o.supervisor_name} ${o.evidence_text}`.toLowerCase();
+        if (!corpus.includes(query)) return false;
+      }
+      return true;
+    });
+
+    const countEl = document.getElementById("oppFilteredCount");
+    if (countEl) countEl.textContent = oppList.length;
+
+    if (window.ShamaProductionModules?.funding?.renderGlobalPhDOpportunitiesTable) {
+      oppContainer.innerHTML = window.ShamaProductionModules.funding.renderGlobalPhDOpportunitiesTable(oppList);
+    }
+  }
+
+  // 3. Professor Grant Evidence Provenance Cards
   const container = document.getElementById("fundingListContainer");
-  if (!container || !appState) return;
+  if (container) {
+    const profs = (appState.professors || []).filter((p) => {
+      if (currentFundingFilter === "ALL") return true;
+      return p.funding_status === currentFundingFilter;
+    });
 
-  const profs = (appState.professors || []).filter((p) => {
-    if (currentFundingFilter === "ALL") return true;
-    return p.funding_status === currentFundingFilter;
-  });
-
-  container.innerHTML = profs
-    .slice(0, 50)
-    .map((p) => {
-      const fd = p.funding_detail || {};
-      return `
-      <div class="item-card">
-        <div class="item-card-header">
-          <div>
-            <div class="item-card-title">${escapeHtml(p.full_name)} — ${escapeHtml(p.university_name)} (${escapeHtml(p.country)})</div>
-            <div class="item-card-sub">Recent Paper: "${escapeHtml(p.recent_paper_title)}" (${escapeHtml(p.recent_paper_year)})</div>
+    container.innerHTML = profs
+      .slice(0, 50)
+      .map((p) => {
+        const fd = p.funding_detail || {};
+        return `
+        <div class="item-card">
+          <div class="item-card-header">
+            <div>
+              <div class="item-card-title">${escapeHtml(p.full_name)} — ${escapeHtml(p.university_name)} (${escapeHtml(p.country)})</div>
+              <div class="item-card-sub">Recent Paper: "${escapeHtml(p.recent_paper_title)}" (${escapeHtml(p.recent_paper_year)})</div>
+            </div>
+            <span class="${getFundingBadgeClass(p.funding_status)}">${escapeHtml(p.funding_status)}</span>
           </div>
-          <span class="${getFundingBadgeClass(p.funding_status)}">${escapeHtml(p.funding_status)}</span>
+          <div class="item-card-body">
+            <div><strong>Funding Agency / Program:</strong> ${escapeHtml(fd.grant_agency || "None explicitly listed in paper metadata")} ${fd.grant_id_or_program ? `(Grant ID: <code>${escapeHtml(fd.grant_id_or_program)}</code>)` : ""}</div>
+            <div style="margin-top:4px;"><strong>Evidence Summary:</strong> ${escapeHtml(fd.evidence_summary || "No explicit grant award ID listed in paper metadata; verify university PhD scholarship portal.")}</div>
+          </div>
+          <div class="item-card-actions">
+            ${fd.source_url ? `<a href="${escapeHtml(fd.source_url)}" target="_blank" rel="noopener" class="btn btn-sm btn-secondary">🔗 Inspect Source Publication / Grant Record</a>` : ""}
+            <button class="btn btn-sm btn-primary" onclick="openOrCreateDraftForProfessor('${escapeHtml(p.id)}')">✉️ Open Personalized Gmail Draft</button>
+          </div>
         </div>
-        <div class="item-card-body">
-          <div><strong>Funding Agency / Program:</strong> ${escapeHtml(fd.grant_agency || "None explicitly listed in paper metadata")} ${fd.grant_id_or_program ? `(Grant ID: <code>${escapeHtml(fd.grant_id_or_program)}</code>)` : ""}</div>
-          <div style="margin-top:4px;"><strong>Evidence Summary:</strong> ${escapeHtml(fd.evidence_summary || "No explicit grant award ID listed in paper metadata; verify university PhD scholarship portal.")}</div>
-        </div>
-        <div class="item-card-actions">
-          ${fd.source_url ? `<a href="${escapeHtml(fd.source_url)}" target="_blank" rel="noopener" class="btn btn-sm btn-secondary">🔗 Inspect Source Publication / Grant Record</a>` : ""}
-          <button class="btn btn-sm btn-primary" onclick="openOrCreateDraftForProfessor('${escapeHtml(p.id)}')">✉️ Open Personalized Gmail Draft</button>
-        </div>
-      </div>
-    `;
-    })
-    .join("");
+      `;
+      })
+      .join("");
+  }
 }
 
 function renderDraftsView() {
@@ -1102,6 +1141,55 @@ window.openOrCreateDraftForProfessor = function (profId) {
   window.openDraftModal(draft.id);
 };
 
+window.openOrCreateDraftForOpportunity = function (oppId) {
+  if (!appState) return;
+  const opp = (appState.phd_opportunities || []).find((o) => o.id === oppId);
+  if (!opp) return;
+
+  let draft = (appState.email_drafts || []).find((d) => d.opportunity_id === oppId);
+  if (!draft) {
+    const subject = `Prospective PhD Application Inquiry — ${opp.phd_programme} (Dr. Shama Abidi, PharmD, MPhil)`;
+    const fundingClause = opp.funding_type === "FULLY_FUNDED"
+      ? `I noted with keen interest that this position offers confirmed full tuition waiver and living stipend support (${opp.confirmed_funding_amount || "funded studentship"}).`
+      : `I would be very grateful to learn about prospective PhD supervision capacity and eligible doctoral scholarship tracks for the ${opp.intended_intake || "upcoming"} intake.`;
+
+    const body =
+      `Dear ${opp.supervisor_name},\n\n` +
+      `I hope this email finds you well. I am writing to express my strong interest in applying for the ${opp.phd_programme} in ${opp.research_field} under your supervision at ${opp.university_name} (${opp.country}).\n\n` +
+      `${fundingClause}\n\n` +
+      `By way of background, I hold a Doctor of Pharmacy (PharmD) and an MPhil in Pharmacy Practice from the University of Karachi, and I serve as a Senior Clinical Pharmacist at Liaquat National Hospital and Medical College. My published research portfolio focuses on:\n` +
+      `- Prospective cohort evaluations of ICU carbapenem antimicrobial stewardship (N=134, achieving an 87.3% physician intervention acceptance rate and 62.7% renal CrCl dose adjustments, p=0.036; PJPS 2022)\n` +
+      `- Antianginal pharmacotherapy outcomes using the SAQ-7 and Naranjo adverse drug reaction causality assessment (N=110; PJPS 2024)\n` +
+      `- Artificial intelligence clinical decision support versus clinical pharmacist interventions (JPPP 2025)\n\n` +
+      `Research Alignment Rationale:\n- ${opp.match_rationale || "Direct alignment with clinical pharmacy and pharmacotherapy research."}\n\n` +
+      `I have attached my Curriculum Vitae and published research papers for your review, and I would be honored to discuss a brief PhD research concept note at your convenience.\n\n` +
+      `Warm regards,\nDr. Shama Abidi, PharmD, MPhil (Pharmacy Practice)\nSenior Clinical Pharmacist, Liaquat National Hospital & Medical College\nEmail: shama.abidi80@gmail.com | WhatsApp: +92 300 2460274`;
+
+    draft = {
+      id: `draft_opp_${opp.id}`,
+      opportunity_id: opp.id,
+      professor_name: opp.supervisor_name,
+      university_name: opp.university_name,
+      country: opp.country,
+      funding_status: opp.funding_type,
+      verification_status: opp.verification_status,
+      draft_type: "INITIAL_OUTREACH",
+      recipient_email: opp.supervisor_email || "verify-faculty-email-on-university-page@university.edu",
+      subject,
+      body_text: body,
+      referenced_professor_paper: opp.phd_programme,
+      referenced_shama_paper: "PJPS 2022 & 2024 Clinical Pharmacy Publications",
+      gmail_sync_status: "LOCAL_CRM_DRAFT_PENDING_OAUTH",
+      auto_send_disabled: 1,
+      batch_date: new Date().toISOString().slice(0, 10),
+      created_at: new Date().toISOString(),
+    };
+    appState.email_drafts.unshift(draft);
+    renderAllViews();
+  }
+  window.openDraftModal(draft.id);
+};
+
 window.markDraftManuallySent = async function (draftId) {
   if (!appState) return;
   const draft = (appState.email_drafts || []).find((d) => d.id === draftId);
@@ -1367,6 +1455,15 @@ document.addEventListener("DOMContentLoaded", () => {
     if (el) {
       el.addEventListener("input", renderProfessorsView);
       el.addEventListener("change", renderProfessorsView);
+    }
+  });
+
+  // Global PhD Opportunity search & filter inputs
+  ["oppSearchInput", "oppRegionFilter", "oppFundingFilter", "oppExemptionFilter"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener("input", renderFundingView);
+      el.addEventListener("change", renderFundingView);
     }
   });
 

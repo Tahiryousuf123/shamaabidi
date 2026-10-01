@@ -52,12 +52,20 @@ from backend.app.models import (
     FundingOpportunity,
     Job,
     JobRun,
+    PhDOpportunity,
     Professor,
     Publication,
     Role,
     Task,
     University,
     User,
+)
+from backend.app.opportunity_service import upsert_phd_opportunity
+from backend.app.target_countries import (
+    get_all_target_countries_flat,
+    get_regions_summary,
+    load_target_countries_config,
+    save_target_countries_config,
 )
 from backend.app.security import (
     bearer_scheme,
@@ -1689,3 +1697,308 @@ def list_audit_logs(
             for l in logs
         ],
     }
+
+
+# ==============================================================================
+# 15. /api/v1/countries (Target Countries Configuration across 7 Regions)
+# ==============================================================================
+class AddCountryRequest(BaseModel):
+    region_key: str = Field(..., min_length=2, max_length=64)
+    name: str = Field(..., min_length=2, max_length=100)
+    code: str = Field(..., min_length=2, max_length=10)
+    aliases: list[str] = Field(default_factory=list)
+
+
+class ToggleRegionRequest(BaseModel):
+    region_key: str
+    is_enabled: bool
+
+
+@router.get("/countries")
+def get_target_countries(
+    include_disabled: bool = Query(default=False),
+    user: User = Depends(get_current_user),
+):
+    """Returns the configurable global target country list across all 7 regions."""
+    cfg = load_target_countries_config()
+    flat_countries = get_all_target_countries_flat(include_disabled_regions=include_disabled)
+    return {
+        "success": True,
+        "total_countries": len(flat_countries),
+        "regions": cfg.get("regions", {}),
+        "excluded_countries": cfg.get("excluded_countries", []),
+        "countries_flat": flat_countries,
+    }
+
+
+@router.get("/countries/regions")
+def get_regions_overview(user: User = Depends(get_current_user)):
+    """Returns a summary of the 7 target regions and country counts."""
+    return {
+        "success": True,
+        "regions_summary": get_regions_summary(),
+    }
+
+
+@router.post("/countries/toggle-region")
+def toggle_region(
+    payload: ToggleRegionRequest,
+    user: User = Depends(require_roles(RoleEnum.ADMIN.value)),
+    db: Session = Depends(get_db),
+):
+    """Dynamically enables or disables an entire geographical region without code rebuilds."""
+    cfg = load_target_countries_config()
+    if payload.region_key not in cfg.get("regions", {}):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "REGION_NOT_FOUND", "message": f"Region '{payload.region_key}' does not exist."},
+        )
+    cfg["regions"][payload.region_key]["is_enabled"] = payload.is_enabled
+    save_target_countries_config(cfg)
+    record_audit_log(
+        db,
+        action="TARGET_REGION_TOGGLED",
+        entity_type="RegionConfig",
+        entity_id=payload.region_key,
+        actor_user_id=user.id,
+        actor_email=user.email,
+        new_value={"region_key": payload.region_key, "is_enabled": payload.is_enabled},
+    )
+    return {
+        "success": True,
+        "region_key": payload.region_key,
+        "is_enabled": payload.is_enabled,
+    }
+
+
+@router.post("/countries/add", status_code=status.HTTP_201_CREATED)
+def add_target_country(
+    payload: AddCountryRequest,
+    user: User = Depends(require_roles(RoleEnum.ADMIN.value)),
+    db: Session = Depends(get_db),
+):
+    """Adds a new country to any of the 7 regions dynamically without rebuilding the system."""
+    cfg = load_target_countries_config()
+    if payload.region_key not in cfg.get("regions", {}):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "REGION_NOT_FOUND", "message": f"Region '{payload.region_key}' does not exist."},
+        )
+    existing_countries = cfg["regions"][payload.region_key].get("countries", [])
+    for c in existing_countries:
+        if c["name"].lower() == payload.name.lower() or c["code"].upper() == payload.code.upper():
+            return {
+                "success": True,
+                "message": f"Country '{payload.name}' already configured in region '{payload.region_key}'.",
+                "country": c,
+            }
+    new_entry = {
+        "name": payload.name.strip(),
+        "code": payload.code.strip().upper(),
+        "aliases": [a.strip() for a in payload.aliases if a.strip()],
+    }
+    existing_countries.append(new_entry)
+    save_target_countries_config(cfg)
+    record_audit_log(
+        db,
+        action="TARGET_COUNTRY_ADDED",
+        entity_type="CountryConfig",
+        entity_id=new_entry["code"],
+        actor_user_id=user.id,
+        actor_email=user.email,
+        new_value=new_entry,
+    )
+    return {
+        "success": True,
+        "country": new_entry,
+        "region_key": payload.region_key,
+    }
+
+
+# ==============================================================================
+# 16. /api/v1/opportunities (Global Funded PhD Opportunities Search & Management)
+# ==============================================================================
+class PhDOpportunityCreateRequest(BaseModel):
+    country: str = Field(..., min_length=2, max_length=100)
+    university_name: str = Field(..., min_length=2, max_length=255)
+    phd_programme: str = Field(..., min_length=2, max_length=300)
+    research_field: str = Field(..., min_length=2, max_length=255)
+    supervisor_name: str = Field(..., min_length=2, max_length=200)
+    supervisor_profile_url: str | None = Field(default="")
+    supervisor_email: str | None = Field(default="")
+    funding_source: str | None = Field(default="Unknown")
+    confirmed_funding_amount: str | None = Field(default="Unknown")
+    stipend_amount: str | None = Field(default="Unknown")
+    stipend_duration_months: str | None = Field(default="Unknown")
+    tuition_coverage_hint: str = Field(default="UNKNOWN")
+    international_eligibility: str = Field(default="UNKNOWN")
+    english_requirements: str = Field(default="UNKNOWN")
+    english_exemption_details: str | None = Field(default="")
+    deadline_date: str = Field(default="OPEN_ROLLING")
+    intended_intake: str = Field(default="Fall 2026 / Spring 2027")
+    official_application_url: str | None = Field(default="")
+    official_funding_url: str | None = Field(default="")
+    required_qualifications: str | None = Field(default="")
+    required_documents: str | None = Field(default="")
+    evidence_text: str | None = Field(default="")
+
+
+@router.get("/opportunities")
+def list_phd_opportunities(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=25, ge=1, le=100),
+    country: str | None = Query(default=None),
+    region: str | None = Query(default=None),
+    funding_type: str | None = Query(default=None),
+    verification_status: str | None = Query(default=None),
+    min_match_score: float | None = Query(default=None),
+    recommended_only: bool = Query(default=False),
+    search: str | None = Query(default=None),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Searches global funded PhD opportunities across target countries.
+    Captures country, university, programme, supervisor, funding classification,
+    stipend, tuition coverage, international eligibility, English requirements, and evidence.
+    """
+    q_obj = db.query(PhDOpportunity)
+    if country:
+        q_obj = q_obj.filter(func.lower(PhDOpportunity.country) == country.strip().lower())
+    if region:
+        q_obj = q_obj.filter(func.lower(PhDOpportunity.region) == region.strip().lower())
+    if funding_type:
+        q_obj = q_obj.filter(PhDOpportunity.funding_type == funding_type.upper())
+    if verification_status:
+        q_obj = q_obj.filter(PhDOpportunity.verification_status == verification_status.upper())
+    if min_match_score is not None:
+        q_obj = q_obj.filter(PhDOpportunity.applicant_match_score >= min_match_score)
+    if recommended_only:
+        q_obj = q_obj.filter(PhDOpportunity.is_recommended_for_outreach.is_(True))
+    if search:
+        like_pat = f"%{search.strip().lower()}%"
+        q_obj = q_obj.filter(
+            or_(
+                func.lower(PhDOpportunity.university_name).like(like_pat),
+                func.lower(PhDOpportunity.phd_programme).like(like_pat),
+                func.lower(PhDOpportunity.research_field).like(like_pat),
+                func.lower(PhDOpportunity.supervisor_name).like(like_pat),
+                func.lower(PhDOpportunity.country).like(like_pat),
+            )
+        )
+
+    total = q_obj.count()
+    items = (
+        q_obj.order_by(PhDOpportunity.applicant_match_score.desc(), PhDOpportunity.created_at.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
+
+    return {
+        "success": True,
+        "page": page,
+        "page_size": page_size,
+        "total": total,
+        "items": [
+            {
+                "id": o.id,
+                "country": o.country,
+                "country_code": o.country_code,
+                "region": o.region,
+                "university_id": o.university_id,
+                "university_name": o.university_name,
+                "phd_programme": o.phd_programme,
+                "research_field": o.research_field,
+                "supervisor_name": o.supervisor_name,
+                "supervisor_profile_url": o.supervisor_profile_url,
+                "supervisor_email": o.supervisor_email,
+                "funding_source": o.funding_source,
+                "confirmed_funding_amount": o.confirmed_funding_amount,
+                "funding_type": o.funding_type,
+                "tuition_coverage": o.tuition_coverage,
+                "stipend_amount": o.stipend_amount,
+                "stipend_duration_months": o.stipend_duration_months,
+                "international_eligibility": o.international_eligibility,
+                "english_requirements": o.english_requirements,
+                "english_exemption_details": o.english_exemption_details,
+                "deadline_date": o.deadline_date,
+                "intended_intake": o.intended_intake,
+                "official_application_url": o.official_application_url,
+                "official_funding_url": o.official_funding_url,
+                "source_verification_date": o.source_verification_date.isoformat() if o.source_verification_date else None,
+                "verification_status": o.verification_status,
+                "required_qualifications": o.required_qualifications,
+                "required_documents": o.required_documents,
+                "evidence_text": o.evidence_text,
+                "applicant_match_score": o.applicant_match_score,
+                "match_rationale": o.match_rationale,
+                "is_recommended_for_outreach": o.is_recommended_for_outreach,
+            }
+            for o in items
+        ],
+    }
+
+
+@router.post("/opportunities", status_code=status.HTTP_201_CREATED)
+def create_phd_opportunity(
+    payload: PhDOpportunityCreateRequest,
+    user: User = Depends(require_roles(RoleEnum.ADMIN.value, RoleEnum.RESEARCHER.value)),
+    db: Session = Depends(get_db),
+):
+    """
+    Ingests a Global Funded PhD Opportunity.
+    Enforces evidence-backed funding classification, academic matching,
+    and target country verification.
+    """
+    try:
+        opp, created = upsert_phd_opportunity(
+            db,
+            country=payload.country,
+            university_name=payload.university_name,
+            phd_programme=payload.phd_programme,
+            research_field=payload.research_field,
+            supervisor_name=payload.supervisor_name,
+            supervisor_profile_url=payload.supervisor_profile_url or "",
+            supervisor_email=payload.supervisor_email or "",
+            funding_source=payload.funding_source or "Unknown",
+            confirmed_funding_amount=payload.confirmed_funding_amount or "Unknown",
+            stipend_amount=payload.stipend_amount or "Unknown",
+            stipend_duration_months=payload.stipend_duration_months or "Unknown",
+            tuition_coverage_hint=payload.tuition_coverage_hint,
+            international_eligibility=payload.international_eligibility,
+            english_requirements=payload.english_requirements,
+            english_exemption_details=payload.english_exemption_details or "",
+            deadline_date=payload.deadline_date,
+            intended_intake=payload.intended_intake,
+            official_application_url=payload.official_application_url or "",
+            official_funding_url=payload.official_funding_url or "",
+            required_qualifications=payload.required_qualifications or "",
+            required_documents=payload.required_documents or "",
+            evidence_text=payload.evidence_text or "",
+            actor_user_id=user.id,
+            actor_email=user.email,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "INVALID_OPPORTUNITY", "message": str(exc)},
+        ) from exc
+
+    return {
+        "success": True,
+        "created": created,
+        "item": {
+            "id": opp.id,
+            "university_name": opp.university_name,
+            "country": opp.country,
+            "region": opp.region,
+            "phd_programme": opp.phd_programme,
+            "funding_type": opp.funding_type,
+            "tuition_coverage": opp.tuition_coverage,
+            "verification_status": opp.verification_status,
+            "applicant_match_score": opp.applicant_match_score,
+            "is_recommended_for_outreach": opp.is_recommended_for_outreach,
+        },
+    }
+

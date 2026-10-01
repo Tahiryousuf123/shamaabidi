@@ -91,12 +91,26 @@ def is_official_academic_domain(domain: str, url: str = "") -> bool:
     d = (domain or extract_domain(url)).lower()
     if not d:
         return False
+    # Third-party aggregators are discovery sources, never official institutional portals
+    third_party_aggregators = (
+        "findaphd.com", "phdportal.com", "scholarshipdb.net", "postgrad.com",
+        "academicpositions.com", "timeshighereducation.com"
+    )
+    if any(agg in d for agg in third_party_aggregators):
+        return False
+
     trusted_suffixes = (
         ".edu", ".ac.uk", ".ac.jp", ".ac.nz", ".edu.au", ".edu.sg", ".edu.my",
         ".de", ".ch", ".nl", ".se", ".dk", ".no", ".fi", ".fr", ".it", ".es",
         ".ca", ".be", ".at", ".ie", "orcid.org", "doi.org", "ebi.ac.uk", "nih.gov", "openalex.org"
     )
-    return any(d.endswith(sfx) or sfx in d for sfx in trusted_suffixes)
+    for sfx in trusted_suffixes:
+        if sfx.startswith("."):
+            if d.endswith(sfx) or f"{sfx}." in d:
+                return True
+        elif sfx in d:
+            return True
+    return False
 
 
 def seed_roles_users_and_jobs(db: Session) -> None:

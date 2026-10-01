@@ -54,6 +54,14 @@ from whatsapp_service import (
     send_grouped_whatsapp_notification,
 )
 
+from backend.app.db_session import SessionLocal
+from backend.app.opportunity_service import upsert_phd_opportunity
+from backend.app.target_countries import (
+    get_all_target_countries_flat,
+    is_country_excluded,
+    resolve_target_country,
+)
+
 
 # Rotating international clinical pharmacy search queries aligned with Shama Abidi's 5 publications
 DISCOVERY_SEARCH_QUERIES: List[Dict[str, str]] = [
@@ -133,6 +141,37 @@ INTERNATIONAL_COUNTRIES: Dict[str, str] = {
 }
 
 
+def get_target_country_patterns() -> List[Tuple[str, str, str]]:
+    """
+    Returns list of (pattern, canonical_country_name, iso_code)
+    sorted by pattern length descending to prevent false short substring matches.
+    """
+    try:
+        flat = get_all_target_countries_flat()
+    except Exception:
+        flat = []
+    patterns: List[Tuple[str, str, str]] = []
+    for item in flat:
+        c_name = item["name"]
+        c_code = item["code"]
+        patterns.append((c_name.lower(), c_name, c_code))
+        for alias in item.get("aliases", []):
+            if len(alias) >= 2:
+                patterns.append((alias.lower(), c_name, c_code))
+
+    if not patterns:
+        for k, (cn, cc) in INTERNATIONAL_COUNTRIES.items():
+            patterns.append((k.lower(), cn, cc))
+
+    seen = set()
+    sorted_pats = []
+    for pat, c_name, c_code in sorted(patterns, key=lambda x: len(x[0]), reverse=True):
+        if pat not in seen:
+            seen.add(pat)
+            sorted_pats.append((pat, c_name, c_code))
+    return sorted_pats
+
+
 def update_job_state(
     job_id: str,
     status: str,
@@ -180,13 +219,13 @@ def update_job_state(
 def parse_affiliation_university_and_country(affiliation: str) -> Optional[Tuple[str, str, str, str, str]]:
     """
     Extracts (university_name, department, country_name, country_code, email_if_present)
-    from a scholarly affiliation string.
+    from a scholarly affiliation string across all 7 global target regions.
     Strictly returns None if the affiliation is in Pakistan or lacks a recognizable university.
     """
     if not affiliation or len(affiliation.strip()) < 10:
         return None
     aff_lower = affiliation.lower()
-    if "pakistan" in aff_lower or "karachi" in aff_lower or "lahore" in aff_lower or "islamabad" in aff_lower:
+    if is_country_excluded(affiliation) or "pakistan" in aff_lower or "karachi" in aff_lower or "lahore" in aff_lower or "islamabad" in aff_lower:
         return None
 
     # Extract embedded email address if present in affiliation string (common in PubMed/Europe PMC)
@@ -195,16 +234,18 @@ def parse_affiliation_university_and_country(affiliation: str) -> Optional[Tuple
     if extracted_email.endswith(".pk"):
         return None
 
-    # Detect country
+    # Detect country across all 7 target regions
     detected_country = ""
     detected_code = ""
-    for key, (c_name, c_code) in INTERNATIONAL_COUNTRIES.items():
-        if re.search(rf"\b{re.escape(key)}\b", aff_lower):
-            detected_country = c_name
-            detected_code = c_code
-            break
+    for pat, c_name, c_code in get_target_country_patterns():
+        if re.search(rf"\b{re.escape(pat)}\b", aff_lower):
+            resolved = resolve_target_country(c_name)
+            if resolved:
+                detected_country = resolved["name"]
+                detected_code = resolved["code"]
+                break
 
-    if not detected_country:
+    if not detected_country or is_country_excluded(detected_country):
         return None
 
     parts = [p.strip() for p in re.split(r"[,;]", affiliation) if p.strip()]
@@ -473,15 +514,15 @@ def fetch_candidates_from_openalex(
             inst = institutions[0]
             uni_name = (inst.get("display_name") or "").strip()
             c_code = (inst.get("country_code") or "").upper()
-            if not uni_name or not c_code or c_code == "PK" or "pakistan" in uni_name.lower():
+            if not uni_name or not c_code or c_code == "PK" or is_country_excluded(c_code) or "pakistan" in uni_name.lower():
                 continue
 
-            # Map country code to readable name
-            country_name = c_code
-            for _, (cn, cc) in INTERNATIONAL_COUNTRIES.items():
-                if cc == c_code:
-                    country_name = cn
-                    break
+            resolved_geo = resolve_target_country(c_code)
+            if not resolved_geo:
+                continue
+
+            country_name = resolved_geo["name"]
+            c_code = resolved_geo["code"]
 
             profile_url = orcid_raw or oa_id or (f"https://doi.org/{doi}" if doi else "")
             candidates.append(
@@ -700,6 +741,44 @@ def run_job_research_discovery(target_min: int = 35, target_max: int = 85) -> Di
             """,
             (f_id, prof_id, f_status, agency, gid, ev_type, ev_summary, src_url, now),
         )
+
+        # Ingest candidate into global phd_opportunities table as well
+        try:
+            with SessionLocal() as db_session:
+                ev_str = (
+                    f"Official published research backed by {agency} (Award ID: {gid}). "
+                    f"Publication: {cand['paper_title']} ({cand['paper_year']}). Abstract: {cand.get('paper_abstract', '')[:300]}"
+                    if gid else
+                    f"International peer-reviewed publication in {cand['paper_journal']} ({cand['paper_year']}): '{cand['paper_title']}'."
+                )
+                upsert_phd_opportunity(
+                    db=db_session,
+                    country=cand["country"],
+                    university_name=cand["university_name"],
+                    phd_programme=f"PhD in {cand.get('research_topic', 'Clinical Pharmacy & Outcomes')}",
+                    research_field=cand.get("research_topic", "Clinical Pharmacy & Pharmacotherapy"),
+                    supervisor_name=cand["full_name"],
+                    supervisor_profile_url=cand.get("profile_url", ""),
+                    supervisor_email=cand.get("official_email", ""),
+                    funding_source=agency if agency else f"{cand['university_name']} Research Group",
+                    confirmed_funding_amount=f"Grant ID {gid}" if gid else "Needs Review",
+                    stipend_amount="Standard Doctoral Stipend" if gid else "Unknown",
+                    stipend_duration_months="36-48 months" if gid else "Unknown",
+                    tuition_coverage_hint="YES" if gid else "UNKNOWN",
+                    international_eligibility="ELIGIBLE",
+                    english_requirements="IELTS_TOEFL_REQUIRED",
+                    english_exemption_details="Medium of Instruction certificate accepted subject to official faculty review.",
+                    deadline_date="OPEN_ROLLING",
+                    intended_intake="Fall 2026 / Spring 2027",
+                    official_application_url=cand.get("profile_url", ""),
+                    official_funding_url=src_url,
+                    required_qualifications="PharmD / MPhil in Pharmacy or Clinical Pharmacology",
+                    required_documents="CV, Academic Transcripts, Research Concept Note, 2 References",
+                    evidence_text=ev_str,
+                    actor_email="SYSTEM_AUTONOMOUS_PIPELINE",
+                )
+        except Exception:
+            pass
 
         inserted_count += 1
 

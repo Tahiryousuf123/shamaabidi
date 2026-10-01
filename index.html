@@ -399,15 +399,72 @@
       </section>
 
       <!-- ================================================================
-           VIEW 4: FUNDING (Sections 11, 23.4)
+           VIEW 4: FUNDING & GLOBAL PHD OPPORTUNITIES (Sections 11, 23.4)
       ================================================================= -->
       <section id="view-funding" class="crm-view">
+        <!-- 7 Target Search Regions Overview Panel -->
+        <div id="targetRegionsContainer"></div>
+
+        <!-- Global Funded PhD Opportunities & Studentships Table -->
+        <div class="panel-card filter-bar" style="margin-bottom:16px;">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="oppSearchInput">Search Opportunity, University, or Topic</label>
+              <input type="search" id="oppSearchInput" placeholder="e.g. Manchester, Karolinska, clinical pharmacy, antimicrobial..." />
+            </div>
+            <div class="form-group">
+              <label for="oppRegionFilter">Geographical Region</label>
+              <select id="oppRegionFilter">
+                <option value="ALL">All 7 Target Regions</option>
+                <option value="North America">1. North America</option>
+                <option value="Oceania">2. Oceania</option>
+                <option value="Europe — Western and Northern Europe">3. Western &amp; Northern Europe</option>
+                <option value="Europe — Southern Europe">4. Southern Europe</option>
+                <option value="Europe — Central and Eastern Europe">5. Central &amp; Eastern Europe</option>
+                <option value="European–Asian Boundary / Wider Europe">6. Boundary / Wider Europe</option>
+                <option value="Global Expansion">7. Global Expansion</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="oppFundingFilter">Funding Classification</label>
+              <select id="oppFundingFilter">
+                <option value="ALL">All Funding Classifications</option>
+                <option value="FULLY_FUNDED">💎 FULLY FUNDED (Official Evidence)</option>
+                <option value="PARTIALLY_FUNDED">⚠️ PARTIALLY FUNDED</option>
+                <option value="NEEDS_REVIEW">🔍 NEEDS REVIEW</option>
+                <option value="UNFUNDED">🚫 UNFUNDED</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="oppExemptionFilter">English Requirement</label>
+              <select id="oppExemptionFilter">
+                <option value="ALL">All English Requirements</option>
+                <option value="MEDIUM_OF_INSTRUCTION_EXEMPTION_ACCEPTED">🎓 MOI Exemption Accepted</option>
+                <option value="IELTS_TOEFL_REQUIRED">📝 IELTS / TOEFL Required</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-card" style="margin-bottom:20px;">
+          <div class="panel-head-inline">
+            <div>
+              <h3>🎓 Global Verified PhD Opportunities &amp; Funded Studentships (<span id="oppFilteredCount">0</span>)</h3>
+              <p class="panel-desc">
+                Targeting 67 countries across 7 regions. Strict evidence-backed classification: only marked FULLY FUNDED when official tuition waiver and living stipend are proven.
+              </p>
+            </div>
+          </div>
+          <div id="phdOpportunitiesContainer"></div>
+        </div>
+
+        <!-- Professor Grant & Funding Evidence Provenance -->
         <div class="panel-card">
           <div class="panel-head-inline">
             <div>
-              <h3>🏛️ Evidence-Based PhD Funding &amp; Grant Verification (Section 11)</h3>
+              <h3>🏛️ Professor Grant &amp; Research Funding Provenance (Section 11)</h3>
               <p class="panel-desc">
-                Never labels a professor "funded" merely because they are a faculty member. Classifications require explicit grant metadata from Europe PMC (<code>grantsList</code>), OpenAlex (<code>grants</code>), or Crossref (<code>funder</code>).
+                Direct grant awards extracted from Europe PMC (<code>grantsList</code>), OpenAlex (<code>grants</code>), and Crossref (<code>funder</code>).
               </p>
             </div>
             <div class="filter-pills" id="fundingCategoryPills">

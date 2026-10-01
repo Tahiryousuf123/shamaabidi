@@ -511,3 +511,55 @@ class SystemSetting(Base):
     setting_value = Column(Text, nullable=False)
     description = Column(String(300), nullable=False, default="")
     updated_at = Column(DateTime(timezone=True), nullable=False, default=utc_now, onupdate=utc_now)
+
+
+# 27. phd_opportunities (Global Funded PhD Positions & Doctoral Studentships)
+class PhDOpportunity(Base):
+    __tablename__ = "phd_opportunities"
+    __table_args__ = (
+        UniqueConstraint("university_name", "phd_programme", "supervisor_name", name="uq_phd_opportunity"),
+        Index("ix_phd_opp_funding_verif", "funding_type", "verification_status"),
+        Index("ix_phd_opp_country", "country"),
+        Index("ix_phd_opp_region", "region"),
+    )
+
+    id = Column(String(64), primary_key=True, default=new_uuid)
+    country = Column(String(100), nullable=False, index=True)
+    country_code = Column(String(10), nullable=False, default="INT")
+    region = Column(String(100), nullable=False, default="Global", index=True)
+    university_id = Column(String(64), ForeignKey("universities.id", ondelete="SET NULL"), nullable=True)
+    university_name = Column(String(255), nullable=False, index=True)
+    phd_programme = Column(String(300), nullable=False)
+    research_field = Column(String(255), nullable=False)
+    supervisor_name = Column(String(200), nullable=False)
+    supervisor_profile_url = Column(String(500), nullable=False, default="")
+    supervisor_email = Column(String(255), nullable=False, default="")
+    funding_source = Column(String(255), nullable=False, default="Unknown")
+    confirmed_funding_amount = Column(String(150), nullable=False, default="Unknown")
+    # Controlled: FULLY_FUNDED, PARTIALLY_FUNDED, UNFUNDED, NEEDS_REVIEW, UNKNOWN
+    funding_type = Column(String(50), nullable=False, default="NEEDS_REVIEW", index=True)
+    # YES, NO, UNKNOWN
+    tuition_coverage = Column(String(50), nullable=False, default="UNKNOWN")
+    stipend_amount = Column(String(150), nullable=False, default="Unknown")
+    stipend_duration_months = Column(String(50), nullable=False, default="Unknown")
+    # ELIGIBLE, RESTRICTED, UNKNOWN
+    international_eligibility = Column(String(50), nullable=False, default="UNKNOWN")
+    # IELTS_TOEFL_REQUIRED, MEDIUM_OF_INSTRUCTION_EXEMPTION_ACCEPTED, UNKNOWN
+    english_requirements = Column(String(100), nullable=False, default="UNKNOWN")
+    english_exemption_details = Column(Text, nullable=False, default="")
+    deadline_date = Column(String(50), nullable=False, default="OPEN_ROLLING")
+    intended_intake = Column(String(64), nullable=False, default="Fall 2026 / Spring 2027")
+    official_application_url = Column(String(500), nullable=False, default="")
+    official_funding_url = Column(String(500), nullable=False, default="")
+    source_verification_date = Column(DateTime(timezone=True), nullable=True)
+    # VERIFIED, UNVERIFIED, NEEDS_REVIEW, REJECTED
+    verification_status = Column(String(50), nullable=False, default="UNVERIFIED", index=True)
+    required_qualifications = Column(Text, nullable=False, default="")
+    required_documents = Column(Text, nullable=False, default="")
+    evidence_text = Column(Text, nullable=False, default="")
+    applicant_match_score = Column(Float, nullable=False, default=0.0)
+    match_rationale = Column(Text, nullable=False, default="")
+    is_recommended_for_outreach = Column(Boolean, nullable=False, default=False)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=utc_now)
+    updated_at = Column(DateTime(timezone=True), nullable=False, default=utc_now, onupdate=utc_now)
+
