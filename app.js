@@ -135,16 +135,28 @@ window.handleOpenGmailWithCVNotice = function (draftId, event = null) {
   }
 
   // 2. Also copy full text to clipboard for convenience
+  let cleanTo = "";
   if (appState && appState.email_drafts) {
     const draft = appState.email_drafts.find((d) => d.id === draftId);
-    if (draft && navigator.clipboard) {
-      navigator.clipboard.writeText(draft.body_text).catch(() => {});
+    if (draft) {
+      if (draft.recipient_email && !draft.recipient_email.startsWith("verify-") && draft.recipient_email.includes("@")) {
+        cleanTo = draft.recipient_email;
+      }
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(draft.body_text).catch(() => {});
+      }
     }
   }
 
-  showToast(
-    "📥 Dr. Shama's CV (PDF) has been downloaded to your computer! In Gmail, click the 📎 paperclip (or drag & drop the PDF) to attach it. (A direct cloud link is also already in the email!)"
-  );
+  if (cleanTo) {
+    showToast(
+      `✉️ Opening Gmail Compose to: ${cleanTo}\n📥 Dr. Shama's CV (PDF) downloaded! Drag & drop it or click 📎 in Gmail to attach.`
+    );
+  } else {
+    showToast(
+      "✉️ Gmail Compose opened!\n⚠️ Notice: Professor email is pending faculty lookup. Please copy their email from their profile page and paste it into Gmail's 'To' box.\n📥 Dr. Shama's CV (PDF) has been downloaded to attach!"
+    );
+  }
 };
 
 window.copyDraftText = function (draftId) {
@@ -765,8 +777,13 @@ function renderDraftsView() {
             <div class="item-card-title">
               ${escapeHtml(d.professor_name)} — ${escapeHtml(d.university_name)} (${escapeHtml(d.country)})
             </div>
-            <div class="item-card-sub">
-              To: <code>${escapeHtml(d.recipient_email)}</code> • Subject: ${escapeHtml(d.subject)}
+            <div class="item-card-sub" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:4px;">
+              ${
+                !d.recipient_email || d.recipient_email.startsWith("verify-") || !d.recipient_email.includes("@")
+                  ? `<span class="badge" style="background:rgba(245,158,11,0.18);color:#fde047;border:1px solid rgba(245,158,11,0.4);font-size:0.75rem;">⚠️ To: Pending Faculty Lookup (Click 'Edit Draft' to view profile &amp; add email)</span>`
+                  : `<span class="badge" style="background:rgba(16,185,129,0.18);color:#6ee7b7;border:1px solid rgba(16,185,129,0.4);font-size:0.75rem;">✉️ To: ${escapeHtml(d.recipient_email)} (Verified)</span>`
+              }
+              <span style="color:var(--text-muted);font-size:0.75rem;">• Subject: ${escapeHtml(d.subject)}</span>
             </div>
           </div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;">
@@ -1182,12 +1199,56 @@ window.openDraftModal = function (draftId) {
   if (!draft) return;
 
   activeModalDraftId = draft.id;
-  document.getElementById("modalRecipientInput").value = draft.recipient_email || "";
+  const prof = (appState.professors || []).find((p) => p.id === draft.professor_id) || {};
+  const isPlaceholder = !draft.recipient_email || draft.recipient_email.startsWith("verify-") || !draft.recipient_email.includes("@");
+
+  const recipientInput = document.getElementById("modalRecipientInput");
+  recipientInput.value = isPlaceholder ? "" : draft.recipient_email;
+  recipientInput.placeholder = "Enter professor's direct email (e.g. professor@university.edu)";
+
+  const profileLink =
+    prof.profile_url ||
+    (prof.recent_paper_doi
+      ? `https://doi.org/${encodeURIComponent(prof.recent_paper_doi)}`
+      : `https://scholar.google.com/scholar?q=${encodeURIComponent((prof.full_name || "") + " " + (prof.university_name || ""))}`);
+
+  const helperEl = document.getElementById("modalEmailLookupHelper");
+  if (helperEl) {
+    if (isPlaceholder) {
+      helperEl.innerHTML = `
+        <div style="padding:10px 14px;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.35);border-radius:8px;font-size:0.8rem;color:#fef08a;margin-top:6px;">
+          <div style="font-weight:700;display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+            <span>⚠️ Professor Direct Email Pending Faculty Lookup:</span>
+          </div>
+          <p style="margin:0 0 8px 0;line-height:1.45;font-size:0.77rem;color:#fde68a;">
+            This professor was discovered via peer-reviewed research papers. Scientific journals usually protect co-authors' personal emails from automated web indexing.
+            <strong>Click the button below to view their official university/paper profile, copy their email, paste it above, and click 'Save Email'!</strong>
+          </p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <a href="${escapeHtml(profileLink)}" target="_blank" rel="noopener" class="btn btn-sm btn-secondary" style="border-color:#f59e0b;color:#fef08a;font-size:0.75rem;">
+              🔗 1-Click: Open Professor's Profile / University Page ↗
+            </a>
+            <button type="button" class="btn btn-sm btn-secondary" onclick="saveDraftRecipientEmail()" style="font-size:0.75rem;border-color:#6ee7b7;color:#6ee7b7;">
+              💾 Save &amp; Auto-Fill in Gmail
+            </button>
+          </div>
+        </div>
+      `;
+    } else {
+      helperEl.innerHTML = `
+        <div style="padding:8px 12px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.35);border-radius:8px;font-size:0.78rem;color:#6ee7b7;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-top:6px;">
+          <span>✅ <strong>Verified Contact:</strong> <code>${escapeHtml(draft.recipient_email)}</code> will automatically fill into Gmail's "To" field!</span>
+          <a href="${escapeHtml(profileLink)}" target="_blank" rel="noopener" style="color:#93c5fd;font-size:0.74rem;">Inspect Profile ↗</a>
+        </div>
+      `;
+    }
+  }
+
   document.getElementById("modalSubjectInput").value = draft.subject || "";
   document.getElementById("modalBodyInput").value = draft.body_text || "";
 
   const updateComposeHref = () => {
-    const to = document.getElementById("modalRecipientInput").value;
+    const to = document.getElementById("modalRecipientInput").value.trim();
     const sub = document.getElementById("modalSubjectInput").value;
     const body = document.getElementById("modalBodyInput").value;
     const gmailLink = document.getElementById("modalOpenGmailComposeLink");
@@ -1206,6 +1267,28 @@ window.openDraftModal = function (draftId) {
   });
 
   document.getElementById("draftModal").classList.remove("hidden");
+};
+
+window.saveDraftRecipientEmail = function () {
+  const newEmail = (document.getElementById("modalRecipientInput")?.value || "").trim();
+  if (!newEmail || !newEmail.includes("@")) {
+    showToast("⚠️ Please enter a valid email address containing '@'.");
+    return;
+  }
+  if (!activeModalDraftId || !appState) return;
+  const draft = (appState.email_drafts || []).find((d) => d.id === activeModalDraftId);
+  if (draft) {
+    draft.recipient_email = newEmail;
+    const prof = (appState.professors || []).find((p) => p.id === draft.professor_id);
+    if (prof) {
+      prof.official_email = newEmail;
+      prof.verification_status = "VERIFIED";
+    }
+    showToast("✅ Professor email saved! It will now auto-fill into Gmail's 'To' field.");
+    openDraftModal(activeModalDraftId);
+    renderDraftsView();
+    renderProfessorsTable();
+  }
 };
 
 window.copyModalFullEmail = function () {
