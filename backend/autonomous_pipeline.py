@@ -20,11 +20,21 @@ import argparse
 from datetime import datetime, timedelta, timezone
 import json
 import os
+from pathlib import Path
 import re
+import sys
 import time
 from typing import Any, Dict, List, Optional, Tuple
 import urllib.parse
 import urllib.request
+
+# Ensure both project root and backend directory are in sys.path
+_current_dir = Path(__file__).resolve().parent
+_root_dir = _current_dir.parent
+if str(_root_dir) not in sys.path:
+    sys.path.insert(0, str(_root_dir))
+if str(_current_dir) not in sys.path:
+    sys.path.insert(0, str(_current_dir))
 
 from database import (
     export_production_state_snapshot,

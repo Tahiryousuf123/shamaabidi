@@ -6,7 +6,15 @@ Cloud Worker Entrypoint (Delegates to autonomous_pipeline.py)
 import json
 import os
 from pathlib import Path
+import sys
 from typing import Any, Dict, List
+
+_current_dir = Path(__file__).resolve().parent
+_root_dir = _current_dir.parent
+if str(_root_dir) not in sys.path:
+    sys.path.insert(0, str(_root_dir))
+if str(_current_dir) not in sys.path:
+    sys.path.insert(0, str(_current_dir))
 
 from autonomous_pipeline import (
     run_all_scheduled_jobs,
