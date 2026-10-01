@@ -176,6 +176,15 @@ function mergeSessionOverlayIfPresent() {
         }
       }
     }
+    if (Array.isArray(overlay.extra_drafts)) {
+      const knownDraftIds = new Set(appState.email_drafts.map((d) => d.id));
+      for (const d of overlay.extra_drafts) {
+        if (!knownDraftIds.has(d.id)) {
+          appState.email_drafts.unshift(d);
+          knownDraftIds.add(d.id);
+        }
+      }
+    }
     if (Array.isArray(overlay.sent_draft_ids)) {
       const sentSet = new Set(overlay.sent_draft_ids);
       for (const d of appState.email_drafts) {
@@ -1422,13 +1431,48 @@ async function executeLiveDiscoveryBatch(jobId = "ALL") {
 
       if (newProfs.length > 0) {
         appState.professors.unshift(...newProfs);
+
+        const newDrafts = newProfs.map((p) => {
+          const isFunded = p.funding_status === "VERIFIED";
+          const sub = isFunded
+            ? `Prospective PhD Inquiry: Active Grant Research Alignment — Dr. Shama Abidi (PharmD, MPhil)`
+            : `Prospective PhD Supervision Inquiry: Clinical Pharmacy & Outcomes Research — Dr. Shama Abidi`;
+          const body =
+            `Dear ${p.full_name},\n\n` +
+            `I hope this email finds you well. I am writing to express my strong interest in pursuing a PhD under your supervision in the ${p.department || "Department"} at ${p.university_name} (${p.country}).\n\n` +
+            `I recently studied your ${p.recent_paper_year || 2025} publication, "${p.recent_paper_title}", and noted deep methodological synergy with my clinical research in antimicrobial optimization, pharmacovigilance, and AI-assisted clinical decision support.\n\n` +
+            `I hold a Doctor of Pharmacy (PharmD) and an MPhil in Pharmacy Practice from the University of Karachi, and serve as Senior Clinical Pharmacist at Liaquat National Hospital & Medical College. My published work includes "${p.matched_shama_Work_title}", along with prospective studies in the Pakistan Journal of Pharmaceutical Sciences (PJPS, 2022/2024) and the Journal of Pharmaceutical Policy and Practice (JPPP, 2025).\n\n` +
+            `Research Alignment Rationale:\n- ${p.why_matches_shama}\n\n` +
+            `I have attached my detailed Curriculum Vitae and published papers for your review, and I would be honored to discuss a brief PhD research concept note at your convenience.\n\n` +
+            `Warm regards,\nDr. Shama Abidi, PharmD, MPhil (Pharmacy Practice)\nSenior Clinical Pharmacist, Liaquat National Hospital & Medical College\nEmail: shama.abidi80@gmail.com | WhatsApp: +92 300 2460274`;
+
+          return {
+            id: `draft_${p.id}`,
+            professor_id: p.id,
+            professor_name: p.full_name,
+            university_name: p.university_name,
+            country: p.country,
+            recipient_email: p.official_email || "faculty@university.edu",
+            subject: sub,
+            body_text: body,
+            referenced_professor_paper: p.recent_paper_title,
+            referenced_shama_paper: p.matched_shama_Work_title,
+            gmail_sync_status: "DRAFT_READY_FOR_MANUAL_REVIEW",
+            created_at: new Date().toISOString(),
+          };
+        });
+
+        appState.email_drafts.unshift(...newDrafts);
+
         const overlay = getSessionOverlay();
         overlay.extra_professors = [...newProfs, ...(overlay.extra_professors || [])];
+        overlay.extra_drafts = [...newDrafts, ...(overlay.extra_drafts || [])];
         saveSessionOverlay(overlay);
+        recalculateDashboardKpis();
       }
       renderAllViews();
       showToast(
-        `✅ Live Discovery Batch Complete: Added ${newProfs.length} new deduplicated international professors (Total: ${appState.professors.length}).`
+        `✅ Live Discovery Batch Complete: Added ${newProfs.length} new international professors & generated ${newProfs.length} new personalized Gmail drafts! (Total Professors: ${appState.professors.length}, Total Drafts: ${appState.email_drafts.length}).`
       );
     }
   } catch (err) {
