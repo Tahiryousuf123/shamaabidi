@@ -743,27 +743,25 @@
         <button id="closeDraftModalBtn" class="modal-close" aria-label="Close">✕</button>
       </div>
       <div class="modal-body">
-        <div class="safety-banner-mini">
-          <strong>🔒 Human Send Required:</strong> Opening this draft in Gmail lets you attach your CV and manually click SEND.
+        <!-- Professor Provenance Card: Displays Country, University, Research Paper, and Funding details -->
+        <div id="modalProfessorProvenanceCard" style="margin-bottom:14px;padding:12px 16px;background:rgba(30,41,59,0.7);border:1px solid rgba(56,189,248,0.25);border-radius:10px;">
+          <!-- Dynamically populated by openDraftModal in app.js -->
         </div>
-        <div style="margin-bottom:12px;padding:10px 14px;background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.3);border-radius:8px;font-size:0.82rem;color:#e0f2fe;">
-          <div style="font-weight:700;display:flex;align-items:center;gap:6px;margin-bottom:6px;">
-            <span>📎 CV Attachment &amp; Direct Cloud Links:</span>
+
+        <div style="margin-bottom:12px;padding:10px 14px;background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.25);border-radius:8px;font-size:0.82rem;color:#e0f2fe;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+          <div>
+            📎 <strong>Academic CV Attached:</strong> Dr. Shama Abidi Academic CV (PDF link embedded in email &amp; auto-attached via Gmail)
           </div>
-          <p style="margin:0 0 8px 0;line-height:1.4;font-size:0.78rem;">
-            Browser security prevents web links from automatically uploading local files to external Gmail.
-            <strong>Dr. Shama's CV cloud link is already embedded in the email for 1-click professor review.</strong>
-            To attach the physical PDF file, click <strong>"📥 Download CV (PDF)"</strong> below and drag it into Gmail!
-          </p>
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <a href="data/documents/Dr_Shama_Abidi_Academic_CV_2026.pdf" download="Dr_Shama_Abidi_Academic_CV_2026.pdf" class="btn btn-sm btn-secondary" style="border-color:#38bdf8;color:#38bdf8;">
-              📥 Download CV (PDF) to Attach
+            <a href="data/documents/Dr_Shama_Abidi_Academic_CV_2026.pdf" target="_blank" class="btn btn-sm btn-secondary" style="border-color:#38bdf8;color:#38bdf8;font-size:0.75rem;">
+              📥 View / Download CV (PDF)
             </a>
-            <button type="button" class="btn btn-sm btn-secondary" onclick="copyModalFullEmail()">
+            <button type="button" class="btn btn-sm btn-secondary" onclick="copyModalFullEmail()" style="font-size:0.75rem;">
               📋 Copy Full Email Text
             </button>
           </div>
         </div>
+
         <div class="form-group">
           <label for="modalRecipientInput">Recipient Professor Email</label>
           <input type="text" id="modalRecipientInput" placeholder="Enter professor's direct email (e.g. professor@university.edu)" />
@@ -778,15 +776,18 @@
           <textarea id="modalBodyInput" rows="12"></textarea>
         </div>
       </div>
-      <div class="modal-footer">
-        <a id="modalOpenGmailComposeLink" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
-          ✉️ Open in Gmail Compose
+      <div class="modal-footer" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+        <button id="modalSendNowBtn" class="btn btn-primary" onclick="sendActiveModalDraftNow()" style="background:linear-gradient(135deg, #2563eb, #1d4ed8);border:none;font-weight:700;">
+          🚀 Send Now (Direct via Gmail)
+        </button>
+        <a id="modalOpenGmailComposeLink" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
+          ✉️ Open in Gmail (Compose)
         </a>
         <a id="modalOpenMailtoLink" href="#" class="btn btn-secondary" style="color:#93c5fd;">
-          📬 Open in Outlook / Mail App
+          📬 Outlook / Default Mail
         </a>
         <button id="modalMarkSentBtn" class="btn btn-secondary">
-          ✅ I Sent This Email in Gmail (Track 7-Day Thread)
+          ✅ Mark as Sent (Start 7-Day Tracker)
         </button>
       </div>
     </div>

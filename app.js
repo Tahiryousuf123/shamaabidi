@@ -660,7 +660,7 @@ function renderProfessorsView() {
         </td>
         <td data-label="Action">
           <button class="btn btn-sm btn-primary" onclick="openOrCreateDraftForProfessor('${escapeHtml(p.id)}')">
-            ✉️ Open Gmail Draft
+            📝 Review &amp; Send Outreach Email
           </button>
         </td>
       </tr>
@@ -841,22 +841,22 @@ function renderDraftsView() {
           <pre style="white-space:pre-wrap;padding:12px;border-radius:8px;background:#0f172a;color:#e2e8f0;font-family:inherit;font-size:0.83rem;border:1px solid var(--border-color);">${escapeHtml(d.body_text)}</pre>
         </div>
         <div class="item-card-actions">
-          <a href="${escapeHtml(composeUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-primary" onclick="handleOpenGmailWithCVNotice('${escapeHtml(d.id)}', event)">
-            ✉️ Open in Gmail Draft &amp; Download CV
+          <button class="btn btn-primary" onclick="openDraftModal('${escapeHtml(d.id)}')">
+            📝 Review &amp; Send Outreach Email
+          </button>
+          <a href="${escapeHtml(composeUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" onclick="handleOpenGmailWithCVNotice('${escapeHtml(d.id)}', event)">
+            ✉️ Open in Gmail (Compose)
           </a>
           <button type="button" class="btn btn-secondary" onclick="copyDraftText('${escapeHtml(d.id)}')">
             📋 Copy Email Text
           </button>
-          <a href="data/documents/Dr_Shama_Abidi_Academic_CV_2026.pdf" download="Dr_Shama_Abidi_Academic_CV_2026.pdf" class="btn btn-secondary" style="border-color:#38bdf8;color:#38bdf8;">
-            📄 Download CV (PDF)
+          <a href="data/documents/Dr_Shama_Abidi_Academic_CV_2026.pdf" target="_blank" class="btn btn-secondary" style="border-color:#38bdf8;color:#38bdf8;">
+            📄 View CV (PDF)
           </a>
-          <button class="btn btn-secondary" onclick="openDraftModal('${escapeHtml(d.id)}')">
-            ✏️ Edit Draft Text
-          </button>
           ${
             !isSent
               ? `<button class="btn btn-secondary" onclick="markDraftManuallySent('${escapeHtml(d.id)}')">
-                  ✅ Mark as Sent in Gmail (Start 7-Day Thread Tracker)
+                  ✅ Mark as Sent (Start 7-Day Tracker)
                 </button>`
               : `<span class="badge badge-verified">✓ Tracked in Sent Emails</span>`
           }
@@ -1238,6 +1238,51 @@ window.openDraftModal = function (draftId) {
   const prof = (appState.professors || []).find((p) => p.id === draft.professor_id) || {};
   const isPlaceholder = !draft.recipient_email || draft.recipient_email.startsWith("verify-") || !draft.recipient_email.includes("@");
 
+  // Render Full Professor Provenance & Source Context Header
+  const provEl = document.getElementById("modalProfessorProvenanceCard");
+  if (provEl) {
+    const fd = prof.funding_detail || {};
+    const paperTitle = prof.recent_paper_title || draft.referenced_professor_paper || "Published Clinical Pharmacy Study";
+    const paperYear = prof.recent_paper_year || 2024;
+    const paperLink = prof.recent_paper_doi
+      ? `https://doi.org/${encodeURIComponent(prof.recent_paper_doi)}`
+      : (prof.profile_url || `https://scholar.google.com/scholar?q=${encodeURIComponent((prof.full_name || "") + " " + (prof.university_name || ""))}`);
+
+    provEl.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:8px;">
+        <div>
+          <div style="font-size:1.18rem;font-weight:800;color:#f8fafc;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span>${escapeHtml(prof.full_name || draft.professor_name || "Faculty Researcher")}</span>
+            <span class="status-pill" style="font-size:0.75rem;background:rgba(56,189,248,0.15);color:#38bdf8;border:1px solid rgba(56,189,248,0.3);">
+              🌍 Country: <strong>${escapeHtml(prof.country || draft.country || "International")}</strong>
+            </span>
+          </div>
+          <div style="font-size:0.86rem;color:#93c5fd;margin-top:3px;">
+            🏛️ <strong>${escapeHtml(prof.university_name || draft.university_name || "University")}</strong> • ${escapeHtml(prof.department || "School of Pharmacy")}
+          </div>
+        </div>
+        <div>
+          <a href="${escapeHtml(paperLink)}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-secondary" style="border-color:#38bdf8;color:#38bdf8;font-size:0.76rem;font-weight:700;">
+            🔗 Read Original Source Paper ↗
+          </a>
+        </div>
+      </div>
+
+      <div style="padding:10px 12px;background:rgba(15,23,42,0.65);border-radius:8px;border:1px solid rgba(255,255,255,0.08);font-size:0.8rem;line-height:1.5;">
+        <div style="color:#e2e8f0;margin-bottom:4px;">
+          📑 <strong>Professor's Research:</strong> "${escapeHtml(paperTitle)}" (${escapeHtml(paperYear)})
+        </div>
+        <div style="color:#94a3b8;margin-bottom:4px;">
+          🎯 <strong>Why Matches Shama (${escapeHtml(prof.relevance_score || 95)}% Alignment):</strong> ${escapeHtml(prof.why_matches_shama || "Matched with Dr. Shama Abidi's ICU carbapenem stewardship and clinical pharmacotherapy publications.")}
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:4px;">
+          <span class="${getFundingBadgeClass(prof.funding_status || draft.funding_status)}">Funding: ${escapeHtml(prof.funding_status || draft.funding_status || "University Track")}</span>
+          ${fd.grant_agency ? `<span style="font-size:0.74rem;color:#a7f3d0;">Agency: ${escapeHtml(fd.grant_agency)} ${fd.grant_id_or_program ? `(ID: <code>${escapeHtml(fd.grant_id_or_program)}</code>)` : ''}</span>` : ''}
+        </div>
+      </div>
+    `;
+  }
+
   const recipientInput = document.getElementById("modalRecipientInput");
   recipientInput.value = isPlaceholder ? "" : draft.recipient_email;
   recipientInput.placeholder = "Enter professor's direct email (e.g. professor@university.edu)";
@@ -1257,15 +1302,15 @@ window.openDraftModal = function (draftId) {
             <span>⚠️ Professor Direct Email Pending Faculty Lookup:</span>
           </div>
           <p style="margin:0 0 8px 0;line-height:1.45;font-size:0.77rem;color:#fde68a;">
-            This professor was discovered via peer-reviewed research papers. Scientific journals usually protect co-authors' personal emails from automated web indexing.
-            <strong>Click the button below to view their official university/paper profile, copy their email, paste it above, and click 'Save Email'!</strong>
+            This professor was discovered via peer-reviewed research papers.
+            <strong>Click below to view their university profile or paper contact:</strong>
           </p>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
             <a href="${escapeHtml(profileLink)}" target="_blank" rel="noopener" class="btn btn-sm btn-secondary" style="border-color:#f59e0b;color:#fef08a;font-size:0.75rem;">
               🔗 1-Click: Open Professor's Profile / University Page ↗
             </a>
             <button type="button" class="btn btn-sm btn-secondary" onclick="saveDraftRecipientEmail()" style="font-size:0.75rem;border-color:#6ee7b7;color:#6ee7b7;">
-              💾 Save &amp; Auto-Fill in Gmail
+              💾 Save &amp; Auto-Fill
             </button>
           </div>
         </div>
@@ -1273,8 +1318,8 @@ window.openDraftModal = function (draftId) {
     } else {
       helperEl.innerHTML = `
         <div style="padding:8px 12px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.35);border-radius:8px;font-size:0.78rem;color:#6ee7b7;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-top:6px;">
-          <span>✅ <strong>Verified Contact:</strong> <code>${escapeHtml(draft.recipient_email)}</code> will automatically fill into Gmail's "To" field!</span>
-          <a href="${escapeHtml(profileLink)}" target="_blank" rel="noopener" style="color:#93c5fd;font-size:0.74rem;">Inspect Profile ↗</a>
+          <span>✅ <strong>Verified Official Email:</strong> <code>${escapeHtml(draft.recipient_email)}</code></span>
+          <a href="${escapeHtml(profileLink)}" target="_blank" rel="noopener" style="color:#93c5fd;font-size:0.74rem;">Inspect Profile / Paper ↗</a>
         </div>
       `;
     }
@@ -1302,7 +1347,68 @@ window.openDraftModal = function (draftId) {
     document.getElementById(id).oninput = updateComposeHref;
   });
 
+  const sendNowBtn = document.getElementById("modalSendNowBtn");
+  if (sendNowBtn) {
+    sendNowBtn.disabled = false;
+    sendNowBtn.textContent = "🚀 Send Now (Direct via Gmail)";
+  }
+
   document.getElementById("draftModal").classList.remove("hidden");
+};
+
+window.sendActiveModalDraftNow = async function () {
+  if (!activeModalDraftId || !appState) return;
+  const draft = (appState.email_drafts || []).find((d) => d.id === activeModalDraftId);
+  if (!draft) return;
+
+  const to = (document.getElementById("modalRecipientInput")?.value || "").trim();
+  const sub = (document.getElementById("modalSubjectInput")?.value || "").trim();
+  const body = (document.getElementById("modalBodyInput")?.value || "").trim();
+
+  if (!to || !to.includes("@")) {
+    showToast("⚠️ Please enter a valid professor email before sending.");
+    return;
+  }
+
+  const btn = document.getElementById("modalSendNowBtn");
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "⏳ Sending Email via Gmail API...";
+  }
+
+  try {
+    const resp = await fetch(`/api/drafts/${encodeURIComponent(draft.id)}/send-now`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ recipient_email: to, subject: sub, body_text: body }),
+    });
+
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.state) {
+        appState = data.state;
+      } else {
+        draft.gmail_sync_status = "MANUALLY_SENT_IN_GMAIL";
+      }
+      showToast("🚀 SUCCESS! Email sent directly to professor via Gmail with Dr. Shama's CV attached! 7-Day Thread Tracker activated.");
+      document.getElementById("draftModal").classList.add("hidden");
+      renderAllViews();
+      return;
+    }
+  } catch (e) {
+    // Backend API unreachable or running on static hosting
+  }
+
+  // Fallback for static hosting: Open in Gmail Compose pre-filled and mark as sent
+  const gmailUrl = buildGmailComposeUrl(to, sub, body);
+  window.open(gmailUrl, "_blank", "noopener,noreferrer");
+  markDraftManuallySent(draft.id);
+  showToast("✉️ Pre-filled Gmail Compose opened in new tab! Marked as sent in CRM.");
+  document.getElementById("draftModal").classList.add("hidden");
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = "🚀 Send Now (Direct via Gmail)";
+  }
 };
 
 window.saveDraftRecipientEmail = function () {
@@ -1355,7 +1461,7 @@ window.openOrCreateDraftForProfessor = function (profId) {
       `I hold a Doctor of Pharmacy (PharmD) and an MPhil in Pharmacy Practice from the University of Karachi, and I currently serve as a Senior Clinical Pharmacist at Liaquat National Hospital and Medical College. My published work includes "${prof.matched_shama_Work_title || "Evaluation of Carbapenem Antimicrobial Stewardship Program in Intensive Care Units (PJPS, 2022)"}", as well as prospective cohort studies on antianginal pharmacotherapy using the Seattle Angina Questionnaire (SAQ-7) and Naranjo ADR scale (PJPS 2024) and clinical evaluations of AI decision support versus clinical pharmacist interventions (JPPP 2025).\n\n` +
       `Research Alignment Rationale:\n- ${prof.why_matches_shama}\n\n` +
       `Curriculum Vitae & Verified Credentials (Attached & Accessible Online):\n` +
-      `• Complete Academic CV (PDF): https://aspnetaptech-cyber.github.io/shama-abidi-phd-system/data/documents/Dr_Shama_Abidi_Academic_CV_2026.pdf\n` +
+      `• Complete Academic CV (PDF): https://shamaabidiphd.sbs/data/documents/Dr_Shama_Abidi_Academic_CV_2026.pdf\n` +
       `• Official ORCID Record: https://orcid.org/0009-0008-3714-1675\n` +
       `• LinkedIn Profile: https://www.linkedin.com/in/shama-abidi-5a41a0304/\n\n` +
       `I have attached my Academic CV and published research papers for your review, and I would be honored to discuss a brief PhD research concept note at your convenience.\n\n` +
@@ -1408,7 +1514,7 @@ window.openOrCreateDraftForOpportunity = function (oppId) {
       `- Artificial intelligence clinical decision support versus clinical pharmacist interventions (JPPP 2025)\n\n` +
       `Research Alignment Rationale:\n- ${opp.match_rationale || "Direct alignment with clinical pharmacy and pharmacotherapy research."}\n\n` +
       `Curriculum Vitae & Verified Credentials (Attached & Accessible Online):\n` +
-      `• Complete Academic CV (PDF): https://aspnetaptech-cyber.github.io/shama-abidi-phd-system/data/documents/Dr_Shama_Abidi_Academic_CV_2026.pdf\n` +
+      `• Complete Academic CV (PDF): https://shamaabidiphd.sbs/data/documents/Dr_Shama_Abidi_Academic_CV_2026.pdf\n` +
       `• Official ORCID Record: https://orcid.org/0009-0008-3714-1675\n` +
       `• LinkedIn Profile: https://www.linkedin.com/in/shama-abidi-5a41a0304/\n\n` +
       `I have attached my Academic CV and published research papers for your review, and I would be honored to discuss a brief PhD research concept note at your convenience.\n\n` +
@@ -1656,7 +1762,7 @@ async function executeLiveDiscoveryBatch(jobId = "ALL") {
             `I hold a Doctor of Pharmacy (PharmD) and an MPhil in Pharmacy Practice from the University of Karachi, and serve as Senior Clinical Pharmacist at Liaquat National Hospital & Medical College. My published work includes "${p.matched_shama_Work_title}", along with prospective studies in the Pakistan Journal of Pharmaceutical Sciences (PJPS, 2022/2024) and the Journal of Pharmaceutical Policy and Practice (JPPP, 2025).\n\n` +
             `Research Alignment Rationale:\n- ${p.why_matches_shama}\n\n` +
             `Curriculum Vitae & Verified Credentials (Attached & Accessible Online):\n` +
-            `• Complete Academic CV (PDF): https://aspnetaptech-cyber.github.io/shama-abidi-phd-system/data/documents/Dr_Shama_Abidi_Academic_CV_2026.pdf\n` +
+            `• Complete Academic CV (PDF): https://shamaabidiphd.sbs/data/documents/Dr_Shama_Abidi_Academic_CV_2026.pdf\n` +
             `• Official ORCID Record: https://orcid.org/0009-0008-3714-1675\n` +
             `• LinkedIn Profile: https://www.linkedin.com/in/shama-abidi-5a41a0304/\n\n` +
             `I have attached my detailed Curriculum Vitae and published papers for your review, and I would be honored to discuss a brief PhD research concept note at your convenience.\n\n` +

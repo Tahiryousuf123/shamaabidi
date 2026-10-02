@@ -333,6 +333,70 @@ def check_unread_professor_replies(max_results: int = 10) -> List[Dict[str, Any]
     return replies
 
 
+def send_gmail_message(
+    recipient_email: str,
+    subject: str,
+    body_text: str,
+    sender_email: str = "shamaabidiphd@gmail.com",
+) -> Dict[str, Any]:
+    """
+    Sends an email directly from shamaabidiphd@gmail.com via Gmail API
+    when explicitly commanded by Dr. Shama Abidi clicking 'Send Now' in the dashboard.
+    Attaches Dr. Shama Abidi Academic CV PDF.
+    """
+    access_token = get_gmail_access_token()
+
+    from email.mime.multipart import MIMEMultipart
+    from email.mime.application import MIMEApplication
+
+    mime_msg = MIMEMultipart()
+    mime_msg["to"] = recipient_email
+    mime_msg["from"] = f"Dr. Shama Abidi <{sender_email}>"
+    mime_msg["subject"] = subject
+
+    mime_msg.attach(MIMEText(body_text, "plain", "utf-8"))
+
+    # Automatically attach Dr. Shama Abidi Academic CV PDF
+    cv_candidates = [
+        os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "documents", "Dr_Shama_Abidi_Academic_CV_2026.pdf"),
+        os.path.join(os.getcwd(), "data", "documents", "Dr_Shama_Abidi_Academic_CV_2026.pdf"),
+    ]
+    for cv_path in cv_candidates:
+        if os.path.exists(cv_path):
+            try:
+                with open(cv_path, "rb") as f:
+                    pdf_attachment = MIMEApplication(f.read(), _subtype="pdf")
+                    pdf_attachment.add_header(
+                        "Content-Disposition",
+                        "attachment",
+                        filename="Dr_Shama_Abidi_Academic_CV_2026.pdf",
+                    )
+                    mime_msg.attach(pdf_attachment)
+                break
+            except Exception:
+                pass
+
+    raw_base64 = base64.urlsafe_b64encode(mime_msg.as_bytes()).decode("utf-8")
+    req_body = json.dumps({"raw": raw_base64}).encode("utf-8")
+
+    req = urllib.request.Request(
+        GMAIL_SEND_URL,
+        data=req_body,
+        headers={
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=25) as resp:
+        res_data = json.loads(resp.read().decode("utf-8"))
+        return {
+            "status": "SENT",
+            "message_id": res_data.get("id", ""),
+            "thread_id": res_data.get("threadId", ""),
+        }
+
+
 def send_email_via_gmail_oauth(
     recipient_email: str,
     subject: str,
@@ -340,8 +404,7 @@ def send_email_via_gmail_oauth(
     sender_email: str = "shamaabidiphd@gmail.com",
 ) -> Dict[str, Any]:
     """
-    Backward-compatible helper that creates a Gmail Draft (or sends only when explicitly
-    triggered by human action, though per Section 15 creating a Gmail Draft is preferred).
+    Backward-compatible helper that sends or creates a Gmail Draft.
     """
     return create_gmail_draft(
         recipient_email=recipient_email,

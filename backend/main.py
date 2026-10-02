@@ -59,7 +59,7 @@ from document_processor import (
     ingest_verified_knowledge_base_to_db,
     upload_custom_research_document,
 )
-from gmail_service import create_gmail_draft
+from gmail_service import create_gmail_draft, send_gmail_message
 
 app = FastAPI(
     title="Dr. Shama Abidi — PhD Research & Application Management System",
@@ -405,6 +405,57 @@ def mark_draft_sent_endpoint(draft_id: str) -> Dict[str, Any]:
         return {"result": res, "state": snapshot}
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+
+@app.post("/api/drafts/{draft_id}/send-now")
+def send_draft_now_endpoint(draft_id: str) -> Dict[str, Any]:
+    from database import get_connection, make_id, utc_now_iso
+    conn = get_connection()
+    draft = conn.execute("SELECT * FROM email_drafts WHERE id = ?", (draft_id,)).fetchone()
+    if not draft:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Draft not found")
+
+    recipient = draft["recipient_email"]
+    subject = draft["subject"]
+    body_text = draft["body_text"]
+    prof_id = draft["professor_id"]
+
+    try:
+        res = send_gmail_message(
+            recipient_email=recipient,
+            subject=subject,
+            body_text=body_text,
+            sender_email="shamaabidiphd@gmail.com",
+        )
+    except Exception as e:
+        conn.close()
+        raise HTTPException(status_code=500, detail=f"Failed to send email via Gmail API: {e}")
+
+    now = utc_now_iso()
+    conn.execute(
+        "UPDATE email_drafts SET gmail_sync_status = 'MANUALLY_SENT_IN_GMAIL', updated_at = ? WHERE id = ?",
+        (now, draft_id),
+    )
+    conn.execute(
+        "UPDATE professors SET crm_state = 'INITIAL_SENT', updated_at = ? WHERE id = ?",
+        (now, prof_id),
+    )
+    thread_id = res.get("thread_id") or make_id("th", f"{prof_id}_{draft_id}")
+    conn.execute(
+        """
+        INSERT OR REPLACE INTO email_threads (
+            id, professor_id, thread_subject, status, initial_sent_at,
+            gmail_thread_id, last_action, created_at, updated_at
+        ) VALUES (?, ?, ?, 'OUTREACH_SENT', ?, ?, 'Initial outreach sent via Dashboard Send Now', ?, ?)
+        """,
+        (thread_id, prof_id, subject, now, res.get("thread_id", ""), now, now),
+    )
+    conn.commit()
+    conn.close()
+
+    snapshot = export_production_state_snapshot()
+    return {"status": "SENT", "result": res, "state": snapshot}
 
 
 @app.post("/api/drafts/create-gmail")

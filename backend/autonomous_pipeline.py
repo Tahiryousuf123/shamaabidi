@@ -1215,13 +1215,8 @@ def run_job_email_draft_generation(daily_limit: Optional[int] = None) -> Dict[st
             continue
 
         subject, body_text = compose_personalized_outreach_email(prof)
-        gmail_res = create_gmail_draft(
-            recipient_email=recipient,
-            subject=subject,
-            body_text=body_text,
-            sender_email="shamaabidiphd@gmail.com",
-        )
-
+        # Store draft cleanly in CRM Dashboard with 1-click Review & Send options
+        # Prevents overwhelming Gmail Drafts folder without professor context/country/source
         draft_id = make_id("draft", f"{prof['id']}_INITIAL")
         conn.execute(
             """
@@ -1230,7 +1225,7 @@ def run_job_email_draft_generation(daily_limit: Optional[int] = None) -> Dict[st
                 body_text, referenced_professor_paper, referenced_shama_paper,
                 gmail_draft_id, gmail_sync_status, auto_send_disabled,
                 batch_date, created_at, updated_at
-            ) VALUES (?, ?, 'INITIAL_OUTREACH', ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)
+            ) VALUES (?, ?, 'INITIAL_OUTREACH', ?, ?, ?, ?, ?, '', 'LOCAL_CRM_DRAFT_PENDING_OAUTH', 1, ?, ?, ?)
             """,
             (
                 draft_id,
@@ -1240,8 +1235,6 @@ def run_job_email_draft_generation(daily_limit: Optional[int] = None) -> Dict[st
                 body_text,
                 prof.get("recent_paper_title", ""),
                 prof.get("matched_shama_Work_title", ""),
-                gmail_res.get("gmail_draft_id", ""),
-                gmail_res.get("gmail_sync_status", "LOCAL_CRM_DRAFT_PENDING_OAUTH"),
                 batch_date,
                 now,
                 now,
@@ -1252,8 +1245,6 @@ def run_job_email_draft_generation(daily_limit: Optional[int] = None) -> Dict[st
             (now, prof["id"]),
         )
         created_drafts += 1
-        if gmail_res.get("gmail_sync_status") == "GMAIL_DRAFT_CREATED":
-            gmail_synced_count += 1
 
     # Section 32: Send ONE grouped daily WhatsApp summary notification (no spam!)
     total_profs_row = conn.execute("SELECT COUNT(*) AS c FROM professors").fetchone()
