@@ -409,17 +409,17 @@ def mark_draft_sent_endpoint(draft_id: str) -> Dict[str, Any]:
 
 
 @app.post("/api/drafts/{draft_id}/send-now")
-def send_draft_now_endpoint(draft_id: str) -> Dict[str, Any]:
-    from database import get_connection, make_id, utc_now_iso
+def send_draft_now_endpoint(draft_id: str, payload: dict = None) -> Dict[str, Any]:
+    from database import get_connection, make_id, utc_now_iso, log_activity
     conn = get_connection()
     draft = conn.execute("SELECT * FROM email_drafts WHERE id = ?", (draft_id,)).fetchone()
     if not draft:
         conn.close()
         raise HTTPException(status_code=404, detail="Draft not found")
 
-    recipient = draft["recipient_email"]
-    subject = draft["subject"]
-    body_text = draft["body_text"]
+    recipient = (payload.get("recipient_email") if payload else None) or draft["recipient_email"]
+    subject = (payload.get("subject") if payload else None) or draft["subject"]
+    body_text = (payload.get("body_text") if payload else None) or draft["body_text"]
     prof_id = draft["professor_id"]
 
     try:
@@ -435,22 +435,31 @@ def send_draft_now_endpoint(draft_id: str) -> Dict[str, Any]:
 
     now = utc_now_iso()
     conn.execute(
-        "UPDATE email_drafts SET gmail_sync_status = 'MANUALLY_SENT_IN_GMAIL', updated_at = ? WHERE id = ?",
-        (now, draft_id),
+        "UPDATE email_drafts SET recipient_email = ?, subject = ?, body_text = ?, gmail_sync_status = 'MANUALLY_SENT_IN_GMAIL', updated_at = ? WHERE id = ?",
+        (recipient, subject, body_text, now, draft_id),
     )
     conn.execute(
-        "UPDATE professors SET crm_state = 'INITIAL_SENT', updated_at = ? WHERE id = ?",
-        (now, prof_id),
+        "UPDATE professors SET official_email = ?, crm_state = 'EMAILED', updated_at = ? WHERE id = ?",
+        (recipient, now, prof_id),
     )
-    thread_id = res.get("thread_id") or make_id("th", f"{prof_id}_{draft_id}")
+    thread_id = make_id("thread", f"{prof_id}_{draft_id}")
+    gmail_thread_id = res.get("thread_id") or f"gmail_th_{thread_id[-8:]}"
     conn.execute(
         """
         INSERT OR REPLACE INTO email_threads (
-            id, professor_id, thread_subject, status, initial_sent_at,
-            gmail_thread_id, last_action, created_at, updated_at
-        ) VALUES (?, ?, ?, 'OUTREACH_SENT', ?, ?, 'Initial outreach sent via Dashboard Send Now', ?, ?)
+            id, professor_id, draft_id, gmail_thread_id, subject,
+            recipient_email, sent_at, last_checked_at, thread_status, days_elapsed
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'AWAITING_REPLY', 0)
         """,
-        (thread_id, prof_id, subject, now, res.get("thread_id", ""), now, now),
+        (thread_id, prof_id, draft_id, gmail_thread_id, subject, recipient, now, now),
+    )
+    log_activity(
+        event_type="OUTREACH_EMAIL_SENT_DIRECT",
+        module_name="Sent Emails & Thread Tracker",
+        actor="SHAMA_ABIDI_HUMAN_ACTION",
+        summary=f"Dr. Shama Abidi sent outreach email directly via Gmail API to {recipient}.",
+        details={"draft_id": draft_id, "thread_id": thread_id, "recipient": recipient},
+        conn=conn,
     )
     conn.commit()
     conn.close()

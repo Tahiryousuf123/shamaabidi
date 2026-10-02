@@ -186,10 +186,13 @@ window.copyDraftText = function (draftId) {
  * Fetches the authoritative persistent database state from `/api/state` or `data/production_state.json`.
  */
 async function loadPersistentCloudState(showNotification = false) {
-  const endpoints = [
-    `./data/production_state.json?t=${Date.now()}`,
-    `/api/state?t=${Date.now()}`,
-  ];
+  const apiBase = typeof getBackendApiBase === "function" ? getBackendApiBase() : "";
+  const endpoints = [];
+  if (apiBase) {
+    endpoints.push(`${apiBase}/api/state?t=${Date.now()}`);
+  }
+  endpoints.push(`/api/state?t=${Date.now()}`);
+  endpoints.push(`./data/production_state.json?t=${Date.now()}`);
 
   for (const url of endpoints) {
     try {
@@ -1589,8 +1592,11 @@ window.markDraftManuallySent = async function (draftId) {
   const draft = (appState.email_drafts || []).find((d) => d.id === draftId);
   if (!draft) return;
 
+  const apiBase = getBackendApiBase();
+  const markUrl = `${apiBase}/api/drafts/${encodeURIComponent(draftId)}/mark-sent`;
+
   try {
-    const resp = await fetch(`/api/drafts/${encodeURIComponent(draftId)}/mark-sent`, { method: "POST" });
+    const resp = await fetch(markUrl, { method: "POST" });
     if (resp.ok) {
       const data = await resp.json();
       if (data.state) {
@@ -2118,4 +2124,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Initial load from persistent cloud state
   loadPersistentCloudState(false);
+
+  // Live Multi-Device Real-Time Sync: polls every 8s so changes on mobile instantly reflect on laptop & vice-versa
+  setInterval(() => {
+    loadPersistentCloudState(false);
+  }, 8000);
 });
