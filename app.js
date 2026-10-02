@@ -105,8 +105,12 @@ function getVerificationBadgeClass(status) {
 
 function buildGmailComposeUrl(to, subject, body) {
   const cleanTo = (to && to.includes("@") && !to.startsWith("verify-")) ? to : "";
-  // Ensure query string is within safe length for Gmail Web (under 1400 chars)
-  const safeBody = (body || "").slice(0, 1400);
+  let fullBody = body || "";
+  const cvLink = "https://shamaabidiphd.sbs/data/documents/Dr_Shama_Abidi_Academic_CV_2026.pdf";
+  if (!fullBody.includes("Dr_Shama_Abidi_Academic_CV_2026.pdf")) {
+    fullBody += `\n\n📄 Official Academic CV (PDF Attached / View Online):\n${cvLink}`;
+  }
+  const safeBody = fullBody.slice(0, 3500);
   return (
     "https://mail.google.com/mail/?view=cm&fs=1" +
     `&to=${encodeURIComponent(cleanTo)}` +
@@ -117,7 +121,12 @@ function buildGmailComposeUrl(to, subject, body) {
 
 function buildMailtoUrl(to, subject, body) {
   const cleanTo = (to && to.includes("@") && !to.startsWith("verify-")) ? to : "";
-  const safeBody = (body || "").slice(0, 1200);
+  let fullBody = body || "";
+  const cvLink = "https://shamaabidiphd.sbs/data/documents/Dr_Shama_Abidi_Academic_CV_2026.pdf";
+  if (!fullBody.includes("Dr_Shama_Abidi_Academic_CV_2026.pdf")) {
+    fullBody += `\n\n📄 Official Academic CV:\n${cvLink}`;
+  }
+  const safeBody = fullBody.slice(0, 1500);
   return `mailto:${encodeURIComponent(cleanTo)}?subject=${encodeURIComponent(subject || "")}&body=${encodeURIComponent(safeBody)}`;
 }
 
@@ -207,69 +216,33 @@ async function loadPersistentCloudState(showNotification = false) {
 }
 
 /**
- * Preserves any interactive browser session actions (e.g., newly uploaded document or
- * newly marked-sent draft when viewing on static GitHub Pages) on top of the cloud DB snapshot.
+ * Preserves any interactive browser session actions (e.g. marked-sent drafts)
+ * without ever corrupting the authoritative 50-professor snapshot.
  */
 function mergeSessionOverlayIfPresent() {
   try {
-    const raw = sessionStorage.getItem("shama_crm_overlay_v5");
+    const raw = sessionStorage.getItem("shama_crm_overlay_v6");
     if (!raw || !appState) return;
     const overlay = JSON.parse(raw);
 
-    if (Array.isArray(overlay.custom_documents)) {
-      const existingIds = new Set(appState.research_documents.map((d) => d.id));
-      for (const doc of overlay.custom_documents) {
-        if (!existingIds.has(doc.id)) {
-          appState.research_documents.unshift(doc);
-        }
-      }
-    }
-    if (Array.isArray(overlay.deleted_doc_ids)) {
-      const delSet = new Set(overlay.deleted_doc_ids);
-      appState.research_documents = appState.research_documents.filter((d) => !delSet.has(d.id));
-    }
-    if (Array.isArray(overlay.extra_professors)) {
-      const knownKeys = new Set(appState.professors.map((p) => p.normalized_name_uni_key));
-      for (const p of overlay.extra_professors) {
-        if (!knownKeys.has(p.normalized_name_uni_key)) {
-          appState.professors.unshift(p);
-          knownKeys.add(p.normalized_name_uni_key);
-        }
-      }
-    }
-    if (Array.isArray(overlay.extra_drafts)) {
-      const knownDraftIds = new Set(appState.email_drafts.map((d) => d.id));
-      for (const d of overlay.extra_drafts) {
-        if (!knownDraftIds.has(d.id)) {
-          appState.email_drafts.unshift(d);
-          knownDraftIds.add(d.id);
-        }
-      }
-    }
     if (Array.isArray(overlay.sent_draft_ids)) {
       const sentSet = new Set(overlay.sent_draft_ids);
-      for (const d of appState.email_drafts) {
+      for (const d of appState.email_drafts || []) {
         if (sentSet.has(d.id)) {
           d.gmail_sync_status = "MANUALLY_SENT_IN_GMAIL";
         }
       }
     }
     if (Array.isArray(overlay.extra_threads)) {
-      const tIds = new Set(appState.email_threads.map((t) => t.id));
+      const tIds = new Set((appState.email_threads || []).map((t) => t.id));
       for (const t of overlay.extra_threads) {
         if (!tIds.has(t.id)) appState.email_threads.unshift(t);
       }
     }
     if (Array.isArray(overlay.extra_replies)) {
-      const rIds = new Set(appState.email_replies.map((r) => r.id));
+      const rIds = new Set((appState.email_replies || []).map((r) => r.id));
       for (const r of overlay.extra_replies) {
         if (!rIds.has(r.id)) appState.email_replies.unshift(r);
-      }
-    }
-    if (Array.isArray(overlay.extra_followups)) {
-      const fIds = new Set(appState.followups.map((f) => f.id));
-      for (const f of overlay.extra_followups) {
-        if (!fIds.has(f.id)) appState.followups.unshift(f);
       }
     }
     recalculateDashboardKpis();
@@ -280,15 +253,28 @@ function mergeSessionOverlayIfPresent() {
 
 function getSessionOverlay() {
   try {
-    return JSON.parse(sessionStorage.getItem("shama_crm_overlay_v5") || "{}");
+    return JSON.parse(sessionStorage.getItem("shama_crm_overlay_v6") || "{}");
   } catch {
     return {};
   }
 }
 
 function saveSessionOverlay(overlay) {
-  sessionStorage.setItem("shama_crm_overlay_v5", JSON.stringify(overlay));
+  sessionStorage.setItem("shama_crm_overlay_v6", JSON.stringify(overlay));
 }
+
+/**
+ * Purges mobile and desktop browser caches and re-fetches the live cloud DB.
+ */
+window.forceRefreshLiveDatabase = async function () {
+  try {
+    sessionStorage.clear();
+    localStorage.removeItem("shama_crm_overlay_v5");
+    localStorage.removeItem("shama_crm_overlay_v6");
+  } catch (e) {}
+  showToast("⏳ Purging browser cache and syncing live database...");
+  await loadPersistentCloudState(true);
+};
 
 function recalculateDashboardKpis() {
   if (!appState) return;
@@ -1336,25 +1322,18 @@ window.openDraftModal = function (draftId) {
     const to = document.getElementById("modalRecipientInput").value.trim();
     const sub = document.getElementById("modalSubjectInput").value;
     const body = document.getElementById("modalBodyInput").value;
-    const mailtoLink = buildMailtoUrl(to, sub, body);
     const gmailUrl = buildGmailComposeUrl(to, sub, body);
-
-    const mobileBtn = document.getElementById("modalOpenMobileGmailBtn");
-    if (mobileBtn) {
-      mobileBtn.href = mailtoLink;
-      mobileBtn.onclick = () => {
-        markDraftManuallySent(draft.id);
-        showToast("📱 Opening Gmail App! Tap Send (✈️) in Gmail to deliver.");
-        setTimeout(() => {
-          document.getElementById("draftModal").classList.add("hidden");
-        }, 1200);
-      };
-    }
 
     const gmailLink = document.getElementById("modalOpenGmailComposeLink");
     if (gmailLink) {
       gmailLink.href = gmailUrl;
-      gmailLink.onclick = () => handleOpenGmailWithCVNotice(draft.id);
+      gmailLink.onclick = () => {
+        markDraftManuallySent(draft.id);
+        showToast("🚀 Opening Gmail! Tap Send in Gmail to deliver.");
+        setTimeout(() => {
+          document.getElementById("draftModal").classList.add("hidden");
+        }, 1200);
+      };
     }
   };
   updateComposeHref();
@@ -1362,13 +1341,36 @@ window.openDraftModal = function (draftId) {
     document.getElementById(id).oninput = updateComposeHref;
   });
 
-  const sendNowBtn = document.getElementById("modalSendNowBtn");
-  if (sendNowBtn) {
-    sendNowBtn.disabled = false;
-    sendNowBtn.textContent = "🚀 Send via Gmail (1-Click)";
+  document.getElementById("draftModal").classList.remove("hidden");
+};
+
+window.copyFullEmailAndOpenGmail = function () {
+  if (!activeModalDraftId || !appState) return;
+  const draft = (appState.email_drafts || []).find((d) => d.id === activeModalDraftId);
+  if (!draft) return;
+
+  const to = (document.getElementById("modalRecipientInput")?.value || "").trim();
+  const sub = (document.getElementById("modalSubjectInput")?.value || "").trim();
+  const body = (document.getElementById("modalBodyInput")?.value || "").trim();
+
+  const cvLink = "https://shamaabidiphd.sbs/data/documents/Dr_Shama_Abidi_Academic_CV_2026.pdf";
+  let fullText = `TO: ${to}\nSUBJECT: ${sub}\n\n${body}`;
+  if (!fullText.includes("Dr_Shama_Abidi_Academic_CV_2026.pdf")) {
+    fullText += `\n\n📄 Official Academic CV (PDF):\n${cvLink}`;
   }
 
-  document.getElementById("draftModal").classList.remove("hidden");
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(fullText).catch(() => {});
+  }
+
+  const gmailUrl = buildGmailComposeUrl(to, sub, body);
+  window.open(gmailUrl, "_blank", "noopener,noreferrer");
+
+  markDraftManuallySent(draft.id);
+  showToast("📋 1-Tap Copy: Full Email & CV Link copied! Opening Gmail...");
+  setTimeout(() => {
+    document.getElementById("draftModal").classList.add("hidden");
+  }, 1200);
 };
 
 window.sendActiveModalDraftNow = async function () {
@@ -1383,26 +1385,6 @@ window.sendActiveModalDraftNow = async function () {
   if (!to || !to.includes("@")) {
     showToast("⚠️ Please enter a valid professor email before sending.");
     return;
-  }
-
-  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-  const mailtoUrl = buildMailtoUrl(to, sub, body);
-
-  // ON MOBILE: ALWAYS navigate directly to Gmail App via mailto (100% reliable, zero popup block)
-  if (isMobile) {
-    markDraftManuallySent(draft.id);
-    showToast("📱 Opening your Gmail App! Tap Send (✈️) in Gmail to deliver.");
-    window.location.href = mailtoUrl;
-    setTimeout(() => {
-      document.getElementById("draftModal").classList.add("hidden");
-    }, 1200);
-    return;
-  }
-
-  const btn = document.getElementById("modalSendNowBtn");
-  if (btn) {
-    btn.disabled = true;
-    btn.textContent = "⏳ Sending Email via Gmail API...";
   }
 
   try {
@@ -1425,19 +1407,15 @@ window.sendActiveModalDraftNow = async function () {
       return;
     }
   } catch (e) {
-    // Backend API unreachable or running on static hosting
+    // Backend API unreachable on static GitHub Pages
   }
 
-  // Desktop static hosting fallback: Open in Gmail Web Compose pre-filled
+  // Fallback: Open in Gmail Web/App pre-filled with CV link
   const gmailUrl = buildGmailComposeUrl(to, sub, body);
   window.open(gmailUrl, "_blank", "noopener,noreferrer");
   markDraftManuallySent(draft.id);
-  showToast("✉️ Pre-filled Gmail Compose opened in new tab! Marked as sent in CRM.");
+  showToast("✉️ Pre-filled Gmail opened in new tab! Marked as sent in CRM.");
   document.getElementById("draftModal").classList.add("hidden");
-  if (btn) {
-    btn.disabled = false;
-    btn.textContent = "🚀 Send via Gmail (1-Click)";
-  }
 };
 
 window.saveDraftRecipientEmail = function () {
@@ -2098,6 +2076,13 @@ document.addEventListener("DOMContentLoaded", () => {
       showToast("💾 Saved configuration to persistent settings (Safety Locks remain strictly DISABLED).");
     });
   }
+
+  // Purge any stale legacy session overlays
+  try {
+    sessionStorage.removeItem("shama_crm_overlay_v5");
+    sessionStorage.removeItem("shama_crm_overlay_v4");
+    sessionStorage.removeItem("shama_crm_overlay_v3");
+  } catch (e) {}
 
   // Initial load from persistent cloud state
   loadPersistentCloudState(false);

@@ -5,10 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
   <title>Dr. Shama Abidi — Autonomous AI Research Agent &amp; International PhD CRM</title>
   <meta name="description" content="Autonomous Cloud AI Research Agent for Dr. Shama Abidi (PharmD, MPhil Pharmacy Practice) — Daily International Professor Discovery, Semantic Research Matching, Funding Verification, Gmail Drafts &amp; WhatsApp Cloud API Alerts." />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=6.1.0" />
   <!-- PDF.js for client-side PDF text extraction in the Research Knowledge Base -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" defer></script>
 </head>
@@ -22,9 +25,14 @@
         <div class="mobile-subtitle">Autonomous PhD Research Agent</div>
       </div>
     </div>
-    <button id="mobileMenuBtn" class="mobile-menu-btn" aria-label="Toggle Navigation Menu">
-      ☰ Menu
-    </button>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <button id="mobileSyncBtn" class="btn btn-sm btn-secondary" onclick="forceRefreshLiveDatabase()" style="font-size:0.75rem;padding:6px 12px;border-color:#10b981;color:#6ee7b7;font-weight:600;display:inline-flex;align-items:center;gap:4px;">
+        🔄 Sync Live
+      </button>
+      <button id="mobileMenuBtn" class="mobile-menu-btn" aria-label="Toggle Navigation Menu">
+        ☰ Menu
+      </button>
+    </div>
   </header>
 
   <div class="app-shell">
@@ -777,23 +785,20 @@
         </div>
       </div>
       <div class="modal-footer" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
-        <button id="modalSendNowBtn" class="btn btn-primary" onclick="sendActiveModalDraftNow()" style="background:linear-gradient(135deg, #2563eb, #1d4ed8);border:none;font-weight:700;display:inline-flex;align-items:center;gap:6px;">
+        <a id="modalOpenGmailComposeLink" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-primary" style="background:linear-gradient(135deg, #2563eb, #1d4ed8);border:none;font-weight:700;display:inline-flex;align-items:center;gap:6px;text-decoration:none;padding:8px 16px;">
           🚀 Send via Gmail (1-Click)
+        </a>
+        <button id="modalCopyAndOpenBtn" type="button" class="btn btn-secondary" onclick="copyFullEmailAndOpenGmail()" style="color:#6ee7b7;border-color:#10b981;font-weight:600;display:inline-flex;align-items:center;gap:6px;">
+          📋 1-Tap Copy &amp; Open Gmail
         </button>
-        <a id="modalOpenMobileGmailBtn" href="#" class="btn btn-secondary" style="color:#6ee7b7;border-color:#10b981;font-weight:600;display:inline-flex;align-items:center;gap:6px;">
-          📱 Open in Gmail App
-        </a>
-        <a id="modalOpenGmailComposeLink" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
-          💻 Open in Gmail Web
-        </a>
-        <button id="modalMarkSentBtn" class="btn btn-secondary">
+        <button id="modalMarkSentBtn" type="button" class="btn btn-secondary">
           ✅ Mark as Sent in CRM
         </button>
       </div>
     </div>
   </div>
 
-  <script type="module" src="frontend/js/index.js"></script>
-  <script src="app.js"></script>
+  <script type="module" src="frontend/js/index.js?v=6.1.0"></script>
+  <script src="app.js?v=6.1.0"></script>
 </body>
 </html>
