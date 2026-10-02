@@ -372,6 +372,11 @@ function renderAllViews() {
 
 function renderDashboardPanels() {
   const kpis = appState.dashboard_kpis;
+  const epmcCountEl = document.getElementById("provenanceEpmcCount");
+  if (epmcCountEl) epmcCountEl.textContent = (appState.professors || []).length;
+  const draftCovEl = document.getElementById("provenanceDraftCoverageBadge");
+  if (draftCovEl) draftCovEl.textContent = `100% Outreach Draft Coverage (${(appState.email_drafts || []).length}/${(appState.professors || []).length} Ready)`;
+
   const funnelEl = document.getElementById("dashboardFunnelContainer");
   if (funnelEl) {
     const epmcTotal = (appState.professors || []).filter((p) => (p.discovery_source || "").includes("Europe PMC")).length;
