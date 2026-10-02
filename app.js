@@ -224,7 +224,7 @@ async function loadPersistentCloudState(showNotification = false) {
  */
 function mergeSessionOverlayIfPresent() {
   try {
-    const raw = sessionStorage.getItem("shama_crm_overlay_v6");
+    const raw = sessionStorage.getItem("shama_crm_overlay_v7");
     if (!raw || !appState) return;
     const overlay = JSON.parse(raw);
 
@@ -256,14 +256,14 @@ function mergeSessionOverlayIfPresent() {
 
 function getSessionOverlay() {
   try {
-    return JSON.parse(sessionStorage.getItem("shama_crm_overlay_v6") || "{}");
+    return JSON.parse(sessionStorage.getItem("shama_crm_overlay_v7") || "{}");
   } catch {
     return {};
   }
 }
 
 function saveSessionOverlay(overlay) {
-  sessionStorage.setItem("shama_crm_overlay_v6", JSON.stringify(overlay));
+  sessionStorage.setItem("shama_crm_overlay_v7", JSON.stringify(overlay));
 }
 
 /**
@@ -274,6 +274,7 @@ window.forceRefreshLiveDatabase = async function () {
     sessionStorage.clear();
     localStorage.removeItem("shama_crm_overlay_v5");
     localStorage.removeItem("shama_crm_overlay_v6");
+    localStorage.removeItem("shama_crm_overlay_v7");
   } catch (e) {}
   showToast("⏳ Purging browser cache and syncing live database...");
   await loadPersistentCloudState(true);
@@ -2139,6 +2140,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Purge any stale legacy session overlays
   try {
+    sessionStorage.removeItem("shama_crm_overlay_v6");
     sessionStorage.removeItem("shama_crm_overlay_v5");
     sessionStorage.removeItem("shama_crm_overlay_v4");
     sessionStorage.removeItem("shama_crm_overlay_v3");

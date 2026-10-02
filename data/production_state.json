@@ -1,6 +1,6 @@
 {
   "schema_version": "4.0.0-production",
-  "generated_at": "2026-10-02T20:09:06Z",
+  "generated_at": "2026-10-02T20:32:06Z",
   "database_engine": "SQLite / PostgreSQL 28-Table Production Relational Schema",
   "dashboard_kpis": {
     "new_candidates": 50,
@@ -8,14 +8,14 @@
     "funding_opportunities": 21,
     "global_phd_opportunities": 284,
     "recommended_opportunities": 21,
-    "drafts_waiting": 49,
+    "drafts_waiting": 50,
     "drafts_coverage_percent": 100.0,
     "dedup_integrity_percent": 100.0,
     "duplicates_in_db": 0,
     "unique_professors_count": 50,
     "europe_pmc_source_count": 50,
     "openalex_source_count": 0,
-    "sent_emails": 1,
+    "sent_emails": 0,
     "replies": 0,
     "interested": 0,
     "cv_requests": 0,
@@ -3975,7 +3975,7 @@
       "relevance_score": 98.4,
       "funding_status": "VERIFIED",
       "verification_status": "VERIFIED",
-      "crm_state": "EMAILED",
+      "crm_state": "DRAFT_READY",
       "discovery_source": "Europe PMC / PubMed REST API",
       "discovered_batch_date": "2026-10-02",
       "discovered_at": "2026-10-02T17:12:57Z",
@@ -19521,7 +19521,7 @@
       "referenced_professor_paper": "Early prediction of carbapenem resistance phenotype in ICU-acquired Acinetobacter baumannii infection before susceptibility reporting: A temporally validated study",
       "referenced_shama_paper": "Evaluation of carbapenem antimicrobial stewardship program at a tertiary care hospital: A prospective interventional study",
       "gmail_draft_id": "",
-      "gmail_sync_status": "MANUALLY_SENT_IN_GMAIL",
+      "gmail_sync_status": "LOCAL_CRM_DRAFT_PENDING_OAUTH",
       "auto_send_disabled": 1,
       "batch_date": "2026-10-02",
       "created_at": "2026-10-02T17:13:20Z",
@@ -20612,23 +20612,7 @@
       "relevance_score": 76.1
     }
   ],
-  "email_threads": [
-    {
-      "id": "thread_ed8380b73170527b",
-      "professor_id": "prof_b6e42d4c831c112d",
-      "draft_id": "draft_628d36d79f1adced",
-      "gmail_thread_id": "gmail_thread_3170527b",
-      "subject": "Prospective PhD Inquiry: Antimicrobial Stewardship & Intensive Care Pharmacotherapy — Dr. Shama Abidi (PharmD, MPhil)",
-      "recipient_email": "yfy348306@fy.ahmu.edu.cn",
-      "sent_at": "2026-10-02T18:53:26Z",
-      "last_checked_at": "2026-10-02T18:53:26Z",
-      "thread_status": "AWAITING_REPLY",
-      "days_elapsed": 0,
-      "professor_name": "Prof. Dr. Cheng Z",
-      "university_name": "The First Affiliated Hospital of Anhui Medical University",
-      "country": "China"
-    }
-  ],
+  "email_threads": [],
   "email_replies": [],
   "followups": [],
   "whatsapp_notifications": [
@@ -20731,13 +20715,13 @@
       "job_id": "job_system_health_check",
       "job_name": "Health Check",
       "schedule_cron": "*/30 * * * * (Every 30 Minutes)",
-      "start_time": "2026-10-02T19:23:45Z",
-      "end_time": "2026-10-02T19:23:46Z",
-      "status": "COMPLETED",
+      "start_time": "2026-10-02T20:32:05Z",
+      "end_time": "2026-10-02T20:31:07Z",
+      "status": "RUNNING",
       "retry_count": 0,
       "error_info": "",
       "items_processed": 7,
-      "last_successful_run": "2026-10-02T19:23:46Z",
+      "last_successful_run": "2026-10-02T20:31:07Z",
       "next_scheduled_run": "2026-10-03T03:00:00Z",
       "execution_summary": "System Health Verified: Database READY, Scholarly Discovery APIs FREE & ONLINE, Gmail OAuth (CONNECTED (LIVE OAUTH 2.0)), WhatsApp API (REQUIRES META WHATSAPP BUSINESS API CREDENTIALS)."
     }
