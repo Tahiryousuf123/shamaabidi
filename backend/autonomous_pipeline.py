@@ -407,7 +407,7 @@ def fetch_candidates_from_europe_pmc(
         if not authors:
             continue
 
-        # Inspect authors, prioritizing corresponding authors whose official email is published in paper metadata
+        # Inspect authors, selecting corresponding authors whose official email is published in paper metadata
         authors_with_email = []
         for auth in authors:
             aff_str = auth.get("affiliation") or ""
@@ -416,7 +416,10 @@ def fetch_candidates_from_europe_pmc(
             if "@" in full_aff and re.search(r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}", full_aff):
                 authors_with_email.append(auth)
 
-        candidate_authors = authors_with_email if authors_with_email else ([authors[-1], authors[0]] if len(authors) >= 2 else authors)
+        # Skip papers that do not publish corresponding author emails to ensure 100% email availability
+        if not authors_with_email:
+            continue
+        candidate_authors = authors_with_email
 
         for auth in candidate_authors:
             full_name = (auth.get("fullName") or "").strip()
@@ -627,6 +630,8 @@ def run_job_research_discovery(target_min: int = 25, target_max: int = 50) -> Di
         if inserted_count >= target_max:
             break
         if cand["country_code"] == "PK" or "pakistan" in cand["country"].lower():
+            continue
+        if not cand.get("official_email") or "@" not in cand["official_email"]:
             continue
 
         if is_professor_already_known(

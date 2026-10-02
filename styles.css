@@ -1086,7 +1086,7 @@ code, pre {
   }
 }
 
-@media (max-width: 540px) {
+@media (max-width: 480px) {
   .kpi-grid {
     grid-template-columns: 1fr;
     gap: 8px;
