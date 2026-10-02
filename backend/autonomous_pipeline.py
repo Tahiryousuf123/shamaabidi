@@ -1186,10 +1186,6 @@ def run_job_email_draft_generation(daily_limit: Optional[int] = None) -> Dict[st
             WHERE d.id IS NULL
               AND p.country_code != 'PK'
               AND LOWER(p.country) NOT LIKE '%pakistan%'
-              AND p.official_email != ''
-              AND p.official_email LIKE '%@%'
-              AND p.official_email NOT LIKE '%verify%'
-              AND p.official_email NOT LIKE '%university.edu%'
             ORDER BY
               CASE WHEN p.funding_status = 'VERIFIED' THEN 2
                    WHEN p.funding_status = 'PARTIALLY VERIFIED' THEN 1
@@ -1205,14 +1201,12 @@ def run_job_email_draft_generation(daily_limit: Optional[int] = None) -> Dict[st
     gmail_synced_count = 0
 
     for prof in candidates:
-        recipient = (prof.get("official_email") or "").strip()
-        if (
-            not recipient
-            or "@" not in recipient
-            or "verify" in recipient.lower()
-            or recipient.endswith("@university.edu")
-        ):
-            continue
+        raw_email = (prof.get("official_email") or "").strip()
+        recipient = (
+            raw_email
+            if (raw_email and "@" in raw_email and not raw_email.startswith("verify-"))
+            else f"verify-faculty-email-on-university-page@{prof.get('country_code', 'int').lower()}.edu"
+        )
 
         subject, body_text = compose_personalized_outreach_email(prof)
         # Store draft cleanly in CRM Dashboard with 1-click Review & Send options
