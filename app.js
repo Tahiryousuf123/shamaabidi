@@ -804,6 +804,7 @@ function renderDraftsView() {
 
   container.innerHTML = drafts
     .map((d) => {
+      const mailtoUrl = buildMailtoUrl(d.recipient_email, d.subject, d.body_text);
       const composeUrl = buildGmailComposeUrl(d.recipient_email, d.subject, d.body_text);
       const isSent = d.gmail_sync_status === "MANUALLY_SENT_IN_GMAIL";
       return `
@@ -844,8 +845,11 @@ function renderDraftsView() {
           <button class="btn btn-primary" onclick="openDraftModal('${escapeHtml(d.id)}')">
             📝 Review &amp; Send Outreach Email
           </button>
+          <a href="${escapeHtml(mailtoUrl)}" class="btn btn-secondary" style="color:#6ee7b7;border-color:#10b981;font-weight:600;" onclick="markDraftManuallySent('${escapeHtml(d.id)}')">
+            📱 Open in Gmail App
+          </a>
           <a href="${escapeHtml(composeUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" onclick="handleOpenGmailWithCVNotice('${escapeHtml(d.id)}', event)">
-            ✉️ Open in Gmail (Compose)
+            💻 Open in Gmail Web
           </a>
           <button type="button" class="btn btn-secondary" onclick="copyDraftText('${escapeHtml(d.id)}')">
             📋 Copy Email Text
@@ -856,7 +860,7 @@ function renderDraftsView() {
           ${
             !isSent
               ? `<button class="btn btn-secondary" onclick="markDraftManuallySent('${escapeHtml(d.id)}')">
-                  ✅ Mark as Sent (Start 7-Day Tracker)
+                  ✅ Mark as Sent in CRM
                 </button>`
               : `<span class="badge badge-verified">✓ Tracked in Sent Emails</span>`
           }
@@ -1332,14 +1336,25 @@ window.openDraftModal = function (draftId) {
     const to = document.getElementById("modalRecipientInput").value.trim();
     const sub = document.getElementById("modalSubjectInput").value;
     const body = document.getElementById("modalBodyInput").value;
+    const mailtoLink = buildMailtoUrl(to, sub, body);
+    const gmailUrl = buildGmailComposeUrl(to, sub, body);
+
+    const mobileBtn = document.getElementById("modalOpenMobileGmailBtn");
+    if (mobileBtn) {
+      mobileBtn.href = mailtoLink;
+      mobileBtn.onclick = () => {
+        markDraftManuallySent(draft.id);
+        showToast("📱 Opening Gmail App! Tap Send (✈️) in Gmail to deliver.");
+        setTimeout(() => {
+          document.getElementById("draftModal").classList.add("hidden");
+        }, 1200);
+      };
+    }
+
     const gmailLink = document.getElementById("modalOpenGmailComposeLink");
     if (gmailLink) {
-      gmailLink.href = buildGmailComposeUrl(to, sub, body);
+      gmailLink.href = gmailUrl;
       gmailLink.onclick = () => handleOpenGmailWithCVNotice(draft.id);
-    }
-    const mailtoLink = document.getElementById("modalOpenMailtoLink");
-    if (mailtoLink) {
-      mailtoLink.href = buildMailtoUrl(to, sub, body);
     }
   };
   updateComposeHref();
@@ -1350,7 +1365,7 @@ window.openDraftModal = function (draftId) {
   const sendNowBtn = document.getElementById("modalSendNowBtn");
   if (sendNowBtn) {
     sendNowBtn.disabled = false;
-    sendNowBtn.textContent = "🚀 Send Now (Direct via Gmail)";
+    sendNowBtn.textContent = "🚀 Send via Gmail (1-Click)";
   }
 
   document.getElementById("draftModal").classList.remove("hidden");
@@ -1367,6 +1382,20 @@ window.sendActiveModalDraftNow = async function () {
 
   if (!to || !to.includes("@")) {
     showToast("⚠️ Please enter a valid professor email before sending.");
+    return;
+  }
+
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  const mailtoUrl = buildMailtoUrl(to, sub, body);
+
+  // ON MOBILE: ALWAYS navigate directly to Gmail App via mailto (100% reliable, zero popup block)
+  if (isMobile) {
+    markDraftManuallySent(draft.id);
+    showToast("📱 Opening your Gmail App! Tap Send (✈️) in Gmail to deliver.");
+    window.location.href = mailtoUrl;
+    setTimeout(() => {
+      document.getElementById("draftModal").classList.add("hidden");
+    }, 1200);
     return;
   }
 
@@ -1399,7 +1428,7 @@ window.sendActiveModalDraftNow = async function () {
     // Backend API unreachable or running on static hosting
   }
 
-  // Fallback for static hosting: Open in Gmail Compose pre-filled and mark as sent
+  // Desktop static hosting fallback: Open in Gmail Web Compose pre-filled
   const gmailUrl = buildGmailComposeUrl(to, sub, body);
   window.open(gmailUrl, "_blank", "noopener,noreferrer");
   markDraftManuallySent(draft.id);
@@ -1407,7 +1436,7 @@ window.sendActiveModalDraftNow = async function () {
   document.getElementById("draftModal").classList.add("hidden");
   if (btn) {
     btn.disabled = false;
-    btn.textContent = "🚀 Send Now (Direct via Gmail)";
+    btn.textContent = "🚀 Send via Gmail (1-Click)";
   }
 };
 
