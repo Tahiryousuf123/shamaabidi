@@ -468,6 +468,41 @@ def send_draft_now_endpoint(draft_id: str, payload: dict = None) -> Dict[str, An
     return {"status": "SENT", "result": res, "state": snapshot}
 
 
+class DraftUpdatePayload(BaseModel):
+    recipient_email: Optional[str] = None
+    subject: Optional[str] = None
+    body_text: Optional[str] = None
+
+
+@app.post("/api/drafts/{draft_id}/update")
+def update_draft_endpoint(draft_id: str, payload: DraftUpdatePayload) -> Dict[str, Any]:
+    from database import get_connection, utc_now_iso
+    conn = get_connection()
+    draft = conn.execute("SELECT * FROM email_drafts WHERE id = ?", (draft_id,)).fetchone()
+    if not draft:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Draft not found")
+
+    now = utc_now_iso()
+    new_email = payload.recipient_email or draft["recipient_email"]
+    new_subject = payload.subject or draft["subject"]
+    new_body = payload.body_text or draft["body_text"]
+
+    conn.execute(
+        "UPDATE email_drafts SET recipient_email = ?, subject = ?, body_text = ?, updated_at = ? WHERE id = ?",
+        (new_email, new_subject, new_body, now, draft_id),
+    )
+    if payload.recipient_email and "@" in payload.recipient_email:
+        conn.execute(
+            "UPDATE professors SET official_email = ?, verification_status = 'VERIFIED', updated_at = ? WHERE id = ?",
+            (payload.recipient_email, now, draft["professor_id"]),
+        )
+    conn.commit()
+    conn.close()
+    snapshot = export_production_state_snapshot()
+    return {"status": "UPDATED", "state": snapshot}
+
+
 @app.post("/api/drafts/create-gmail")
 def create_gmail_draft_endpoint(payload: DraftComposePayload) -> Dict[str, Any]:
     return create_gmail_draft(

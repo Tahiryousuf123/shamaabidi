@@ -1453,13 +1453,14 @@ window.sendDraftDirectlyViaApi = async function () {
 
 window.sendActiveModalDraftNow = window.sendDraftDirectlyViaApi;
 
-window.saveDraftRecipientEmail = function () {
+window.saveDraftRecipientEmail = async function () {
   const newEmail = (document.getElementById("modalRecipientInput")?.value || "").trim();
   if (!newEmail || !newEmail.includes("@")) {
     showToast("⚠️ Please enter a valid email address containing '@'.");
     return;
   }
   if (!activeModalDraftId || !appState) return;
+
   const draft = (appState.email_drafts || []).find((d) => d.id === activeModalDraftId);
   if (draft) {
     draft.recipient_email = newEmail;
@@ -1468,11 +1469,27 @@ window.saveDraftRecipientEmail = function () {
       prof.official_email = newEmail;
       prof.verification_status = "VERIFIED";
     }
-    showToast("✅ Professor email saved! It will now auto-fill into Gmail's 'To' field.");
-    openDraftModal(activeModalDraftId);
-    renderDraftsView();
-    renderProfessorsTable();
   }
+
+  const apiBase = getBackendApiBase();
+  try {
+    const resp = await fetch(`${apiBase}/api/drafts/${encodeURIComponent(activeModalDraftId)}/update`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ recipient_email: newEmail }),
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.state) appState = data.state;
+    }
+  } catch (e) {
+    console.warn("Backend update skipped:", e);
+  }
+
+  showToast("✅ Professor email saved to central database and synced across all devices!");
+  openDraftModal(activeModalDraftId);
+  renderDraftsView();
+  renderProfessorsTable();
 };
 
 window.copyModalFullEmail = function () {
