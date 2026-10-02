@@ -91,32 +91,32 @@ from backend.app.target_countries import (
 DISCOVERY_SEARCH_QUERIES: List[Dict[str, str]] = [
     {
         "topic": "Antimicrobial Stewardship & Carbapenem Optimization in Critical Care",
-        "eupmc_query": '("antimicrobial stewardship" OR "carbapenem" OR "meropenem") AND ("intensive care" OR "clinical pharmacist" OR "renal") AND (PUB_YEAR:[2023 TO 2026])',
+        "eupmc_query": '("antimicrobial stewardship" OR "carbapenem" OR "meropenem") AND ("clinical pharmacy" OR "intensive care" OR "hospital" OR "renal") AND (EMAIL:* OR "electronic address" OR correspondence OR "@") AND (PUB_YEAR:[2023 TO 2026])',
         "openalex_query": "antimicrobial stewardship carbapenem clinical pharmacist intensive care",
     },
     {
         "topic": "Cardiovascular Pharmacotherapy: Calcium Channel Blockers & Beta Blockers in Angina",
-        "eupmc_query": '("angina pectoris" OR "antianginal" OR "calcium channel blocker" OR "beta blocker") AND ("pharmacotherapy" OR "adverse drug" OR "outcomes") AND (PUB_YEAR:[2023 TO 2026])',
+        "eupmc_query": '("cardiovascular" OR "antianginal" OR "calcium channel blocker" OR "beta blocker" OR "angina") AND ("pharmacotherapy" OR "clinical pharmacy" OR "adverse drug") AND (EMAIL:* OR "electronic address" OR correspondence OR "@") AND (PUB_YEAR:[2023 TO 2026])',
         "openalex_query": "angina pectoris calcium channel blockers beta blockers clinical outcomes",
     },
     {
         "topic": "Pharmacovigilance, Naranjo ADR Causality & High-Alert Medication Safety",
-        "eupmc_query": '("pharmacovigilance" OR "adverse drug reaction" OR "high-alert medication" OR "medication safety") AND ("hospital pharmacy" OR "clinical pharmacy") AND (PUB_YEAR:[2023 TO 2026])',
+        "eupmc_query": '("pharmacovigilance" OR "adverse drug reaction" OR "high-alert medication" OR "medication safety") AND ("hospital pharmacy" OR "clinical pharmacy") AND (EMAIL:* OR "electronic address" OR correspondence OR "@") AND (PUB_YEAR:[2023 TO 2026])',
         "openalex_query": "pharmacovigilance adverse drug reactions high alert medication safety clinical pharmacy",
     },
     {
         "topic": "Artificial Intelligence & Clinical Decision Support vs. Clinical Pharmacist Interventions",
-        "eupmc_query": '("clinical pharmacist intervention" OR "pharmaceutical care") AND ("artificial intelligence" OR "clinical decision support" OR "medication error") AND (PUB_YEAR:[2023 TO 2026])',
+        "eupmc_query": '("clinical pharmacist intervention" OR "clinical decision support" OR "artificial intelligence") AND ("pharmacy" OR "prescribing" OR "medication error") AND (EMAIL:* OR "electronic address" OR correspondence OR "@") AND (PUB_YEAR:[2023 TO 2026])',
         "openalex_query": "artificial intelligence clinical decision support clinical pharmacist interventions",
     },
     {
         "topic": "Renal Dose Adjustment, Creatinine Clearance & Precision Pharmacotherapy",
-        "eupmc_query": '("renal dose adjustment" OR "creatinine clearance") AND ("pharmacist" OR "antimicrobial" OR "hospitalized") AND (PUB_YEAR:[2023 TO 2026])',
+        "eupmc_query": '("renal dose adjustment" OR "creatinine clearance" OR "precision pharmacotherapy") AND ("pharmacist" OR "antimicrobial" OR "hospitalized") AND (EMAIL:* OR "electronic address" OR correspondence OR "@") AND (PUB_YEAR:[2023 TO 2026])',
         "openalex_query": "renal dose adjustment creatinine clearance clinical pharmacist hospital",
     },
     {
         "topic": "Pharmacoepidemiology, Polypharmacy & Real-World Medication Outcomes",
-        "eupmc_query": '("pharmacoepidemiology" OR "deprescribing" OR "polypharmacy") AND ("clinical pharmacy" OR "cardiovascular" OR "antibiotic") AND (PUB_YEAR:[2023 TO 2026])',
+        "eupmc_query": '("pharmacoepidemiology" OR "deprescribing" OR "polypharmacy") AND ("clinical pharmacy" OR "cardiovascular" OR "antibiotic") AND (EMAIL:* OR "electronic address" OR correspondence OR "@") AND (PUB_YEAR:[2023 TO 2026])',
         "openalex_query": "pharmacoepidemiology polypharmacy clinical pharmacy outcomes",
     },
 ]
@@ -254,8 +254,8 @@ def parse_affiliation_university_and_country(affiliation: str) -> Optional[Tuple
 
     # Extract embedded email address if present in affiliation string (common in PubMed/Europe PMC)
     email_match = re.search(r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}", affiliation)
-    extracted_email = email_match.group(0).rstrip(".") if email_match else ""
-    if extracted_email.endswith(".pk"):
+    extracted_email = email_match.group(0).strip(".;:,()<>\"' ") if email_match else ""
+    if extracted_email.lower().endswith(".pk"):
         return None
 
     # Detect country across all 7 target regions
@@ -407,13 +407,16 @@ def fetch_candidates_from_europe_pmc(
         if not authors:
             continue
 
-        # Inspect senior/corresponding/lead authors with university affiliations outside Pakistan
-        candidate_authors = []
-        if len(authors) >= 2:
-            candidate_authors.append(authors[-1])  # Senior/PI last author
-            candidate_authors.append(authors[0])   # First/Lead author
-        else:
-            candidate_authors.extend(authors)
+        # Inspect authors, prioritizing corresponding authors whose official email is published in paper metadata
+        authors_with_email = []
+        for auth in authors:
+            aff_str = auth.get("affiliation") or ""
+            aff_list = auth.get("authorAffiliationDetailsList", {}).get("authorAffiliation", [])
+            full_aff = aff_str + " " + " ".join(a.get("affiliation", "") for a in aff_list if a.get("affiliation"))
+            if "@" in full_aff and re.search(r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}", full_aff):
+                authors_with_email.append(auth)
+
+        candidate_authors = authors_with_email if authors_with_email else ([authors[-1], authors[0]] if len(authors) >= 2 else authors)
 
         for auth in candidate_authors:
             full_name = (auth.get("fullName") or "").strip()
@@ -613,6 +616,12 @@ def run_job_research_discovery(target_min: int = 25, target_max: int = 50) -> Di
 
     inserted_count = 0
     skipped_duplicates = 0
+
+    # Sort discovered candidates to prioritize professors with published verified emails
+    raw_discovered.sort(
+        key=lambda c: (1 if c.get("official_email") and "@" in c["official_email"] else 0),
+        reverse=True,
+    )
 
     for cand in raw_discovered:
         if inserted_count >= target_max:
@@ -1177,8 +1186,11 @@ def run_job_email_draft_generation(daily_limit: Optional[int] = None) -> Dict[st
             WHERE d.id IS NULL
               AND p.country_code != 'PK'
               AND LOWER(p.country) NOT LIKE '%pakistan%'
+              AND p.official_email != ''
+              AND p.official_email LIKE '%@%'
+              AND p.official_email NOT LIKE '%verify%'
+              AND p.official_email NOT LIKE '%university.edu%'
             ORDER BY
-              CASE WHEN p.official_email != '' THEN 1 ELSE 0 END DESC,
               CASE WHEN p.funding_status = 'VERIFIED' THEN 2
                    WHEN p.funding_status = 'PARTIALLY VERIFIED' THEN 1
                    ELSE 0 END DESC,
@@ -1193,9 +1205,16 @@ def run_job_email_draft_generation(daily_limit: Optional[int] = None) -> Dict[st
     gmail_synced_count = 0
 
     for prof in candidates:
-        subject, body_text = compose_personalized_outreach_email(prof)
-        recipient = prof.get("official_email") or "verify-faculty-email-on-university-page@university.edu"
+        recipient = (prof.get("official_email") or "").strip()
+        if (
+            not recipient
+            or "@" not in recipient
+            or "verify" in recipient.lower()
+            or recipient.endswith("@university.edu")
+        ):
+            continue
 
+        subject, body_text = compose_personalized_outreach_email(prof)
         gmail_res = create_gmail_draft(
             recipient_email=recipient,
             subject=subject,
