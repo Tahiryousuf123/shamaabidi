@@ -152,10 +152,36 @@ def create_gmail_draft(
             "note": f"OAuth error ({e}); stored in CRM Database with 1-click Gmail Compose link.",
         }
 
-    mime_msg = MIMEText(body_text, "plain", "utf-8")
+    from email.mime.multipart import MIMEMultipart
+    from email.mime.application import MIMEApplication
+
+    mime_msg = MIMEMultipart()
     mime_msg["to"] = recipient_email
     mime_msg["from"] = f"Dr. Shama Abidi <{sender_email}>"
     mime_msg["subject"] = subject
+
+    # Attach message body
+    mime_msg.attach(MIMEText(body_text, "plain", "utf-8"))
+
+    # Automatically attach Dr. Shama Abidi Academic CV PDF
+    cv_candidates = [
+        os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "documents", "Dr_Shama_Abidi_Academic_CV_2026.pdf"),
+        os.path.join(os.getcwd(), "data", "documents", "Dr_Shama_Abidi_Academic_CV_2026.pdf"),
+    ]
+    for cv_path in cv_candidates:
+        if os.path.exists(cv_path):
+            try:
+                with open(cv_path, "rb") as f:
+                    pdf_attachment = MIMEApplication(f.read(), _subtype="pdf")
+                    pdf_attachment.add_header(
+                        "Content-Disposition",
+                        "attachment",
+                        filename="Dr_Shama_Abidi_Academic_CV_2026.pdf",
+                    )
+                    mime_msg.attach(pdf_attachment)
+                break
+            except Exception as e:
+                pass
 
     raw_base64 = base64.urlsafe_b64encode(mime_msg.as_bytes()).decode("utf-8")
     req_body = json.dumps({"message": {"raw": raw_base64}}).encode("utf-8")

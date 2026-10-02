@@ -561,10 +561,10 @@ def fetch_candidates_from_openalex(
     return candidates
 
 
-def run_job_research_discovery(target_min: int = 60, target_max: int = 150) -> Dict[str, Any]:
+def run_job_research_discovery(target_min: int = 25, target_max: int = 50) -> Dict[str, Any]:
     """
     Job 1: Research Discovery (Sections 5, 6, 9, 10, 30)
-    Discovers 60-150 brand-new international professors outside Pakistan per batch,
+    Discovers 25-50 brand-new international professors outside Pakistan per batch,
     deduplicating strictly against all previously discovered records in the database.
     """
     job_id = "job_research_discovery"
@@ -1592,10 +1592,10 @@ def run_all_scheduled_jobs() -> Dict[str, Any]:
     """
     init_database()
     kb_res = ingest_verified_knowledge_base_to_db(force_reprocess=False)
-    disc_res = run_job_research_discovery(target_min=35, target_max=70)
+    disc_res = run_job_research_discovery(target_min=25, target_max=50)
     match_res = run_job_professor_matching()
     verif_res = run_job_funding_and_candidate_verification()
-    draft_res = run_job_email_draft_generation()
+    draft_res = run_job_email_draft_generation(daily_limit=50)
     reply_res = run_job_gmail_reply_monitoring()
     fl_res = run_job_followup_detection()
     health_res = run_job_system_health_check()
