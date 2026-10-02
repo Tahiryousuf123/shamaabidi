@@ -63,7 +63,7 @@ class Settings:
         o.strip()
         for o in os.getenv(
             "CORS_ALLOWED_ORIGINS",
-            "https://aspnetaptech-cyber.github.io,http://localhost:8000,http://127.0.0.1:8000,http://localhost:3000",
+            "https://shamaabidiphd.sbs,https://www.shamaabidiphd.sbs,https://tahiryousuf123.github.io,https://aspnetaptech-cyber.github.io,http://localhost:8000,http://127.0.0.1:8000,http://localhost:3000",
         ).split(",")
         if o.strip()
     ]

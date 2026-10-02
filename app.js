@@ -1373,7 +1373,20 @@ window.copyFullEmailAndOpenGmail = function () {
   }, 1200);
 };
 
-window.sendActiveModalDraftNow = async function () {
+function getBackendApiBase() {
+  const custom = localStorage.getItem("shama_backend_api_url");
+  if (custom && custom.trim()) return custom.trim().replace(/\/+$/, "");
+
+  // If running on localhost
+  if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+    return "";
+  }
+
+  // Active secure cloud tunnel connecting to the live FastAPI backend
+  return "https://blog-abilities-cute-press.trycloudflare.com";
+}
+
+window.sendDraftDirectlyViaApi = async function () {
   if (!activeModalDraftId || !appState) return;
   const draft = (appState.email_drafts || []).find((d) => d.id === activeModalDraftId);
   if (!draft) return;
@@ -1387,8 +1400,18 @@ window.sendActiveModalDraftNow = async function () {
     return;
   }
 
+  const btn = document.getElementById("modalDirectApiSendBtn");
+  const origText = btn ? btn.innerHTML : "";
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = "⏳ Sending from shamaabidiphd@gmail.com...";
+  }
+
+  const apiBase = getBackendApiBase();
+  const sendUrl = `${apiBase}/api/drafts/${encodeURIComponent(draft.id)}/send-now`;
+
   try {
-    const resp = await fetch(`/api/drafts/${encodeURIComponent(draft.id)}/send-now`, {
+    const resp = await fetch(sendUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ recipient_email: to, subject: sub, body_text: body }),
@@ -1401,22 +1424,31 @@ window.sendActiveModalDraftNow = async function () {
       } else {
         draft.gmail_sync_status = "MANUALLY_SENT_IN_GMAIL";
       }
-      showToast("🚀 SUCCESS! Email sent directly to professor via Gmail with Dr. Shama's CV attached! 7-Day Thread Tracker activated.");
+      markDraftManuallySent(draft.id);
+      showToast(`🚀 SUCCESS! Email sent directly from shamaabidiphd@gmail.com to ${to} with Dr. Shama's CV attached! 7-Day Thread Tracker activated.`);
       document.getElementById("draftModal").classList.add("hidden");
       renderAllViews();
       return;
+    } else {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err.detail || `Server returned ${resp.status}`);
     }
   } catch (e) {
-    // Backend API unreachable on static GitHub Pages
+    console.error("Direct API error:", e);
+    showToast(`⚠️ Cloud API notice: ${e.message}. Opening pre-filled Gmail Compose...`);
+    const gmailUrl = buildGmailComposeUrl(to, sub, body);
+    window.open(gmailUrl, "_blank", "noopener,noreferrer");
+    markDraftManuallySent(draft.id);
+    document.getElementById("draftModal").classList.add("hidden");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = origText;
+    }
   }
-
-  // Fallback: Open in Gmail Web/App pre-filled with CV link
-  const gmailUrl = buildGmailComposeUrl(to, sub, body);
-  window.open(gmailUrl, "_blank", "noopener,noreferrer");
-  markDraftManuallySent(draft.id);
-  showToast("✉️ Pre-filled Gmail opened in new tab! Marked as sent in CRM.");
-  document.getElementById("draftModal").classList.add("hidden");
 };
+
+window.sendActiveModalDraftNow = window.sendDraftDirectlyViaApi;
 
 window.saveDraftRecipientEmail = function () {
   const newEmail = (document.getElementById("modalRecipientInput")?.value || "").trim();
