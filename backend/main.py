@@ -27,7 +27,8 @@ if str(BACKEND_DIR) not in sys.path:
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from sqlalchemy import func, select, text
 
@@ -520,3 +521,25 @@ def update_settings_endpoint(payload: SettingUpdatePayload) -> Dict[str, Any]:
         update_setting(payload.setting_key, payload.setting_value, payload.description)
     snapshot = export_production_state_snapshot()
     return {"status": "UPDATED", "state": snapshot}
+
+
+# ==============================================================================
+# FRONTEND STATIC ASSETS & ROOT DASHBOARD SERVING
+# ==============================================================================
+@app.get("/")
+def serve_root_dashboard():
+    return FileResponse(str(BASE_DIR / "index.html"))
+
+@app.get("/styles.css")
+def serve_styles():
+    return FileResponse(str(BASE_DIR / "styles.css"), media_type="text/css")
+
+@app.get("/app.js")
+def serve_app_js():
+    return FileResponse(str(BASE_DIR / "app.js"), media_type="application/javascript")
+
+if (BASE_DIR / "frontend").exists():
+    app.mount("/frontend", StaticFiles(directory=str(BASE_DIR / "frontend")), name="frontend")
+if (BASE_DIR / "data").exists():
+    app.mount("/data", StaticFiles(directory=str(BASE_DIR / "data")), name="data")
+
