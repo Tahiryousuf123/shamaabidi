@@ -47,7 +47,38 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
         return
 
 
+def load_env_file():
+    env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env")
+    if os.path.exists(env_path):
+        with open(env_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    k, v = line.split("=", 1)
+                    if k.strip() not in os.environ:
+                        os.environ[k.strip()] = v.strip()
+
+
+def save_refresh_token_to_env(refresh_token: str):
+    env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env")
+    if not os.path.exists(env_path):
+        return
+    with open(env_path, "r", encoding="utf-8") as f:
+        content = f.read()
+    
+    import re
+    if "GMAIL_OAUTH_REFRESH_TOKEN=" in content:
+        content = re.sub(r"GMAIL_OAUTH_REFRESH_TOKEN=.*", f"GMAIL_OAUTH_REFRESH_TOKEN={refresh_token}", content)
+    else:
+        content += f"\nGMAIL_OAUTH_REFRESH_TOKEN={refresh_token}\n"
+    
+    with open(env_path, "w", encoding="utf-8") as f:
+        f.write(content)
+    print("   [+] Automatically updated .env file with your new Refresh Token!")
+
+
 def main():
+    load_env_file()
     print("=" * 72)
     print("  Shama Abidi PhD AI System — Gmail OAuth 2.0 Refresh Token Generator")
     print("=" * 72)
@@ -105,8 +136,11 @@ def main():
         tokens = json.loads(resp.read().decode("utf-8"))
 
     refresh_token = tokens.get("refresh_token")
+    if refresh_token:
+        save_refresh_token_to_env(refresh_token)
+
     print("\n" + "=" * 72)
-    print("  SUCCESS! Copy these 3 lines into your .env file:")
+    print("  SUCCESS! Gmail OAuth 2.0 Authorization Completed!")
     print("=" * 72)
     print(f"GMAIL_OAUTH_CLIENT_ID={client_id}")
     print(f"GMAIL_OAUTH_CLIENT_SECRET={client_secret}")

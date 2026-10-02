@@ -1,7 +1,7 @@
 # Shama Abidi PhD System — Production Application (v5.0.0)
 
 **Dr. Shama Abidi — PharmD, MPhil in Pharmacy Practice**  
-**Live Deployment:** [https://aspnetaptech-cyber.github.io/shama-abidi-phd-system/](https://aspnetaptech-cyber.github.io/shama-abidi-phd-system/)
+**Live Deployment:** [https://shamaabidiphd.sbs](https://shamaabidiphd.sbs)
 
 ---
 

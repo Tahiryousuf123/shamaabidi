@@ -192,9 +192,10 @@ async function loadPersistentCloudState(showNotification = false) {
           mergeSessionOverlayIfPresent();
           renderAllViews();
           if (showNotification) {
-            showToast(
-              `✅ Synchronized with Cloud Database (${appState.professors.length} international professors, ${appState.email_drafts.length} drafts).`
-            );
+            const countMsg = appState.professors.length > 0
+              ? `${appState.professors.length} international professors, ${appState.email_drafts.length} drafts`
+              : "Pristine state, ready for automated discovery";
+            showToast(`✅ Synchronized with Cloud Database (${countMsg}).`);
           }
           return;
         }
@@ -211,7 +212,7 @@ async function loadPersistentCloudState(showNotification = false) {
  */
 function mergeSessionOverlayIfPresent() {
   try {
-    const raw = sessionStorage.getItem("shama_crm_overlay_v4");
+    const raw = sessionStorage.getItem("shama_crm_overlay_v5");
     if (!raw || !appState) return;
     const overlay = JSON.parse(raw);
 
@@ -279,14 +280,14 @@ function mergeSessionOverlayIfPresent() {
 
 function getSessionOverlay() {
   try {
-    return JSON.parse(sessionStorage.getItem("shama_crm_overlay_v4") || "{}");
+    return JSON.parse(sessionStorage.getItem("shama_crm_overlay_v5") || "{}");
   } catch {
     return {};
   }
 }
 
 function saveSessionOverlay(overlay) {
-  sessionStorage.setItem("shama_crm_overlay_v4", JSON.stringify(overlay));
+  sessionStorage.setItem("shama_crm_overlay_v5", JSON.stringify(overlay));
 }
 
 function recalculateDashboardKpis() {
@@ -680,7 +681,21 @@ function renderProfessorsView() {
         </tr>
       </thead>
       <tbody>
-        ${rowsHtml || `<tr><td colspan="6">No professors match the current filter criteria.</td></tr>`}
+        ${
+          rowsHtml ||
+          `<tr>
+            <td colspan="6" style="text-align:center;padding:48px 24px;">
+              <div style="font-size:2.8rem;margin-bottom:12px;">🌍</div>
+              <div style="font-size:1.15rem;font-weight:700;color:#f8fafc;margin-bottom:8px;">Ready for Fresh International Discovery</div>
+              <p style="font-size:0.86rem;max-width:550px;margin:0 auto 16px;line-height:1.6;color:var(--text-secondary);">
+                The Autonomous Cloud AI Agent is active and scheduled to run in the cloud 4 times daily (every 6 hours). New professors matching your clinical pharmacy and antimicrobial stewardship research will appear here with direct paper citations and university source links.
+              </p>
+              <button class="btn btn-primary" onclick="triggerManualJob('job_research_discovery')">
+                ⚡ Discover First Batch (50 Professors)
+              </button>
+            </td>
+          </tr>`
+        }
       </tbody>
     </table>
   `;
@@ -766,6 +781,27 @@ function renderDraftsView() {
   if (!container || !appState) return;
 
   const drafts = appState.email_drafts || [];
+  if (drafts.length === 0) {
+    container.innerHTML = `
+      <div class="item-card" style="text-align:center;padding:48px 24px;">
+        <div style="font-size:2.8rem;margin-bottom:12px;">✉️</div>
+        <div class="item-card-title" style="font-size:1.15rem;color:#f8fafc;margin-bottom:8px;">No Outreach Drafts Pending</div>
+        <div class="item-card-body" style="max-width:550px;margin:0 auto 16px;line-height:1.6;color:var(--text-secondary);">
+          Your Autonomous Cloud AI Agent automatically discovers international professors 4 times daily, generates personalized PhD application inquiries with your Academic CV PDF attached, and syncs them directly to your Gmail Drafts folder.
+        </div>
+        <div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap;">
+          <a href="https://mail.google.com/mail/#drafts" target="_blank" rel="noopener" class="btn btn-secondary">
+            📥 Open Gmail Drafts
+          </a>
+          <button class="btn btn-primary" onclick="triggerManualJob('job_research_discovery')">
+            ⚡ Run Immediate Discovery Batch (50 Professors)
+          </button>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
   container.innerHTML = drafts
     .map((d) => {
       const composeUrl = buildGmailComposeUrl(d.recipient_email, d.subject, d.body_text);

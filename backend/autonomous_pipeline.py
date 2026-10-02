@@ -1109,7 +1109,7 @@ def compose_personalized_outreach_email(prof: Dict[str, Any]) -> Tuple[str, str]
             "or international doctoral fellowship tracks (e.g., graduate research/teaching assistantships) might be applicable."
         )
 
-    cv_link = "https://aspnetaptech-cyber.github.io/shama-abidi-phd-system/data/documents/Dr_Shama_Abidi_Academic_CV_2026.pdf"
+    cv_link = "https://shamaabidiphd.sbs/data/documents/Dr_Shama_Abidi_Academic_CV_2026.pdf"
 
     body = (
         f"Dear {clean_salutation},\n\n"
