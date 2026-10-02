@@ -2,9 +2,11 @@ name: Shama Abidi — Autonomous AI Research Agent (Daily Discovery, Matching, G
 
 on:
   schedule:
-    # Runs automatically in the cloud at 08:00 AM & 08:00 PM Pakistan Time (03:00 & 15:00 UTC) with Laptop OFF
-    - cron: "0 3 * * *"
-    - cron: "0 15 * * *"
+    # Runs automatically in the cloud 4 times daily (every 6 hours) with Laptop OFF
+    - cron: "0 3 * * *"   # 08:00 AM PKT
+    - cron: "0 9 * * *"   # 02:00 PM PKT
+    - cron: "0 15 * * *"  # 08:00 PM PKT
+    - cron: "0 21 * * *"  # 02:00 AM PKT
   workflow_dispatch: # Allows manual 1-click run from GitHub Actions tab anytime
 
 permissions:

@@ -561,10 +561,10 @@ def fetch_candidates_from_openalex(
     return candidates
 
 
-def run_job_research_discovery(target_min: int = 35, target_max: int = 85) -> Dict[str, Any]:
+def run_job_research_discovery(target_min: int = 60, target_max: int = 150) -> Dict[str, Any]:
     """
     Job 1: Research Discovery (Sections 5, 6, 9, 10, 30)
-    Discovers 30-100 brand-new international professors outside Pakistan per batch,
+    Discovers 60-150 brand-new international professors outside Pakistan per batch,
     deduplicating strictly against all previously discovered records in the database.
     """
     job_id = "job_research_discovery"
@@ -582,20 +582,20 @@ def run_job_research_discovery(target_min: int = 35, target_max: int = 85) -> Di
             q_item["eupmc_query"],
             q_item["topic"],
             page=page_to_fetch,
-            page_size=25,
+            page_size=50,
         )
         raw_discovered.extend(eupmc_batch)
-        time.sleep(0.25)
+        time.sleep(0.08)
 
         if len(raw_discovered) < target_max:
             oa_batch = fetch_candidates_from_openalex(
                 q_item["openalex_query"],
                 q_item["topic"],
                 page=page_to_fetch,
-                per_page=15,
+                per_page=30,
             )
             raw_discovered.extend(oa_batch)
-            time.sleep(0.25)
+            time.sleep(0.08)
 
     inserted_count = 0
     skipped_duplicates = 0
