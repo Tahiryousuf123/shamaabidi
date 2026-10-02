@@ -141,13 +141,31 @@ def seed_roles_users_and_jobs(db: Session) -> None:
     db.commit()
 
     # 3. Default Users (Admin: Dr. Shama Abidi, Researcher, Viewer)
-    if not db.query(User).filter(User.email == "shamaabidiphd@gmail.com").first():
+    shama_user = db.query(User).filter(User.email == "shamaabidiphd@gmail.com").first()
+    if shama_user:
+        shama_user.password_hash = hash_password("shamaabidi1978")
+    else:
         db.add(
             User(
                 id="user_admin_shama_phd",
                 email="shamaabidiphd@gmail.com",
                 full_name="Dr. Shama Abidi",
-                password_hash=hash_password("ShamaPhD#2026!Secure"),
+                password_hash=hash_password("shamaabidi1978"),
+                role=RoleEnum.ADMIN.value,
+                is_active=True,
+                totp_secret="JBSWY3DPEHPK3PXP",
+                totp_enabled=False,
+                degree_title="PharmD, MPhil in Pharmacy Practice",
+                institution="Liaquat National Hospital & University of Karachi",
+            )
+        )
+    if not db.query(User).filter(User.email == "shamaabidi").first():
+        db.add(
+            User(
+                id="user_admin_shamaabidi_alias",
+                email="shamaabidi",
+                full_name="Dr. Shama Abidi",
+                password_hash=hash_password("shamaabidi1978"),
                 role=RoleEnum.ADMIN.value,
                 is_active=True,
                 totp_secret="JBSWY3DPEHPK3PXP",

@@ -2146,6 +2146,9 @@ document.addEventListener("DOMContentLoaded", () => {
     sessionStorage.removeItem("shama_crm_overlay_v3");
   } catch (e) {}
 
+  // Initialize Authentication Gate Screen
+  initAuthGate();
+
   // Initial load from persistent cloud state
   loadPersistentCloudState(false);
 
@@ -2154,3 +2157,74 @@ document.addEventListener("DOMContentLoaded", () => {
     loadPersistentCloudState(false);
   }, 8000);
 });
+
+/* ==========================================================================
+   AUTHENTICATION GATE (Username: Shamaabidi | Password: shamaabidi1978)
+   ========================================================================== */
+function initAuthGate() {
+  const isAuth = sessionStorage.getItem("shama_auth_authenticated") === "true" ||
+                 localStorage.getItem("shama_auth_authenticated") === "true";
+  const modal = document.getElementById("authLoginModal");
+  if (!modal) return;
+  if (isAuth) {
+    modal.classList.add("hidden");
+  } else {
+    modal.classList.remove("hidden");
+    setTimeout(() => {
+      document.getElementById("authUsernameInput")?.focus();
+    }, 150);
+  }
+}
+
+window.handlePortalLogin = function (event) {
+  if (event) event.preventDefault();
+  const usernameInput = document.getElementById("authUsernameInput");
+  const passwordInput = document.getElementById("authPasswordInput");
+  const errorMsg = document.getElementById("authErrorMsg");
+  const modal = document.getElementById("authLoginModal");
+
+  const username = (usernameInput?.value || "").trim().toLowerCase();
+  const password = (passwordInput?.value || "").trim();
+
+  // Required credentials: Username = Shamaabidi, Password = shamaabidi1978
+  const isUserValid = (username === "shamaabidi" || username === "shamaabidiphd@gmail.com" || username === "shama abidi");
+  const isPassValid = (password === "shamaabidi1978");
+
+  if (isUserValid && isPassValid) {
+    sessionStorage.setItem("shama_auth_authenticated", "true");
+    localStorage.setItem("shama_auth_authenticated", "true");
+    localStorage.setItem("shama_auth_username", "Shamaabidi");
+    if (errorMsg) errorMsg.classList.add("hidden");
+    if (modal) modal.classList.add("hidden");
+    showToast("👋 Welcome Dr. Shama Abidi! Portal Unlocked Successfully.");
+  } else {
+    if (errorMsg) {
+      errorMsg.textContent = "❌ Invalid username or password. Please use authorized credentials.";
+      errorMsg.classList.remove("hidden");
+    }
+    if (passwordInput) {
+      passwordInput.value = "";
+      passwordInput.focus();
+    }
+  }
+};
+
+window.handlePortalLogout = function () {
+  sessionStorage.removeItem("shama_auth_authenticated");
+  localStorage.removeItem("shama_auth_authenticated");
+  const modal = document.getElementById("authLoginModal");
+  if (modal) {
+    modal.classList.remove("hidden");
+    const uInput = document.getElementById("authUsernameInput");
+    const pInput = document.getElementById("authPasswordInput");
+    const err = document.getElementById("authErrorMsg");
+    if (uInput) uInput.value = "";
+    if (pInput) pInput.value = "";
+    if (err) err.classList.add("hidden");
+    setTimeout(() => {
+      uInput?.focus();
+    }, 100);
+  }
+  showToast("🔒 Portal locked. Please login with your credentials.");
+};
+

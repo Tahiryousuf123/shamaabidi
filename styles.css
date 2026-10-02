@@ -843,6 +843,42 @@ code, pre {
   display: none !important;
 }
 
+/* Authentication Gate Modal Screen */
+.auth-gate-backdrop {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(17, 24, 39, 0.97) 0%, rgba(11, 17, 32, 0.99) 100%);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 9999;
+}
+
+.auth-gate-card {
+  background: rgba(30, 41, 59, 0.95);
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 420px;
+  padding: 28px 24px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65);
+  text-align: left;
+  animation: authFadeIn 0.25s ease-out;
+  box-sizing: border-box;
+}
+
+@keyframes authFadeIn {
+  from { opacity: 0; transform: translateY(-10px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.auth-gate-header {
+  text-align: center;
+}
+
 /* Modal */
 .modal-backdrop {
   position: fixed;

@@ -11,11 +11,71 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=6.5.0" />
+  <link rel="stylesheet" href="styles.css?v=6.6.0" />
   <!-- PDF.js for client-side PDF text extraction in the Research Knowledge Base -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" defer></script>
 </head>
 <body>
+  <!-- Secure Authentication Gate Modal Screen -->
+  <div id="authLoginModal" class="auth-gate-backdrop" role="dialog" aria-modal="true" aria-labelledby="authGateTitle">
+    <div class="auth-gate-card">
+      <div class="auth-gate-header">
+        <div class="brand-avatar" style="width:56px;height:56px;font-size:1.4rem;margin:0 auto 12px;border-radius:14px;box-shadow:0 8px 20px rgba(59,130,246,0.35);">SA</div>
+        <h2 id="authGateTitle" style="font-size:1.35rem;font-weight:800;color:#fff;margin-bottom:4px;">Dr. Shama Abidi</h2>
+        <p style="font-size:0.82rem;color:var(--text-muted);">Autonomous PhD Research Agent &amp; International CRM</p>
+        <div style="margin-top:10px;">
+          <span class="status-pill" style="font-size:0.72rem;background:rgba(59,130,246,0.18);color:#93c5fd;border-color:rgba(59,130,246,0.4);">
+            🔒 Password Protected Portal
+          </span>
+        </div>
+      </div>
+
+      <form id="authLoginForm" onsubmit="handlePortalLogin(event)" style="display:flex;flex-direction:column;gap:14px;margin-top:20px;">
+        <div class="form-group">
+          <label for="authUsernameInput" style="font-size:0.8rem;color:#cbd5e1;font-weight:600;">Username</label>
+          <input 
+            type="text" 
+            id="authUsernameInput" 
+            required 
+            autocomplete="username" 
+            placeholder="Enter username (Shamaabidi)" 
+            style="background:#0f172a;border:1px solid var(--border-color);color:#fff;padding:11px 14px;border-radius:8px;font-size:0.9rem;width:100%;"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="authPasswordInput" style="font-size:0.8rem;color:#cbd5e1;font-weight:600;">Password</label>
+          <input 
+            type="password" 
+            id="authPasswordInput" 
+            required 
+            autocomplete="current-password" 
+            placeholder="Enter password" 
+            style="background:#0f172a;border:1px solid var(--border-color);color:#fff;padding:11px 14px;border-radius:8px;font-size:0.9rem;width:100%;"
+          />
+        </div>
+
+        <div id="authErrorMsg" class="hidden" style="padding:9px 12px;border-radius:6px;background:rgba(244,63,94,0.15);border:1px solid rgba(244,63,94,0.35);color:#fda4af;font-size:0.82rem;line-height:1.4;">
+          ❌ Invalid username or password. Please use authorized credentials.
+        </div>
+
+        <button 
+          type="submit" 
+          id="authSubmitBtn" 
+          class="btn btn-primary" 
+          style="width:100%;padding:11px;font-size:0.92rem;font-weight:700;background:linear-gradient(135deg, #3b82f6, #2563eb);border:none;margin-top:6px;cursor:pointer;border-radius:8px;color:#fff;"
+        >
+          🚀 Unlock Dashboard
+        </button>
+      </form>
+
+      <div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--border-color);font-size:0.74rem;color:var(--text-muted);text-align:center;line-height:1.45;">
+        Protected Portal for Dr. Shama Abidi (PharmD, MPhil Pharmacy Practice)<br/>
+        Official Account: <code>shamaabidiphd@gmail.com</code>
+      </div>
+    </div>
+  </div>
+
   <!-- Mobile Top Bar -->
   <header class="mobile-topbar">
     <div class="mobile-brand">
@@ -25,10 +85,13 @@
         <div class="mobile-subtitle">Autonomous PhD Research Agent</div>
       </div>
     </div>
-    <div style="display:flex;align-items:center;gap:8px;">
-      <span class="status-pill live-pill" style="font-size:0.72rem;padding:4px 9px;">● Live Synced</span>
+    <div style="display:flex;align-items:center;gap:6px;">
+      <span class="status-pill live-pill" style="font-size:0.7rem;padding:3px 7px;">● Live</span>
+      <button class="btn btn-sm btn-secondary" onclick="handlePortalLogout()" style="padding:5px 8px;font-size:0.72rem;color:#fda4af;border-color:rgba(244,63,94,0.35);">
+        🔒 Lock
+      </button>
       <button id="mobileMenuBtn" class="mobile-menu-btn" aria-label="Toggle Navigation Menu">
-        ☰ Menu
+        ☰
       </button>
     </div>
   </header>
@@ -115,6 +178,9 @@
         <div class="footer-line"><strong>Email:</strong> shamaabidiphd@gmail.com</div>
         <div class="footer-line"><strong>WhatsApp:</strong> +92 300 2460474</div>
         <div class="footer-line" id="lastSyncTimestamp">Synced: Loading...</div>
+        <button id="sidebarLogoutBtn" class="btn btn-sm btn-secondary" onclick="handlePortalLogout()" style="margin-top:10px;width:100%;font-size:0.76rem;color:#fda4af;border-color:rgba(244,63,94,0.35);display:flex;align-items:center;justify-content:center;gap:6px;">
+          🔒 Lock / Logout
+        </button>
       </div>
     </aside>
 
@@ -798,7 +864,7 @@
     </div>
   </div>
 
-  <script type="module" src="frontend/js/index.js?v=6.5.0"></script>
-  <script src="app.js?v=6.5.0"></script>
+  <script type="module" src="frontend/js/index.js?v=6.6.0"></script>
+  <script src="app.js?v=6.6.0"></script>
 </body>
 </html>
