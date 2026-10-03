@@ -91,32 +91,32 @@ from backend.app.target_countries import (
 DISCOVERY_SEARCH_QUERIES: List[Dict[str, str]] = [
     {
         "topic": "Antimicrobial Stewardship & Carbapenem Optimization in Critical Care",
-        "eupmc_query": '("antimicrobial stewardship" OR "carbapenem" OR "meropenem") AND ("clinical pharmacy" OR "intensive care" OR "hospital" OR "renal") AND (EMAIL:* OR "electronic address" OR correspondence OR "@") AND (PUB_YEAR:[2023 TO 2026])',
+        "eupmc_query": '("antimicrobial stewardship" OR "carbapenem" OR "meropenem") AND ("clinical pharmacy" OR "intensive care" OR "hospital" OR "pharmacotherapy") AND (PUB_YEAR:[2023 TO 2026])',
         "openalex_query": "antimicrobial stewardship carbapenem clinical pharmacist intensive care",
     },
     {
         "topic": "Cardiovascular Pharmacotherapy: Calcium Channel Blockers & Beta Blockers in Angina",
-        "eupmc_query": '("cardiovascular" OR "antianginal" OR "calcium channel blocker" OR "beta blocker" OR "angina") AND ("pharmacotherapy" OR "clinical pharmacy" OR "adverse drug") AND (EMAIL:* OR "electronic address" OR correspondence OR "@") AND (PUB_YEAR:[2023 TO 2026])',
+        "eupmc_query": '("cardiovascular" OR "antianginal" OR "calcium channel blocker" OR "beta blocker" OR "angina") AND ("pharmacotherapy" OR "clinical pharmacy" OR "adverse drug") AND (PUB_YEAR:[2023 TO 2026])',
         "openalex_query": "angina pectoris calcium channel blockers beta blockers clinical outcomes",
     },
     {
         "topic": "Pharmacovigilance, Naranjo ADR Causality & High-Alert Medication Safety",
-        "eupmc_query": '("pharmacovigilance" OR "adverse drug reaction" OR "high-alert medication" OR "medication safety") AND ("hospital pharmacy" OR "clinical pharmacy") AND (EMAIL:* OR "electronic address" OR correspondence OR "@") AND (PUB_YEAR:[2023 TO 2026])',
+        "eupmc_query": '("pharmacovigilance" OR "adverse drug reaction" OR "high-alert medication" OR "medication safety") AND ("hospital pharmacy" OR "clinical pharmacy") AND (PUB_YEAR:[2023 TO 2026])',
         "openalex_query": "pharmacovigilance adverse drug reactions high alert medication safety clinical pharmacy",
     },
     {
         "topic": "Artificial Intelligence & Clinical Decision Support vs. Clinical Pharmacist Interventions",
-        "eupmc_query": '("clinical pharmacist intervention" OR "clinical decision support" OR "artificial intelligence") AND ("pharmacy" OR "prescribing" OR "medication error") AND (EMAIL:* OR "electronic address" OR correspondence OR "@") AND (PUB_YEAR:[2023 TO 2026])',
+        "eupmc_query": '("clinical pharmacist intervention" OR "clinical decision support" OR "artificial intelligence") AND ("pharmacy" OR "prescribing" OR "medication error") AND (PUB_YEAR:[2023 TO 2026])',
         "openalex_query": "artificial intelligence clinical decision support clinical pharmacist interventions",
     },
     {
         "topic": "Renal Dose Adjustment, Creatinine Clearance & Precision Pharmacotherapy",
-        "eupmc_query": '("renal dose adjustment" OR "creatinine clearance" OR "precision pharmacotherapy") AND ("pharmacist" OR "antimicrobial" OR "hospitalized") AND (EMAIL:* OR "electronic address" OR correspondence OR "@") AND (PUB_YEAR:[2023 TO 2026])',
+        "eupmc_query": '("renal dose adjustment" OR "creatinine clearance" OR "precision pharmacotherapy") AND ("pharmacist" OR "antimicrobial" OR "hospitalized") AND (PUB_YEAR:[2023 TO 2026])',
         "openalex_query": "renal dose adjustment creatinine clearance clinical pharmacist hospital",
     },
     {
         "topic": "Pharmacoepidemiology, Polypharmacy & Real-World Medication Outcomes",
-        "eupmc_query": '("pharmacoepidemiology" OR "deprescribing" OR "polypharmacy") AND ("clinical pharmacy" OR "cardiovascular" OR "antibiotic") AND (EMAIL:* OR "electronic address" OR correspondence OR "@") AND (PUB_YEAR:[2023 TO 2026])',
+        "eupmc_query": '("pharmacoepidemiology" OR "deprescribing" OR "polypharmacy") AND ("clinical pharmacy" OR "cardiovascular" OR "antibiotic") AND (PUB_YEAR:[2023 TO 2026])',
         "openalex_query": "pharmacoepidemiology polypharmacy clinical pharmacy outcomes",
     },
 ]
@@ -595,19 +595,23 @@ def run_job_research_discovery(target_min: int = 25, target_max: int = 50) -> Di
     batch_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     now = utc_now_iso()
 
+    inserted_count = 0
+    skipped_duplicates = 0
     raw_discovered: List[Dict[str, Any]] = []
-    for idx, q_item in enumerate(DISCOVERY_SEARCH_QUERIES):
-        page_to_fetch = ((cursor_page - 1 + idx) % 500) + 1
-        eupmc_batch = fetch_candidates_from_europe_pmc(
-            q_item["eupmc_query"],
-            q_item["topic"],
-            page=page_to_fetch,
-            page_size=50,
-        )
-        raw_discovered.extend(eupmc_batch)
-        time.sleep(0.08)
+    current_page = cursor_page
+    pages_attempted = 0
 
-        if len(raw_discovered) < target_max:
+    while len(raw_discovered) < target_max * 4 and pages_attempted < 6:
+        for idx, q_item in enumerate(DISCOVERY_SEARCH_QUERIES):
+            page_to_fetch = ((current_page - 1 + idx) % 500) + 1
+            eupmc_batch = fetch_candidates_from_europe_pmc(
+                q_item["eupmc_query"],
+                q_item["topic"],
+                page=page_to_fetch,
+                page_size=50,
+            )
+            raw_discovered.extend(eupmc_batch)
+
             oa_batch = fetch_candidates_from_openalex(
                 q_item["openalex_query"],
                 q_item["topic"],
@@ -615,10 +619,8 @@ def run_job_research_discovery(target_min: int = 25, target_max: int = 50) -> Di
                 per_page=30,
             )
             raw_discovered.extend(oa_batch)
-            time.sleep(0.08)
-
-    inserted_count = 0
-    skipped_duplicates = 0
+        current_page += len(DISCOVERY_SEARCH_QUERIES)
+        pages_attempted += 1
 
     # Sort discovered candidates to prioritize professors with published verified emails
     raw_discovered.sort(
@@ -823,8 +825,8 @@ def run_job_research_discovery(target_min: int = 25, target_max: int = 50) -> Di
     conn.commit()
     conn.close()
 
-    # Advance discovery pagination cursor for next daily batch
-    next_cursor = (cursor_page % 500) + 1
+    # Advance discovery pagination cursor for next batch by actual pages scanned
+    next_cursor = (current_page % 500) + 1
     update_setting("discovery_cursor_page", str(next_cursor))
 
     summary_msg = (
