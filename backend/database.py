@@ -264,7 +264,7 @@ def update_setting(key: str, value: str, description: Optional[str] = None) -> N
     conn.close()
 
 
-def export_production_state_snapshot() -> Dict[str, Any]:
+def export_production_state_snapshot(service_health_matrix: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
     """
     Serializes the entire 19-table relational database into `data/production_state.json`
     so static hosts, Netlify Functions, and mobile/desktop browsers always render
@@ -390,7 +390,8 @@ def export_production_state_snapshot() -> Dict[str, Any]:
     # Fetch global PhD opportunities and target countries metadata
     phd_opportunities_list = []
     try:
-        from backend.app.db_session import SessionLocal
+        from backend.app.db_session import SessionLocal, init_orm_schema
+        init_orm_schema()
         from backend.app.models import PhDOpportunity
         with SessionLocal() as db_session:
             opp_rows = db_session.query(PhDOpportunity).order_by(PhDOpportunity.applicant_match_score.desc()).all()
@@ -490,10 +491,11 @@ def export_production_state_snapshot() -> Dict[str, Any]:
         "activity_logs": logs,
         "system_settings": settings_dict,
         "system_settings_list": settings_rows,
+        "service_health_matrix": service_health_matrix or [],
     }
 
     DATA_DIR.mkdir(parents=True, exist_ok=True)
-    with open(STATE_JSON_PATH, "w", encoding="utf-8") as f:
+    with open(str(STATE_JSON_PATH), "w", encoding="utf-8") as f:
         json.dump(snapshot, f, indent=2, ensure_ascii=False)
 
     return snapshot

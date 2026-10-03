@@ -119,6 +119,76 @@ DISCOVERY_SEARCH_QUERIES: List[Dict[str, str]] = [
         "eupmc_query": '("pharmacoepidemiology" OR "deprescribing" OR "polypharmacy") AND ("clinical pharmacy" OR "cardiovascular" OR "antibiotic") AND (PUB_YEAR:[2023 TO 2026])',
         "openalex_query": "pharmacoepidemiology polypharmacy clinical pharmacy outcomes",
     },
+    {
+        "topic": "Clinical Pharmacokinetics & Therapeutic Drug Monitoring in ICU",
+        "eupmc_query": '("therapeutic drug monitoring" OR "vancomycin" OR "pharmacokinetics" OR "trough concentration") AND ("clinical pharmacy" OR "critical care") AND (PUB_YEAR:[2023 TO 2026])',
+        "openalex_query": "therapeutic drug monitoring clinical pharmacokinetics hospital pharmacist",
+    },
+    {
+        "topic": "Oncology Clinical Pharmacy, Chemotherapy Dosing & Supportive Care",
+        "eupmc_query": '("oncology pharmacy" OR "chemotherapy-induced" OR "cancer pharmacotherapy") AND ("clinical pharmacist" OR "hospital") AND (PUB_YEAR:[2023 TO 2026])',
+        "openalex_query": "oncology clinical pharmacist chemotherapy medication safety",
+    },
+    {
+        "topic": "Medication Reconciliation & Transition of Care Outcomes",
+        "eupmc_query": '("medication reconciliation" OR "transition of care" OR "discharge medication") AND ("clinical pharmacist" OR "hospital pharmacy") AND (PUB_YEAR:[2023 TO 2026])',
+        "openalex_query": "medication reconciliation clinical pharmacist hospital discharge",
+    },
+    {
+        "topic": "Sepsis Resuscitation & Inotropic Pharmacotherapy in Critical Care",
+        "eupmc_query": '("septic shock" OR "vasopressor" OR "hemodynamic") AND ("critical care pharmacy" OR "clinical pharmacist" OR "ICU") AND (PUB_YEAR:[2023 TO 2026])',
+        "openalex_query": "sepsis septic shock clinical pharmacy intensive care pharmacotherapy",
+    },
+    {
+        "topic": "Direct Oral Anticoagulants (DOAC) & Bleeding Risk Management",
+        "eupmc_query": '("direct oral anticoagulant" OR "apixaban" OR "rivaroxaban" OR "anticoagulation") AND ("clinical pharmacy" OR "pharmacotherapy") AND (PUB_YEAR:[2023 TO 2026])',
+        "openalex_query": "anticoagulation stewardship clinical pharmacist DOAC safety",
+    },
+    {
+        "topic": "Inpatient Diabetes Management & Glycemic Control Pharmacotherapy",
+        "eupmc_query": '("glycemic control" OR "insulin stewardship" OR "inpatient diabetes") AND ("clinical pharmacy" OR "hospital") AND (PUB_YEAR:[2023 TO 2026])',
+        "openalex_query": "inpatient diabetes insulin safety clinical pharmacist hospital",
+    },
+    {
+        "topic": "Pediatric & Neonatal Clinical Pharmacotherapy",
+        "eupmc_query": '("pediatric pharmacotherapy" OR "neonatal intensive care" OR "pediatric clinical pharmacy") AND ("off-label" OR "dosing") AND (PUB_YEAR:[2023 TO 2026])',
+        "openalex_query": "pediatric clinical pharmacy neonatal medication safety dosing",
+    },
+    {
+        "topic": "Pharmacogenomics & Precision Dosing in Hospitalized Patients",
+        "eupmc_query": '("pharmacogenomics" OR "precision medicine" OR "CYP2C19" OR "CYP2D6") AND ("clinical pharmacy" OR "pharmacist-led") AND (PUB_YEAR:[2023 TO 2026])',
+        "openalex_query": "pharmacogenomics precision medicine clinical pharmacist implementation",
+    },
+    {
+        "topic": "Multidrug-Resistant Gram-Negative Infections & Novel Antibiotics",
+        "eupmc_query": '("multidrug-resistant" OR "colistin" OR "ceftazidime-avibactam" OR "carbapenem-resistant") AND ("clinical pharmacy" OR "infectious disease") AND (PUB_YEAR:[2023 TO 2026])',
+        "openalex_query": "carbapenem resistant gram negative clinical pharmacist antimicrobial stewardship",
+    },
+    {
+        "topic": "Psychiatric Pharmacotherapy & Psychotropic Medication Safety",
+        "eupmc_query": '("psychotropic" OR "antipsychotic" OR "antidepressant") AND ("clinical pharmacy" OR "adverse drug reaction" OR "pharmacotherapy") AND (PUB_YEAR:[2023 TO 2026])',
+        "openalex_query": "psychiatric clinical pharmacy psychotropic adverse drug reactions",
+    },
+    {
+        "topic": "Safe Medication Administration & Health Systems Pharmacy Administration",
+        "eupmc_query": '("medication error" OR "smart pump" OR "bar-code medication") AND ("clinical pharmacy" OR "patient safety") AND (PUB_YEAR:[2023 TO 2026])',
+        "openalex_query": "medication safety clinical pharmacist hospital prescribing error",
+    },
+    {
+        "topic": "Cardiovascular Secondary Prevention & Heart Failure Guideline-Directed Therapy",
+        "eupmc_query": '("heart failure" OR "guideline-directed medical therapy" OR "SGLT2 inhibitor") AND ("clinical pharmacy" OR "pharmacotherapy") AND (PUB_YEAR:[2023 TO 2026])',
+        "openalex_query": "heart failure guideline directed medical therapy clinical pharmacist",
+    },
+    {
+        "topic": "Respiratory Pharmacotherapy: Severe Asthma & COPD Inhalation Optimization",
+        "eupmc_query": '("COPD" OR "asthma" OR "inhaler technique" OR "biologics") AND ("clinical pharmacy" OR "pharmacotherapy") AND (PUB_YEAR:[2023 TO 2026])',
+        "openalex_query": "asthma COPD inhaler adherence clinical pharmacist outcomes",
+    },
+    {
+        "topic": "Critical Care Sedation, Delirium & Pain Management",
+        "eupmc_query": '("delirium" OR "ICU sedation" OR "analgesia" OR "dexmedetomidine") AND ("clinical pharmacy" OR "intensive care") AND (PUB_YEAR:[2023 TO 2026])',
+        "openalex_query": "ICU delirium sedation analgesia clinical pharmacist critical care",
+    },
 ]
 
 # Country mapping for parsing affiliation strings accurately
@@ -355,19 +425,20 @@ def derive_academic_profile_and_email(
 def fetch_candidates_from_europe_pmc(
     query_str: str,
     topic_label: str,
-    page: int = 1,
-    page_size: int = 25,
-) -> List[Dict[str, Any]]:
+    cursor_mark: str = "*",
+    page_size: int = 50,
+) -> Tuple[List[Dict[str, Any]], str]:
     """
-    Queries the free Europe PMC REST API (which indexes PubMed + PMC with full author
+    Queries the free Europe PMC REST API with cursorMark pagination (which indexes PubMed + PMC with full author
     affiliations, ORCIDs, DOIs, abstracts, and grant/funder metadata).
+    Returns (candidates, next_cursor_mark).
     """
     params = urllib.parse.urlencode(
         {
             "query": query_str,
             "resultType": "core",
             "pageSize": page_size,
-            "page": page,
+            "cursorMark": cursor_mark or "*",
             "format": "json",
         }
     )
@@ -377,11 +448,13 @@ def fetch_candidates_from_europe_pmc(
         headers={"User-Agent": "ShamaAbidiPhDAgent/4.0 (mailto:shamaabidiphd@gmail.com)"},
     )
     candidates: List[Dict[str, Any]] = []
+    next_cursor = cursor_mark or "*"
     try:
-        with urllib.request.urlopen(req, timeout=20) as resp:
+        with urllib.request.urlopen(req, timeout=25) as resp:
             data = json.loads(resp.read().decode("utf-8"))
+        next_cursor = data.get("nextCursorMark", cursor_mark or "*")
     except Exception:
-        return candidates
+        return candidates, cursor_mark or "*"
 
     results = data.get("resultList", {}).get("result", [])
     for work in results:
@@ -469,7 +542,7 @@ def fetch_candidates_from_europe_pmc(
                     "discovery_source": "Europe PMC / PubMed REST API",
                 }
             )
-    return candidates
+    return candidates, next_cursor
 
 
 def fetch_candidates_from_openalex(
@@ -591,254 +664,253 @@ def run_job_research_discovery(target_min: int = 25, target_max: int = 50) -> Di
     update_job_state(job_id, "RUNNING")
 
     conn = get_connection()
-    cursor_page = int(get_setting("discovery_cursor_page", "1") or "1")
+    raw_cursor_map = get_setting("discovery_epmc_cursors", "{}")
+    try:
+        cursor_map: Dict[str, str] = json.loads(raw_cursor_map) if raw_cursor_map else {}
+    except Exception:
+        cursor_map = {}
+
+    query_offset = int(get_setting("discovery_query_offset", "0") or "0")
+    total_queries = len(DISCOVERY_SEARCH_QUERIES)
+
     batch_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     now = utc_now_iso()
 
     inserted_count = 0
     skipped_duplicates = 0
-    raw_discovered: List[Dict[str, Any]] = []
-    current_page = cursor_page
-    pages_attempted = 0
+    total_raw_scanned = 0
 
-    while len(raw_discovered) < target_max * 4 and pages_attempted < 6:
-        for idx, q_item in enumerate(DISCOVERY_SEARCH_QUERIES):
-            page_to_fetch = ((current_page - 1 + idx) % 500) + 1
-            eupmc_batch = fetch_candidates_from_europe_pmc(
-                q_item["eupmc_query"],
-                q_item["topic"],
-                page=page_to_fetch,
-                page_size=50,
-            )
-            raw_discovered.extend(eupmc_batch)
+    queries_scanned = 0
+    while inserted_count < target_max and queries_scanned < total_queries * 3:
+        q_idx = (query_offset + queries_scanned) % total_queries
+        q_item = DISCOVERY_SEARCH_QUERIES[q_idx]
+        current_cursor = cursor_map.get(str(q_idx), "*")
 
-            oa_batch = fetch_candidates_from_openalex(
-                q_item["openalex_query"],
-                q_item["topic"],
-                page=page_to_fetch,
-                per_page=30,
-            )
-            raw_discovered.extend(oa_batch)
-        current_page += len(DISCOVERY_SEARCH_QUERIES)
-        pages_attempted += 1
-
-    # Sort discovered candidates to prioritize professors with published verified emails
-    raw_discovered.sort(
-        key=lambda c: (1 if c.get("official_email") and "@" in c["official_email"] else 0),
-        reverse=True,
-    )
-
-    for cand in raw_discovered:
-        if inserted_count >= target_max:
-            break
-        if cand["country_code"] == "PK" or "pakistan" in cand["country"].lower():
-            continue
-        if not cand.get("official_email") or "@" not in cand["official_email"]:
-            continue
-
-        if is_professor_already_known(
-            conn,
-            full_name=cand["full_name"],
-            university_name=cand["university_name"],
-            orcid_id=cand["orcid_id"],
-            official_email=cand["official_email"],
-            profile_url=cand["profile_url"],
-        ):
-            skipped_duplicates += 1
-            continue
-
-        # Ensure university record exists
-        uni_id = make_id("uni", cand["university_name"].lower())
-        conn.execute(
-            """
-            INSERT OR IGNORE INTO universities (
-                id, name, country, country_code, city, website_url,
-                ror_id, openalex_id, is_outside_pakistan, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
-            """,
-            (
-                uni_id,
-                cand["university_name"],
-                cand["country"],
-                cand["country_code"],
-                "",
-                cand["profile_url"],
-                "",
-                "",
-                now,
-            ),
+        eupmc_batch, next_cursor = fetch_candidates_from_europe_pmc(
+            q_item["eupmc_query"],
+            q_item["topic"],
+            cursor_mark=current_cursor,
+            page_size=50,
         )
+        total_raw_scanned += len(eupmc_batch)
+        cursor_map[str(q_idx)] = next_cursor if (next_cursor and next_cursor != current_cursor) else "*"
 
-        norm_key = normalize_name_uni(cand["full_name"], cand["university_name"])
-        prof_id = make_id("prof", norm_key)
+        for cand in eupmc_batch:
+            if inserted_count >= target_max:
+                break
+            if cand["country_code"] == "PK" or "pakistan" in cand["country"].lower():
+                continue
+            if not cand.get("official_email") or "@" not in cand["official_email"]:
+                continue
 
-        conn.execute(
-            """
-            INSERT OR IGNORE INTO professors (
-                id, full_name, normalized_name_uni_key, orcid_id, openalex_author_id,
-                university_id, university_name, department, country, country_code,
-                official_email, email_source_type, profile_url, research_areas_json,
-                recent_paper_title, recent_paper_year, recent_paper_doi,
-                why_matches_shama, matched_shama_doc_id, matched_shama_Work_title,
-                relevance_score, funding_status, verification_status, crm_state,
-                discovery_source, discovered_batch_date, discovered_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, '', 0.0, 'NO EVIDENCE FOUND', 'NEEDS REVIEW', 'DISCOVERED', ?, ?, ?, ?)
-            """,
-            (
-                prof_id,
-                cand["full_name"],
-                norm_key,
-                cand["orcid_id"],
-                cand["openalex_author_id"],
-                uni_id,
-                cand["university_name"],
-                cand["department"],
-                cand["country"],
-                cand["country_code"],
-                cand["official_email"],
-                cand["email_source_type"],
-                cand["profile_url"],
-                json.dumps([cand["research_topic"], "Clinical Pharmacy & Pharmacotherapy"], ensure_ascii=False),
-                cand["paper_title"],
-                cand["paper_year"],
-                cand["paper_doi"],
-                "Pending semantic & methodology alignment analysis.",
-                cand["discovery_source"],
-                batch_date,
-                now,
-                now,
-            ),
-        )
+            if is_professor_already_known(
+                conn,
+                full_name=cand["full_name"],
+                university_name=cand["university_name"],
+                orcid_id=cand["orcid_id"],
+                official_email=cand["official_email"],
+                profile_url=cand["profile_url"],
+            ):
+                skipped_duplicates += 1
+                continue
 
-        # Insert professor's publication record
-        pub_id = make_id("ppub", f"{prof_id}_{cand['paper_title'][:50]}")
-        src_url = (
-            f"https://doi.org/{cand['paper_doi']}"
-            if cand["paper_doi"]
-            else (f"https://pubmed.ncbi.nlm.nih.gov/{cand['paper_pmid']}/" if cand["paper_pmid"] else cand["profile_url"])
-        )
-        conn.execute(
-            """
-            INSERT OR REPLACE INTO professor_publications (
-                id, professor_id, title, publication_year, journal, doi, pmid,
-                source_url, abstract_snippet, shared_keywords_json, semantic_similarity, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, '[]', 0.0, ?)
-            """,
-            (
-                pub_id,
-                prof_id,
-                cand["paper_title"],
-                cand["paper_year"],
-                cand["paper_journal"],
-                cand["paper_doi"],
-                cand["paper_pmid"],
-                src_url,
-                cand["paper_abstract"],
-                now,
-            ),
-        )
-
-        # Store email record if public email was found in paper metadata
-        if cand["official_email"]:
-            em_id = make_id("em", f"{prof_id}_{cand['official_email']}")
-            domain = cand["official_email"].split("@")[-1] if "@" in cand["official_email"] else ""
+            # Ensure university record exists
+            uni_id = make_id("uni", cand["university_name"].lower())
             conn.execute(
                 """
-                INSERT OR REPLACE INTO email_addresses (
-                    id, professor_id, email, source_type, is_verified_public, domain, created_at
-                ) VALUES (?, ?, ?, ?, 1, ?, ?)
+                INSERT OR IGNORE INTO universities (
+                    id, name, country, country_code, city, website_url,
+                    ror_id, openalex_id, is_outside_pakistan, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
                 """,
-                (em_id, prof_id, cand["official_email"], cand["email_source_type"], domain, now),
+                (
+                    uni_id,
+                    cand["university_name"],
+                    cand["country"],
+                    cand["country_code"],
+                    "",
+                    cand["profile_url"],
+                    "",
+                    "",
+                    now,
+                ),
             )
 
-        # Temporarily store raw grants in funding_evidence if present
-        grants = cand.get("grants") or []
-        f_id = make_id("fund", prof_id)
-        if grants:
-            g0 = grants[0]
-            agency = g0.get("agency", "")
-            gid = g0.get("grant_id", "")
-            f_status = "VERIFIED" if gid else "PARTIALLY VERIFIED"
-            ev_type = "ACTIVE_GRANT_RECORD" if gid else "FUNDED_PAPER_ACKNOWLEDGEMENT"
-            ev_summary = (
-                f"Published research explicitly supported by {agency}"
-                + (f" (Grant/Award ID: {gid})" if gid else "")
-                + f" in '{cand['paper_title'][:90]}'."
+            norm_key = normalize_name_uni(cand["full_name"], cand["university_name"])
+            prof_id = make_id("prof", norm_key)
+
+            conn.execute(
+                """
+                INSERT OR IGNORE INTO professors (
+                    id, full_name, normalized_name_uni_key, orcid_id, openalex_author_id,
+                    university_id, university_name, department, country, country_code,
+                    official_email, email_source_type, profile_url, research_areas_json,
+                    recent_paper_title, recent_paper_year, recent_paper_doi,
+                    why_matches_shama, matched_shama_doc_id, matched_shama_Work_title,
+                    relevance_score, funding_status, verification_status, crm_state,
+                    discovery_source, discovered_batch_date, discovered_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, '', 0.0, 'NO EVIDENCE FOUND', 'NEEDS REVIEW', 'DISCOVERED', ?, ?, ?, ?)
+                """,
+                (
+                    prof_id,
+                    cand["full_name"],
+                    norm_key,
+                    cand["orcid_id"],
+                    cand["openalex_author_id"],
+                    uni_id,
+                    cand["university_name"],
+                    cand["department"],
+                    cand["country"],
+                    cand["country_code"],
+                    cand["official_email"],
+                    cand["email_source_type"],
+                    cand["profile_url"],
+                    json.dumps([cand["research_topic"], "Clinical Pharmacy & Pharmacotherapy"], ensure_ascii=False),
+                    cand["paper_title"],
+                    cand["paper_year"],
+                    cand["paper_doi"],
+                    "Pending semantic & methodology alignment analysis.",
+                    cand["discovery_source"],
+                    batch_date,
+                    now,
+                    now,
+                ),
             )
-        else:
-            f_status = "NO EVIDENCE FOUND"
-            agency = ""
-            gid = ""
-            ev_type = "NONE"
-            ev_summary = "No explicit grant award ID listed in paper metadata; check university doctoral scholarship portal."
 
-        conn.execute(
-            """
-            INSERT OR REPLACE INTO funding_evidence (
-                id, professor_id, funding_status, grant_agency, grant_id_or_program,
-                evidence_type, evidence_summary, source_url, verified_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (f_id, prof_id, f_status, agency, gid, ev_type, ev_summary, src_url, now),
-        )
+            # Insert professor's publication record
+            pub_id = make_id("ppub", f"{prof_id}_{cand['paper_title'][:50]}")
+            src_url = (
+                f"https://doi.org/{cand['paper_doi']}"
+                if cand["paper_doi"]
+                else (f"https://pubmed.ncbi.nlm.nih.gov/{cand['paper_pmid']}/" if cand["paper_pmid"] else cand["profile_url"])
+            )
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO professor_publications (
+                    id, professor_id, title, publication_year, journal, doi, pmid,
+                    source_url, abstract_snippet, shared_keywords_json, semantic_similarity, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, '[]', 0.0, ?)
+                """,
+                (
+                    pub_id,
+                    prof_id,
+                    cand["paper_title"],
+                    cand["paper_year"],
+                    cand["paper_journal"],
+                    cand["paper_doi"],
+                    cand["paper_pmid"],
+                    src_url,
+                    cand["paper_abstract"],
+                    now,
+                ),
+            )
 
-        # Ingest candidate into global phd_opportunities table as well
-        try:
-            with SessionLocal() as db_session:
-                ev_str = (
-                    f"Official published research backed by {agency} (Award ID: {gid}). "
-                    f"Publication: {cand['paper_title']} ({cand['paper_year']}). Abstract: {cand.get('paper_abstract', '')[:300]}"
-                    if gid else
-                    f"International peer-reviewed publication in {cand['paper_journal']} ({cand['paper_year']}): '{cand['paper_title']}'."
+            # Store email record if public email was found in paper metadata
+            if cand["official_email"]:
+                em_id = make_id("em", f"{prof_id}_{cand['official_email']}")
+                domain = cand["official_email"].split("@")[-1] if "@" in cand["official_email"] else ""
+                conn.execute(
+                    """
+                    INSERT OR REPLACE INTO email_addresses (
+                        id, professor_id, email, source_type, is_verified_public, domain, created_at
+                    ) VALUES (?, ?, ?, ?, 1, ?, ?)
+                    """,
+                    (em_id, prof_id, cand["official_email"], cand["email_source_type"], domain, now),
                 )
-                upsert_phd_opportunity(
-                    db=db_session,
-                    country=cand["country"],
-                    university_name=cand["university_name"],
-                    phd_programme=f"PhD in {cand.get('research_topic', 'Clinical Pharmacy & Outcomes')}",
-                    research_field=cand.get("research_topic", "Clinical Pharmacy & Pharmacotherapy"),
-                    supervisor_name=cand["full_name"],
-                    supervisor_profile_url=cand.get("profile_url", ""),
-                    supervisor_email=cand.get("official_email", ""),
-                    funding_source=agency if agency else f"{cand['university_name']} Research Group",
-                    confirmed_funding_amount=f"Grant ID {gid}" if gid else "Needs Review",
-                    stipend_amount="Standard Doctoral Stipend" if gid else "Unknown",
-                    stipend_duration_months="36-48 months" if gid else "Unknown",
-                    tuition_coverage_hint="YES" if gid else "UNKNOWN",
-                    international_eligibility="ELIGIBLE",
-                    english_requirements="IELTS_TOEFL_REQUIRED",
-                    english_exemption_details="Medium of Instruction certificate accepted subject to official faculty review.",
-                    deadline_date="OPEN_ROLLING",
-                    intended_intake="Fall 2026 / Spring 2027",
-                    official_application_url=cand.get("profile_url", ""),
-                    official_funding_url=src_url,
-                    required_qualifications="PharmD / MPhil in Pharmacy or Clinical Pharmacology",
-                    required_documents="CV, Academic Transcripts, Research Concept Note, 2 References",
-                    evidence_text=ev_str,
-                    actor_email="SYSTEM_AUTONOMOUS_PIPELINE",
-                )
-        except Exception:
-            pass
 
-        inserted_count += 1
+            # Temporarily store raw grants in funding_evidence if present
+            grants = cand.get("grants") or []
+            f_id = make_id("fund", prof_id)
+            if grants:
+                g0 = grants[0]
+                agency = g0.get("agency", "")
+                gid = g0.get("grant_id", "")
+                f_status = "VERIFIED" if gid else "PARTIALLY VERIFIED"
+                ev_type = "ACTIVE_GRANT_RECORD" if gid else "FUNDED_PAPER_ACKNOWLEDGEMENT"
+                ev_summary = (
+                    f"Published research explicitly supported by {agency}"
+                    + (f" (Grant/Award ID: {gid})" if gid else "")
+                    + f" in '{cand['paper_title'][:90]}'."
+                )
+            else:
+                f_status = "NO EVIDENCE FOUND"
+                agency = ""
+                gid = ""
+                ev_type = "NONE"
+                ev_summary = "No explicit grant award ID listed in paper metadata; check university doctoral scholarship portal."
+
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO funding_evidence (
+                    id, professor_id, funding_status, grant_agency, grant_id_or_program,
+                    evidence_type, evidence_summary, source_url, verified_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (f_id, prof_id, f_status, agency, gid, ev_type, ev_summary, src_url, now),
+            )
+
+            # Ingest candidate into global phd_opportunities table as well
+            try:
+                with SessionLocal() as db_session:
+                    ev_str = (
+                        f"Official published research backed by {agency} (Award ID: {gid}). "
+                        f"Publication: {cand['paper_title']} ({cand['paper_year']}). Abstract: {cand.get('paper_abstract', '')[:300]}"
+                        if gid else
+                        f"International peer-reviewed publication in {cand['paper_journal']} ({cand['paper_year']}): '{cand['paper_title']}'."
+                    )
+                    upsert_phd_opportunity(
+                        db=db_session,
+                        country=cand["country"],
+                        university_name=cand["university_name"],
+                        phd_programme=f"PhD in {cand.get('research_topic', 'Clinical Pharmacy & Outcomes')}",
+                        research_field=cand.get("research_topic", "Clinical Pharmacy & Pharmacotherapy"),
+                        supervisor_name=cand["full_name"],
+                        supervisor_profile_url=cand.get("profile_url", ""),
+                        supervisor_email=cand.get("official_email", ""),
+                        funding_source=agency if agency else f"{cand['university_name']} Research Group",
+                        confirmed_funding_amount=f"Grant ID {gid}" if gid else "Needs Review",
+                        stipend_amount="Standard Doctoral Stipend" if gid else "Unknown",
+                        stipend_duration_months="36-48 months" if gid else "Unknown",
+                        tuition_coverage_hint="YES" if gid else "UNKNOWN",
+                        international_eligibility="ELIGIBLE",
+                        english_requirements="IELTS_TOEFL_REQUIRED",
+                        english_exemption_details="Medium of Instruction certificate accepted subject to official faculty review.",
+                        deadline_date="OPEN_ROLLING",
+                        intended_intake="Fall 2026 / Spring 2027",
+                        official_application_url=cand.get("profile_url", ""),
+                        official_funding_url=src_url,
+                        required_qualifications="PharmD / MPhil in Pharmacy or Clinical Pharmacology",
+                        required_documents="CV, Academic Transcripts, Research Concept Note, 2 References",
+                        evidence_text=ev_str,
+                        actor_email="SYSTEM_AUTONOMOUS_PIPELINE",
+                    )
+            except Exception:
+                pass
+
+            inserted_count += 1
+
+        queries_scanned += 1
+        if inserted_count >= target_max:
+            break
 
     conn.commit()
     conn.close()
 
-    # Advance discovery pagination cursor for next batch by actual pages scanned
-    next_cursor = (current_page % 500) + 1
-    update_setting("discovery_cursor_page", str(next_cursor))
+    # Save updated cursor map & advance query offset
+    new_offset = (query_offset + queries_scanned) % total_queries
+    update_setting("discovery_query_offset", str(new_offset))
+    update_setting("discovery_epmc_cursors", json.dumps(cursor_map))
 
     summary_msg = (
         f"Discovered {inserted_count} new international professors outside Pakistan "
-        f"(filtered {skipped_duplicates} duplicates across {len(raw_discovered)} raw API records)."
+        f"(filtered {skipped_duplicates} duplicates across {total_raw_scanned} raw API records)."
     )
     log_activity(
         event_type="DAILY_DISCOVERY_COMPLETED",
         module_name="Research Discovery Engine",
         actor="SCHEDULED_CLOUD_WORKER",
         summary=summary_msg,
-        details={"new_professors": inserted_count, "duplicates_skipped": skipped_duplicates, "next_cursor_page": next_cursor},
+        details={"new_professors": inserted_count, "duplicates_skipped": skipped_duplicates, "next_query_offset": new_offset},
     )
     update_job_state(job_id, "COMPLETED", items_processed=inserted_count, execution_summary=summary_msg)
     return {"new_professors": inserted_count, "duplicates_skipped": skipped_duplicates}
@@ -1625,10 +1697,7 @@ def run_all_scheduled_jobs() -> Dict[str, Any]:
     fl_res = run_job_followup_detection()
     health_res = run_job_system_health_check()
 
-    snapshot = export_production_state_snapshot()
-    snapshot["service_health_matrix"] = health_res["services"]
-    with open(os.path.join(os.path.dirname(__file__), "..", "data", "production_state.json"), "w", encoding="utf-8") as f:
-        json.dump(snapshot, f, indent=2, ensure_ascii=False)
+    snapshot = export_production_state_snapshot(service_health_matrix=health_res.get("services", []))
 
     return {
         "knowledge_base": kb_res,
