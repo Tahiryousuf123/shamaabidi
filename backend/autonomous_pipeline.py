@@ -266,6 +266,25 @@ def get_target_country_patterns() -> List[Tuple[str, str, str]]:
     return sorted_pats
 
 
+def compute_next_cron_run() -> str:
+    """
+    Returns ISO 8601 string of next upcoming scheduled batch run
+    out of the 4 daily slots: 03:00, 09:00, 15:00, 21:00 UTC (08:00, 14:00, 20:00, 02:00 PKT).
+    """
+    now = datetime.now(timezone.utc)
+    target_hours = [3, 9, 15, 21]
+    candidates = []
+    for day_offset in [0, 1]:
+        d = now.date() + timedelta(days=day_offset)
+        for h in target_hours:
+            dt = datetime(d.year, d.month, d.day, h, 0, 0, tzinfo=timezone.utc)
+            if dt > now:
+                candidates.append(dt)
+    if candidates:
+        return sorted(candidates)[0].strftime("%Y-%m-%dT%H:%M:%SZ")
+    return (now + timedelta(hours=6)).strftime("%Y-%m-%dT%H:00:00Z")
+
+
 def update_job_state(
     job_id: str,
     status: str,
@@ -276,7 +295,7 @@ def update_job_state(
 ) -> None:
     conn = get_connection()
     now = utc_now_iso()
-    next_run = (datetime.now(timezone.utc) + timedelta(hours=24)).strftime("%Y-%m-%dT03:00:00Z")
+    next_run = compute_next_cron_run()
     if status == "RUNNING":
         conn.execute(
             """
@@ -1712,13 +1731,74 @@ def run_all_scheduled_jobs() -> Dict[str, Any]:
     }
 
 
+def reset_batch_for_next_scheduled_run() -> Dict[str, Any]:
+    """
+    Resets the discovery cursor offset to 0 and primes all automation jobs
+    so the dashboard clearly reflects that the system is ready for the upcoming
+    scheduled batch (e.g., 08:00 PM PKT).
+    """
+    init_database()
+    conn = get_connection()
+    next_run = compute_next_cron_run()
+
+    # Reset discovery cursor pointers so next batch begins completely fresh
+    update_setting("discovery_query_offset", "0")
+    update_setting("discovery_epmc_cursors", "{}")
+
+    # Update all 7 jobs to SCHEDULED status pointing to the next slot
+    job_ids = [
+        "job_research_discovery",
+        "job_professor_matching",
+        "job_funding_verification",
+        "job_email_draft_generation",
+        "job_gmail_reply_monitoring",
+        "job_followup_detection",
+        "job_system_health_check",
+    ]
+    for jid in job_ids:
+        conn.execute(
+            """
+            UPDATE automation_jobs
+            SET status = 'IDLE',
+                next_scheduled_run = ?,
+                execution_summary = 'Batch reset & primed: Scheduled to trigger autonomously at 08:00 PM PKT.'
+            WHERE job_id = ?
+            """,
+            (next_run, jid),
+        )
+    conn.commit()
+
+    log_activity(
+        event_type="BATCH_CYCLE_RESET",
+        module_name="Autonomous Scheduler",
+        actor="SHAMA_ABIDI_HUMAN_ACTION",
+        summary="Autonomous batch cycle reset and primed. Next cloud discovery scheduled for 08:00 PM PKT.",
+        details={"next_scheduled_run": next_run, "scheduled_slot": "08:00 PM PKT"},
+        conn=conn,
+    )
+    conn.close()
+
+    health_res = run_job_system_health_check()
+    snapshot = export_production_state_snapshot(service_health_matrix=health_res.get("services", []))
+    return {
+        "status": "BATCH_RESET_SUCCESS",
+        "next_scheduled_run": next_run,
+        "active_professors": len(snapshot.get("professors", [])),
+        "scheduled_time_pkt": "08:00 PM PKT",
+    }
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Shama Abidi Autonomous AI Research Agent Batch Runner")
     parser.add_argument("--run-all-jobs", action="store_true", help="Run all 7 scheduled jobs end-to-end")
+    parser.add_argument("--reset-batch", action="store_true", help="Reset batch state and prime scheduler for 8 PM PKT")
     parser.add_argument("--job", type=str, default="", help="Run a specific job by ID")
     args = parser.parse_args()
 
-    if args.job == "job_research_discovery":
+    if args.reset_batch:
+        res = reset_batch_for_next_scheduled_run()
+        print(json.dumps(res, indent=2))
+    elif args.job == "job_research_discovery":
         init_database()
         res = run_job_research_discovery()
         export_production_state_snapshot()

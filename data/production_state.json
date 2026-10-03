@@ -1,6 +1,6 @@
 {
   "schema_version": "4.0.0-production",
-  "generated_at": "2026-10-03T14:25:35Z",
+  "generated_at": "2026-10-03T14:33:59Z",
   "database_engine": "SQLite / PostgreSQL 28-Table Production Relational Schema",
   "dashboard_kpis": {
     "new_candidates": 258,
@@ -55118,13 +55118,13 @@
       "schedule_cron": "35 3 * * * (Daily 08:35 PKT)",
       "start_time": "2026-10-03T14:09:34Z",
       "end_time": "2026-10-03T14:09:34Z",
-      "status": "COMPLETED",
+      "status": "IDLE",
       "retry_count": 0,
       "error_info": "",
       "items_processed": 50,
       "last_successful_run": "2026-10-03T14:09:34Z",
-      "next_scheduled_run": "2026-10-04T03:00:00Z",
-      "execution_summary": "Prepared 50 personalized PhD outreach drafts (Auto-Send DISABLED; 0 pushed live to Gmail Drafts via OAuth)."
+      "next_scheduled_run": "2026-10-03T15:00:00Z",
+      "execution_summary": "Batch reset & primed: Scheduled to trigger autonomously at 08:00 PM PKT."
     },
     {
       "job_id": "job_followup_detection",
@@ -55132,13 +55132,13 @@
       "schedule_cron": "0 5 * * * (Daily 10:00 PKT)",
       "start_time": "2026-10-03T14:09:34Z",
       "end_time": "2026-10-03T14:09:34Z",
-      "status": "COMPLETED",
+      "status": "IDLE",
       "retry_count": 0,
       "error_info": "",
       "items_processed": 0,
       "last_successful_run": "2026-10-03T14:09:34Z",
-      "next_scheduled_run": "2026-10-04T03:00:00Z",
-      "execution_summary": "Checked 0 active email threads; generated 0 follow-up drafts (Auto-Send DISABLED)."
+      "next_scheduled_run": "2026-10-03T15:00:00Z",
+      "execution_summary": "Batch reset & primed: Scheduled to trigger autonomously at 08:00 PM PKT."
     },
     {
       "job_id": "job_funding_verification",
@@ -55146,13 +55146,13 @@
       "schedule_cron": "25 3 * * * (Daily 08:25 PKT)",
       "start_time": "2026-10-03T14:09:34Z",
       "end_time": "2026-10-03T14:09:34Z",
-      "status": "COMPLETED",
+      "status": "IDLE",
       "retry_count": 0,
       "error_info": "",
       "items_processed": 258,
       "last_successful_run": "2026-10-03T14:09:34Z",
-      "next_scheduled_run": "2026-10-04T03:00:00Z",
-      "execution_summary": "Audited 258 candidates: 258 verified profiles, 108 with verified/partially verified grant evidence."
+      "next_scheduled_run": "2026-10-03T15:00:00Z",
+      "execution_summary": "Batch reset & primed: Scheduled to trigger autonomously at 08:00 PM PKT."
     },
     {
       "job_id": "job_gmail_reply_monitoring",
@@ -55160,13 +55160,13 @@
       "schedule_cron": "0 */6 * * * (Every 6 Hours)",
       "start_time": "2026-10-03T14:09:34Z",
       "end_time": "2026-10-03T14:09:34Z",
-      "status": "COMPLETED",
+      "status": "IDLE",
       "retry_count": 0,
       "error_info": "",
       "items_processed": 0,
       "last_successful_run": "2026-10-03T14:09:34Z",
-      "next_scheduled_run": "2026-10-04T03:00:00Z",
-      "execution_summary": "Polled Gmail OAuth (shamaabidiphd@gmail.com): 0 new professor replies classified."
+      "next_scheduled_run": "2026-10-03T15:00:00Z",
+      "execution_summary": "Batch reset & primed: Scheduled to trigger autonomously at 08:00 PM PKT."
     },
     {
       "job_id": "job_professor_matching",
@@ -55174,13 +55174,13 @@
       "schedule_cron": "15 3 * * * (Daily 08:15 PKT)",
       "start_time": "2026-10-03T14:09:33Z",
       "end_time": "2026-10-03T14:09:34Z",
-      "status": "COMPLETED",
+      "status": "IDLE",
       "retry_count": 0,
       "error_info": "",
       "items_processed": 258,
       "last_successful_run": "2026-10-03T14:09:34Z",
-      "next_scheduled_run": "2026-10-04T03:00:00Z",
-      "execution_summary": "Computed semantic & methodology research alignment for 258 international professors."
+      "next_scheduled_run": "2026-10-03T15:00:00Z",
+      "execution_summary": "Batch reset & primed: Scheduled to trigger autonomously at 08:00 PM PKT."
     },
     {
       "job_id": "job_research_discovery",
@@ -55188,27 +55188,27 @@
       "schedule_cron": "0 3 * * * (Daily 08:00 PKT)",
       "start_time": "2026-10-03T14:08:34Z",
       "end_time": "2026-10-03T14:09:33Z",
-      "status": "COMPLETED",
+      "status": "IDLE",
       "retry_count": 0,
       "error_info": "",
       "items_processed": 50,
       "last_successful_run": "2026-10-03T14:09:33Z",
-      "next_scheduled_run": "2026-10-04T03:00:00Z",
-      "execution_summary": "Discovered 50 new international professors outside Pakistan (filtered 143 duplicates across 195 raw API records)."
+      "next_scheduled_run": "2026-10-03T15:00:00Z",
+      "execution_summary": "Batch reset & primed: Scheduled to trigger autonomously at 08:00 PM PKT."
     },
     {
       "job_id": "job_system_health_check",
       "job_name": "Health Check",
       "schedule_cron": "*/30 * * * * (Every 30 Minutes)",
-      "start_time": "2026-10-03T14:25:34Z",
-      "end_time": "2026-10-03T14:25:35Z",
+      "start_time": "2026-10-03T14:33:48Z",
+      "end_time": "2026-10-03T14:33:59Z",
       "status": "COMPLETED",
       "retry_count": 0,
       "error_info": "",
       "items_processed": 7,
-      "last_successful_run": "2026-10-03T14:25:35Z",
-      "next_scheduled_run": "2026-10-04T03:00:00Z",
-      "execution_summary": "System Health Verified: Database READY, Scholarly Discovery APIs FREE & ONLINE, Gmail OAuth (CONNECTED (LIVE OAUTH 2.0)), WhatsApp API (REQUIRES META WHATSAPP BUSINESS API CREDENTIALS)."
+      "last_successful_run": "2026-10-03T14:33:59Z",
+      "next_scheduled_run": "2026-10-03T15:00:00Z",
+      "execution_summary": "System Health Verified: Database READY, Scholarly Discovery APIs FREE & ONLINE, Gmail OAuth (OAUTH TOKEN INVALID OR EXPIRED), WhatsApp API (REQUIRES META WHATSAPP BUSINESS API CREDENTIALS)."
     }
   ],
   "activity_logs": [
@@ -55792,10 +55792,10 @@
     {
       "service": "Gmail API (Drafts & Reply Monitor)",
       "classification": "REQUIRES ACCOUNT/AUTHORIZATION",
-      "connected": true,
-      "status_label": "CONNECTED (LIVE OAUTH 2.0)",
+      "connected": false,
+      "status_label": "OAUTH TOKEN INVALID OR EXPIRED",
       "account": "shamaabidiphd@gmail.com",
-      "detail": "Live Gmail OAuth 2.0 verified for Draft creation and Reply monitoring."
+      "detail": "OAuth token exchange failed: Remote end closed connection without response"
     },
     {
       "service": "Meta WhatsApp Business Cloud API",
