@@ -224,7 +224,7 @@ async function loadPersistentCloudState(showNotification = false) {
  */
 function mergeSessionOverlayIfPresent() {
   try {
-    const raw = sessionStorage.getItem("shama_crm_overlay_v7");
+    const raw = sessionStorage.getItem("shama_crm_overlay_v7") || localStorage.getItem("shama_crm_overlay_v7");
     if (!raw || !appState) return;
     const overlay = JSON.parse(raw);
 
@@ -248,6 +248,25 @@ function mergeSessionOverlayIfPresent() {
         if (!rIds.has(r.id)) appState.email_replies.unshift(r);
       }
     }
+    if (Array.isArray(overlay.extra_professors) && overlay.extra_professors.length > 0) {
+      const pKeys = new Set((appState.professors || []).map((p) => p.normalized_name_uni_key || p.id));
+      for (const p of overlay.extra_professors) {
+        const k = p.normalized_name_uni_key || p.id;
+        if (!pKeys.has(k)) {
+          pKeys.add(k);
+          appState.professors.unshift(p);
+        }
+      }
+    }
+    if (Array.isArray(overlay.extra_drafts) && overlay.extra_drafts.length > 0) {
+      const dIds = new Set((appState.email_drafts || []).map((d) => d.id));
+      for (const d of overlay.extra_drafts) {
+        if (!dIds.has(d.id)) {
+          dIds.add(d.id);
+          appState.email_drafts.unshift(d);
+        }
+      }
+    }
     recalculateDashboardKpis();
   } catch (e) {
     console.warn("Overlay merge skipped:", e);
@@ -256,14 +275,19 @@ function mergeSessionOverlayIfPresent() {
 
 function getSessionOverlay() {
   try {
-    return JSON.parse(sessionStorage.getItem("shama_crm_overlay_v7") || "{}");
+    const raw = sessionStorage.getItem("shama_crm_overlay_v7") || localStorage.getItem("shama_crm_overlay_v7") || "{}";
+    return JSON.parse(raw);
   } catch {
     return {};
   }
 }
 
 function saveSessionOverlay(overlay) {
-  sessionStorage.setItem("shama_crm_overlay_v7", JSON.stringify(overlay));
+  try {
+    const serialized = JSON.stringify(overlay);
+    sessionStorage.setItem("shama_crm_overlay_v7", serialized);
+    localStorage.setItem("shama_crm_overlay_v7", serialized);
+  } catch (e) {}
 }
 
 /**
@@ -1719,9 +1743,12 @@ window.handleDeleteDocument = async function (docId) {
  * Calls backend `/api/jobs/run` if running against FastAPI/Netlify, AND also supports
  * direct live browser querying against Europe PMC REST API with strict outside-Pakistan
  * filtering and cross-run deduplication so clicking "Run Live Discovery Batch" works everywhere!
+ * Also powers the autonomous silent auto-discovery background scheduler.
  */
-async function executeLiveDiscoveryBatch(jobId = "ALL") {
-  showToast("⚡ Running autonomous batch job against Europe PMC & OpenAlex scholarly APIs...");
+async function executeLiveDiscoveryBatch(jobId = "ALL", isSilent = false) {
+  if (!isSilent) {
+    showToast("⚡ Running autonomous batch job against Europe PMC & OpenAlex scholarly APIs...");
+  }
 
   try {
     const resp = await fetch("/api/jobs/run", {
@@ -1734,7 +1761,9 @@ async function executeLiveDiscoveryBatch(jobId = "ALL") {
       if (data.state && data.state.professors) {
         appState = data.state;
         renderAllViews();
-        showToast(`✅ Batch job '${jobId}' completed! Total international professors indexed: ${appState.professors.length}.`);
+        if (!isSilent) {
+          showToast(`✅ Batch job '${jobId}' completed! Total international professors indexed: ${appState.professors.length}.`);
+        }
         return;
       }
     }
@@ -1861,12 +1890,18 @@ async function executeLiveDiscoveryBatch(jobId = "ALL") {
         recalculateDashboardKpis();
       }
       renderAllViews();
-      showToast(
-        `✅ Live Discovery Batch Complete: Added ${newProfs.length} new international professors & generated ${newProfs.length} new personalized Gmail drafts! (Total Professors: ${appState.professors.length}, Total Drafts: ${appState.email_drafts.length}).`
-      );
+      if (!isSilent) {
+        showToast(
+          `✅ Live Discovery Batch Complete: Added ${newProfs.length} new international professors & generated ${newProfs.length} new personalized Gmail drafts! (Total Professors: ${appState.professors.length}, Total Drafts: ${appState.email_drafts.length}).`
+        );
+      } else if (newProfs.length > 0) {
+        showToast(`🤖 Autonomous Agent: Auto-indexed ${newProfs.length} new international professors & Gmail drafts!`);
+      }
     }
   } catch (err) {
-    showToast("ℹ️ Synced with persistent cloud database snapshot.");
+    if (!isSilent) {
+      showToast("ℹ️ Synced with persistent cloud database snapshot.");
+    }
   }
 }
 
@@ -2152,11 +2187,41 @@ document.addEventListener("DOMContentLoaded", () => {
   // Initial load from persistent cloud state
   loadPersistentCloudState(false);
 
+  // Autonomous Discovery Scheduler: ensures client always gets fresh candidates without manual clicks
+  initAutonomousDiscoveryScheduler();
+
   // Live Multi-Device Real-Time Sync: polls every 8s so changes on mobile instantly reflect on laptop & vice-versa
   setInterval(() => {
     loadPersistentCloudState(false);
   }, 8000);
 });
+
+/**
+ * Autonomous Discovery Background Scheduler:
+ * If more than 60 minutes have passed since the last discovery run, automatically
+ * executes a silent discovery batch against Europe PMC in the background.
+ */
+function initAutonomousDiscoveryScheduler() {
+  const ONE_HOUR_MS = 60 * 60 * 1000;
+  const runAutoDiscoveryIfDue = async () => {
+    try {
+      const lastRun = parseInt(localStorage.getItem("shama_last_auto_discovery_run") || "0", 10);
+      const now = Date.now();
+      if (now - lastRun > ONE_HOUR_MS) {
+        localStorage.setItem("shama_last_auto_discovery_run", now.toString());
+        await executeLiveDiscoveryBatch("ALL", true);
+      }
+    } catch (e) {
+      console.warn("Autonomous scheduler error:", e);
+    }
+  };
+
+  // Run initial check 3.5 seconds after page load
+  setTimeout(runAutoDiscoveryIfDue, 3500);
+
+  // Periodically check every 15 minutes while tab is active
+  setInterval(runAutoDiscoveryIfDue, 15 * 60 * 1000);
+}
 
 /* ==========================================================================
    AUTHENTICATION GATE (Username: Shamaabidi | Password: shamaabidi1978)

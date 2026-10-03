@@ -269,20 +269,21 @@ def get_target_country_patterns() -> List[Tuple[str, str, str]]:
 def compute_next_cron_run() -> str:
     """
     Returns ISO 8601 string of next upcoming scheduled batch run
-    out of the 4 daily slots: 03:00, 09:00, 15:00, 21:00 UTC (08:00, 14:00, 20:00, 02:00 PKT).
+    out of the every-2-hour off-peak slots (at minute 15):
+    01:15, 03:15, 05:15, 07:15, 09:15, 11:15, 13:15, 15:15, 17:15, 19:15, 21:15, 23:15 UTC.
     """
     now = datetime.now(timezone.utc)
-    target_hours = [3, 9, 15, 21]
+    target_hours = [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23]
     candidates = []
     for day_offset in [0, 1]:
         d = now.date() + timedelta(days=day_offset)
         for h in target_hours:
-            dt = datetime(d.year, d.month, d.day, h, 0, 0, tzinfo=timezone.utc)
+            dt = datetime(d.year, d.month, d.day, h, 15, 0, tzinfo=timezone.utc)
             if dt > now:
                 candidates.append(dt)
     if candidates:
         return sorted(candidates)[0].strftime("%Y-%m-%dT%H:%M:%SZ")
-    return (now + timedelta(hours=6)).strftime("%Y-%m-%dT%H:00:00Z")
+    return (now + timedelta(hours=2)).strftime("%Y-%m-%dT%H:15:00Z")
 
 
 def update_job_state(
