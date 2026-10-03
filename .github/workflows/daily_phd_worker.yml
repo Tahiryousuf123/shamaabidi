@@ -45,5 +45,8 @@ jobs:
           git config user.name "Shama Abidi Autonomous Cloud Agent"
           git config user.email "shamaabidiphd@gmail.com"
           git add data/production_state.json data/shama_production.db
-          git diff --staged --quiet || git commit -m "chore(autonomous-batch): sync daily international professors, funding evidence & Gmail drafts"
-          git push
+          if ! git diff --staged --quiet; then
+            git commit -m "chore(autonomous-batch): sync daily international professors, funding evidence & Gmail drafts"
+            git pull --rebase origin main || true
+            git push origin main
+          fi
