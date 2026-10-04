@@ -2798,12 +2798,23 @@ window.handlePortalLogout = async function () {
    FIREBASE FIRESTORE REAL-TIME CROSS-DEVICE SYNCHRONIZATION (Laptop ↔ Mobile)
    ========================================================================== */
 
+const DEFAULT_FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBHi1p43YKZuH3dAdNIWsTsRlE1MsnGrSw",
+  authDomain: "shamaabidi-3ddf8.firebaseapp.com",
+  projectId: "shamaabidi-3ddf8",
+  storageBucket: "shamaabidi-3ddf8.firebasestorage.app",
+  messagingSenderId: "755749111477",
+  appId: "1:755749111477:web:d01a17c773ee4cb60ee0fc",
+  measurementId: "G-N4TN78XS41",
+  collection: "shama_crm_sync"
+};
+
 function getFirebaseConfig() {
   try {
-    return JSON.parse(localStorage.getItem("shama_firebase_config") || "null");
-  } catch {
-    return null;
-  }
+    const custom = JSON.parse(localStorage.getItem("shama_firebase_config") || "null");
+    if (custom && custom.apiKey && custom.projectId) return custom;
+  } catch {}
+  return DEFAULT_FIREBASE_CONFIG;
 }
 
 function getGoogleOAuthConfig() {
