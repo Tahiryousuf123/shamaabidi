@@ -1511,7 +1511,10 @@ window.openDraftModal = function (draftId) {
           </p>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
             <a href="${escapeHtml(profileLink)}" target="_blank" rel="noopener" class="btn btn-sm btn-secondary" style="border-color:#f59e0b;color:#fef08a;font-size:0.75rem;">
-              🔗 1-Click: Open Professor's Profile / University Page ↗
+              🔗 1-Click: Open University Page ↗
+            </a>
+            <a href="https://www.linkedin.com/search/results/all/?keywords=${encodeURIComponent((prof.full_name || draft.professor_name || '') + ' ' + (prof.university_name || '') + ' Pharmacy')}" target="_blank" rel="noopener" class="btn btn-sm btn-secondary" style="border-color:#0a66c2;color:#60a5fa;font-size:0.75rem;">
+              💼 1-Click: Search LinkedIn Profile ↗
             </a>
             <button type="button" class="btn btn-sm btn-secondary" onclick="saveDraftRecipientEmail()" style="font-size:0.75rem;border-color:#6ee7b7;color:#6ee7b7;">
               💾 Save &amp; Auto-Fill
@@ -1523,7 +1526,10 @@ window.openDraftModal = function (draftId) {
       helperEl.innerHTML = `
         <div style="padding:8px 12px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.35);border-radius:8px;font-size:0.78rem;color:#6ee7b7;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-top:6px;">
           <span>✅ <strong>Verified Official Email:</strong> <code>${escapeHtml(draft.recipient_email)}</code></span>
-          <a href="${escapeHtml(profileLink)}" target="_blank" rel="noopener" style="color:#93c5fd;font-size:0.74rem;">Inspect Profile / Paper ↗</a>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <a href="https://www.linkedin.com/search/results/all/?keywords=${encodeURIComponent((prof.full_name || draft.professor_name || '') + ' ' + (prof.university_name || '') + ' Pharmacy')}" target="_blank" rel="noopener" style="color:#60a5fa;font-size:0.74rem;">💼 LinkedIn ↗</a>
+            <a href="${escapeHtml(profileLink)}" target="_blank" rel="noopener" style="color:#93c5fd;font-size:0.74rem;">Inspect Profile / Paper ↗</a>
+          </div>
         </div>
       `;
     }
