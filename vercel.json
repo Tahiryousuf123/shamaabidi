@@ -1,5 +1,4 @@
 {
-  "version": 2,
   "cleanUrls": true,
   "headers": [
     {
@@ -14,12 +13,8 @@
   ],
   "rewrites": [
     {
-      "source": "/documents/:path*",
-      "destination": "/data/documents/:path*"
-    },
-    {
-      "source": "/",
-      "destination": "/index.html"
+      "source": "/api/(.*)",
+      "destination": "/api/index.js"
     }
   ]
 }

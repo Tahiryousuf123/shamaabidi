@@ -88,22 +88,91 @@ def cosine_similarity(vec_a: List[float], vec_b: List[float]) -> float:
     return round(max(0.0, min(1.0, (raw + 1.0) / 2.0 if raw < 0 else raw)), 4)
 
 
+# Dr. Shama Abidi's 6 core PhD candidate research topics
+SHAMA_CORE_TOPICS: Dict[str, List[str]] = {
+    "Clinical Pharmacy & Pharmacotherapy": [
+        "clinical pharmacy", "pharmacotherapy", "clinical pharmacist", "pharmacy practice",
+        "pharmaceutical care", "ward round", "patient outcomes", "therapeutic drug monitoring", "tdm",
+        "dosing", "pharmacokinetics", "polypharmacy", "deprescribing", "hospital pharmacy", "therapeutic outcomes"
+    ],
+    "Medication Safety & Pharmacovigilance": [
+        "medication safety", "pharmacovigilance", "adverse drug reaction", "adr", "adverse drug event",
+        "ade", "high-alert medication", "medication error", "drug safety", "naranjo", "toxicity",
+        "patient safety", "drug interaction", "safety culture", "error reporting"
+    ],
+    "Antimicrobial Stewardship & Critical Care": [
+        "antimicrobial stewardship", "asp", "antibiotic", "carbapenem", "meropenem", "imipenem",
+        "antimicrobial resistance", "amr", "resistant pathogen", "infection control", "critical care infection",
+        "sepsis", "renal dose adjustment", "creatinine clearance", "icu"
+    ],
+    "Evidence-based Pharmacy Practice": [
+        "evidence-based", "practice guidelines", "prescribing audit", "drug utilization",
+        "comparative effectiveness", "outcomes research", "treatment guidelines", "clinical protocol",
+        "quality improvement", "seattle angina questionnaire", "saq-7"
+    ],
+    "Implementation Science & Health-System Outcomes": [
+        "implementation science", "health services research", "behavioral change", "interventional study",
+        "intervention acceptance", "clinical workflow", "health system", "implementation outcome",
+        "multidisciplinary team", "physician acceptance", "translation"
+    ],
+    "AI & CDSS in Medication Management": [
+        "artificial intelligence", "clinical decision support", "cdss", "machine learning",
+        "algorithmic error detection", "digital health", "electronic health records", "ehr",
+        "automated alert", "decision support system", "computational health"
+    ],
+}
+
+
+def score_candidate_topics(text: str) -> Tuple[Dict[str, float], str, float]:
+    """
+    Evaluates professor text against Dr. Shama Abidi's 6 core topics.
+    Returns:
+      (topic_scores_dict, primary_topic_name, composite_topic_score)
+    """
+    clean_text = (text or "").lower()
+    topic_scores: Dict[str, float] = {}
+
+    for topic_name, keywords in SHAMA_CORE_TOPICS.items():
+        matched_terms = [kw for kw in keywords if kw in clean_text]
+        score = min(100.0, len(matched_terms) * 22.0)
+        topic_scores[topic_name] = round(score, 1)
+
+    best_topic = max(topic_scores, key=lambda k: topic_scores[k])
+    best_score = topic_scores[best_topic]
+    # Breadth bonus: reward multi-pillar overlap
+    active_topics = sum(1 for s in topic_scores.values() if s > 15.0)
+    breadth_bonus = min(20.0, active_topics * 4.0)
+
+    composite_score = min(100.0, best_score * 0.80 + breadth_bonus)
+    return topic_scores, best_topic, composite_score
+
+
 def compute_research_alignment(
     professor_text: str,
     shama_documents: List[Dict[str, Any]],
+    recent_paper_year: Optional[int] = None,
 ) -> Dict[str, Any]:
     """
     Compares a candidate professor's publication/research profile against each of
-    Shama Abidi's uploaded research documents and returns:
-      - relevance_score (0 to 100)
+    Shama Abidi's 6 core topics and verified research documents:
+      - relevance_score (0 to 100, honest without artificial 71.5% clamping)
       - best_matched_document (id, title, doi)
       - shared_keywords (explicit overlapping domain terms)
       - why_matches_shama (evidence-backed explanation with zero fabrication)
+      - topic_match_details (breakdown across the 6 core candidate topics)
+      - has_recent_publication (True if >= 2023)
     """
     prof_vec = generate_semantic_embedding(professor_text)
     prof_lower = (professor_text or "").lower()
 
-    best_score = 0.0
+    # 1. Topic match against Dr. Shama Abidi's 6 core topics
+    topic_scores, primary_topic, composite_topic_score = score_candidate_topics(professor_text)
+
+    # 2. Recency check (last 3 years: >= 2023)
+    has_recent_pub = bool(recent_paper_year and recent_paper_year >= 2023)
+    recency_factor = 1.0 if has_recent_pub else 0.70
+
+    best_doc_score = 0.0
     best_doc: Dict[str, Any] = shama_documents[0] if shama_documents else {}
     best_shared_terms: List[str] = []
 
@@ -123,23 +192,31 @@ def compute_research_alignment(
                 if t in prof_lower and t in doc_lower
             }
         )
-        keyword_bonus = min(0.32, len(shared) * 0.055)
-        combined = min(0.985, 0.45 + (domain_sim * 0.30) + (full_sim * 0.15) + keyword_bonus)
+        keyword_bonus = min(0.30, len(shared) * 0.05)
+        combined = (domain_sim * 0.50) + (full_sim * 0.25) + keyword_bonus
 
-        if combined > best_score:
-            best_score = combined
+        if combined > best_doc_score:
+            best_doc_score = combined
             best_doc = doc
             best_shared_terms = shared
 
-    relevance_pct = round(max(71.5, min(98.4, best_score * 100.0)), 1)
+    # Weighted composite: 55% core candidate topics + 45% document similarity
+    doc_score_pct = min(100.0, best_doc_score * 100.0)
+    raw_composite = (composite_topic_score * 0.55) + (doc_score_pct * 0.45)
+
+    # Apply recency factor
+    relevance_pct = round(max(5.0, min(98.5, raw_composite * recency_factor)), 1)
+
     doc_title = best_doc.get("title", "Clinical Pharmacy & Pharmacotherapy Research")
     doc_doi = best_doc.get("doi", "")
     shared_display = ", ".join(best_shared_terms[:6]) if best_shared_terms else "clinical pharmacy outcomes, pharmacotherapy safety, and evidence-based patient care"
 
+    recency_str = f" Recent {recent_paper_year} publication verified." if has_recent_pub else " (No publication within last 3 years detected)."
     why_matches = (
-        f"Direct methodological and clinical overlap on [{shared_display}] with Shama Abidi's "
-        f"verified publication \"{doc_title}\""
+        f"Primary alignment in {primary_topic} with direct methodological overlap on [{shared_display}] "
+        f"matching Shama Abidi's publication \"{doc_title}\""
         + (f" (DOI: {doc_doi})." if doc_doi else ".")
+        + recency_str
     )
 
     return {
@@ -149,6 +226,9 @@ def compute_research_alignment(
         "shared_keywords": best_shared_terms[:8],
         "why_matches_shama": why_matches,
         "embedding": prof_vec,
+        "topic_match_details": topic_scores,
+        "primary_matched_topic": primary_topic,
+        "has_recent_publication": has_recent_pub,
     }
 
 

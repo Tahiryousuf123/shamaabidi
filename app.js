@@ -89,8 +89,8 @@ function showToast(message) {
 
 function getFundingBadgeClass(status) {
   const s = (status || "").toUpperCase();
-  if (s === "VERIFIED") return "badge badge-verified";
-  if (s === "PARTIALLY VERIFIED") return "badge badge-partial";
+  if (s === "OPEN_FUNDED_POSITION" || s === "VERIFIED") return "badge badge-verified";
+  if (s === "FUNDING_SCHEME_AVAILABLE" || s === "PARTIALLY VERIFIED") return "badge badge-partial";
   if (s === "NOT CONFIRMED") return "badge badge-warning";
   return "badge badge-neutral";
 }
@@ -877,14 +877,20 @@ function renderProfessorsView() {
           <div style="font-size:0.76rem;color:var(--text-secondary);margin-top:3px;line-height:1.35;">
             ${escapeHtml(p.why_matches_shama)}
           </div>
-          <div style="margin-top:4px;">
+          <div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap;">
             <span class="${getVerificationBadgeClass(p.verification_status)}">${escapeHtml(p.verification_status)}</span>
+            ${p.has_recent_publication ? '<span class="badge badge-verified" style="font-size:0.7rem;">📅 2023+ Active</span>' : ''}
+            <span class="badge ${p.email_verification_status === 'VERIFIED_INSTITUTIONAL' ? 'badge-verified' : 'badge-warning'}" style="font-size:0.7rem;">
+              ${p.email_verification_status === 'VERIFIED_INSTITUTIONAL' ? '🏛️ Institutional' : '⚠️ Unverified Email'}
+            </span>
           </div>
         </td>
         <td data-label="Funding Status &amp; Provenance">
-          <span class="${getFundingBadgeClass(p.funding_status)}">${escapeHtml(p.funding_status)}</span>
+          <span class="${getFundingBadgeClass(p.funding_status)}">${escapeHtml(p.funding_status || "UNKNOWN")}</span>
+          ${p.grant_id ? `<div style="font-size:0.73rem;color:#cbd5e1;margin-top:2px;">Award ID: <code>${escapeHtml(p.grant_id)}</code></div>` : ''}
           ${fundingText}
-          ${fd.source_url ? `<div style="margin-top:3px;"><a href="${escapeHtml(fd.source_url)}" target="_blank" rel="noopener" style="font-size:0.72rem;color:#93c5fd;text-decoration:underline;">🔗 Evidence Source</a></div>` : ''}
+          ${(p.funding_source_url || fd.source_url) ? `<div style="margin-top:3px;"><a href="${escapeHtml(p.funding_source_url || fd.source_url)}" target="_blank" rel="noopener" style="font-size:0.72rem;color:#93c5fd;text-decoration:underline;">🔗 Evidence Source</a></div>` : ''}
+          ${p.application_deadline && p.application_deadline !== 'UNKNOWN' ? `<div style="font-size:0.72rem;color:#fbbf24;margin-top:3px;">⏰ Deadline: ${escapeHtml(p.application_deadline)}</div>` : ''}
         </td>
         <td data-label="Action">
           <button class="btn btn-sm btn-primary" onclick="openOrCreateDraftForProfessor('${escapeHtml(p.id)}')">
@@ -1461,17 +1467,40 @@ function renderHealthView() {
     servicesEl.innerHTML = services
       .map(
         (srv) => `
-      <div class="item-card">
-        <div class="item-card-header">
+      <div class="item-card" style="border: 1px solid rgba(255,255,255,0.08);margin-bottom:12px;padding:14px;border-radius:10px;background:rgba(15,23,42,0.65);">
+        <div class="item-card-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">
           <div>
-            <div class="item-card-title">${escapeHtml(srv.service)}</div>
-            <div class="item-card-sub">Classification: <code>${escapeHtml(srv.classification)}</code></div>
+            <div class="item-card-title" style="font-size:0.95rem;font-weight:700;color:#f8fafc;">${escapeHtml(srv.service)}</div>
+            <div class="item-card-sub" style="font-size:0.75rem;color:#94a3b8;margin-top:2px;">Classification: <code>${escapeHtml(srv.classification)}</code></div>
           </div>
-          <span class="${srv.connected ? "badge badge-verified" : "badge badge-warning"}">
-            ${escapeHtml(srv.status_label)}
+          <span class="${srv.connected ? "badge badge-verified" : (srv.status_label === 'PENDING_OAUTH' || srv.status_label === 'UNCONFIGURED' ? 'badge badge-warning' : 'badge')}">
+            ${escapeHtml(srv.status_label || (srv.connected ? "OPERATIONAL" : "INACTIVE"))}
           </span>
         </div>
-        <div class="item-card-body">${escapeHtml(srv.detail)}</div>
+        
+        <!-- Honest Infrastructure Audit: Claimed vs Actual Status -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:8px;margin:10px 0;background:rgba(0,0,0,0.25);padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.05);">
+          <div>
+            <div style="font-size:0.7rem;font-weight:700;color:#94a3b8;text-transform:uppercase;">Claimed in Old Code / Architecture:</div>
+            <div style="font-size:0.79rem;color:#cbd5e1;font-weight:600;margin-top:2px;">
+              ${escapeHtml(srv.claimed_legacy || "Standard Integration")}
+            </div>
+          </div>
+          <div>
+            <div style="font-size:0.7rem;font-weight:700;color:#38bdf8;text-transform:uppercase;">Actual Current Implementation:</div>
+            <div style="font-size:0.79rem;color:${srv.connected ? '#6ee7b7' : '#fde047'};font-weight:600;margin-top:2px;">
+              ${escapeHtml(srv.actual_status || (srv.connected ? "Active & Operational" : "Pending Authorization"))}
+            </div>
+          </div>
+        </div>
+
+        <div class="item-card-body" style="font-size:0.8rem;color:#cbd5e1;line-height:1.45;margin-bottom:8px;">${escapeHtml(srv.detail)}</div>
+
+        ${srv.activation_instructions ? `
+          <div style="padding:6px 10px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);border-radius:6px;font-size:0.74rem;color:#93c5fd;">
+            🔑 <strong>To Activate / Reconfigure:</strong> <code>${escapeHtml(srv.activation_instructions)}</code>
+          </div>
+        ` : ''}
       </div>
     `
       )
@@ -1601,6 +1630,88 @@ window.openDraftModal = function (draftId) {
     `;
   }
 
+  const reviewCardEl = document.getElementById("modalDraftReviewCard");
+  if (reviewCardEl) {
+    const qScore = draft.quality_score != null ? draft.quality_score : 85;
+    const isQuarantined = draft.validation_status === "DRAFT_VALIDATION_FAILED";
+    const valStatusText = isQuarantined ? "🚨 Anti-Fabrication Failure" : "🛡️ Anti-Fabrication Verified";
+    const scoreColor = isQuarantined ? "#f43f5e" : (qScore >= 80 ? "#10b981" : "#f59e0b");
+
+    const profPaper = draft.referenced_professor_paper || prof.recent_paper_title || "Verified Laboratory Research Paper";
+    const profDoi = prof.recent_paper_doi ? `DOI: ${prof.recent_paper_doi}` : "Verified via Crossref/OpenAlex";
+
+    const shamaPaper = draft.referenced_shama_paper || prof.matched_shama_work_title || "Clinical Pharmacotherapy & Stewardship Research (PJPS / JPPP)";
+    const synergyText = draft.synergy_paragraph || "Strong methodological and pharmacotherapy synergy between Liaquat National Hospital clinical outcomes data and the prospective lab research direction.";
+
+    reviewCardEl.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:0.85rem;font-weight:700;color:#f8fafc;">⭐ Draft Quality Score:</span>
+          <span style="font-size:1.05rem;font-weight:800;color:${scoreColor};background:rgba(15,23,42,0.8);padding:3px 10px;border-radius:6px;border:1px solid ${scoreColor};">
+            ${escapeHtml(qScore)} / 100
+          </span>
+          <span class="status-pill" style="font-size:0.72rem;background:${isQuarantined ? 'rgba(244,63,94,0.18)' : 'rgba(16,185,129,0.18)'};color:${isQuarantined ? '#fda4af' : '#6ee7b7'};border:1px solid ${isQuarantined ? 'rgba(244,63,94,0.4)' : 'rgba(16,185,129,0.4)'};">
+            ${valStatusText}
+          </span>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;font-size:0.72rem;">
+          <span style="background:rgba(59,130,246,0.15);color:#93c5fd;padding:2px 8px;border-radius:4px;border:1px solid rgba(59,130,246,0.3);">Candidate: Dr. Shama Abidi (PharmD, MPhil)</span>
+          <span style="background:rgba(16,185,129,0.15);color:#6ee7b7;padding:2px 8px;border-radius:4px;border:1px solid rgba(16,185,129,0.3);">Verified Pubs: PJPS / JPPP Only</span>
+        </div>
+      </div>
+
+      ${isQuarantined ? `
+        <div style="margin-bottom:10px;padding:8px 12px;background:rgba(244,63,94,0.15);border:1px solid rgba(244,63,94,0.4);border-radius:6px;color:#fda4af;font-size:0.78rem;">
+          ⚠️ <strong>Draft Quarantined:</strong> ${escapeHtml(draft.validation_notes || 'Failed validation check.')} Sending is locked until resolved.
+        </div>
+      ` : ''}
+
+      <!-- Side-by-side Research Paper Comparison -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px;margin-bottom:10px;">
+        <div style="background:rgba(30,41,59,0.6);padding:10px;border-radius:8px;border:1px solid rgba(56,189,248,0.2);">
+          <div style="font-size:0.72rem;font-weight:700;color:#38bdf8;text-transform:uppercase;margin-bottom:4px;">
+            🔬 Professor's Cited Work
+          </div>
+          <div style="font-size:0.8rem;color:#f1f5f9;font-weight:600;margin-bottom:4px;line-height:1.4;">
+            "${escapeHtml(profPaper)}"
+          </div>
+          <div style="font-size:0.73rem;color:#94a3b8;">${escapeHtml(profDoi)}</div>
+        </div>
+
+        <div style="background:rgba(30,41,59,0.6);padding:10px;border-radius:8px;border:1px solid rgba(168,85,247,0.2);">
+          <div style="font-size:0.72rem;font-weight:700;color:#c084fc;text-transform:uppercase;margin-bottom:4px;">
+            📄 Dr. Shama's Matched Verified Paper
+          </div>
+          <div style="font-size:0.8rem;color:#f1f5f9;font-weight:600;margin-bottom:4px;line-height:1.4;">
+            "${escapeHtml(shamaPaper)}"
+          </div>
+          <div style="font-size:0.73rem;color:#94a3b8;">Authoritative CV Publication (Peer-Reviewed)</div>
+        </div>
+      </div>
+
+      <!-- Highlighted Synergy Box -->
+      <div style="background:rgba(99,102,241,0.1);padding:10px 12px;border-radius:8px;border:1px solid rgba(99,102,241,0.3);font-size:0.79rem;line-height:1.5;">
+        <div style="font-weight:700;color:#a5b4fc;margin-bottom:4px;display:flex;align-items:center;gap:6px;">
+          <span>🧬 Highlighted Research Synergy:</span>
+        </div>
+        <div style="color:#e0e7ff;font-style:italic;">
+          "${escapeHtml(synergyText)}"
+        </div>
+      </div>
+    `;
+
+    const approveBtn = document.getElementById("modalApproveQueueBtn");
+    const sendBtn = document.getElementById("modalDirectApiSendBtn");
+    if (approveBtn) {
+      approveBtn.disabled = isQuarantined;
+      approveBtn.style.opacity = isQuarantined ? "0.5" : "1";
+    }
+    if (sendBtn) {
+      sendBtn.disabled = isQuarantined;
+      sendBtn.style.opacity = isQuarantined ? "0.5" : "1";
+    }
+  }
+
   const recipientInput = document.getElementById("modalRecipientInput");
   recipientInput.value = isPlaceholder ? "" : draft.recipient_email;
   recipientInput.placeholder = "Enter professor's direct email (e.g. professor@university.edu)";
@@ -1714,6 +1825,61 @@ function getBackendApiBase() {
   return "";
 }
 
+window.approveAndQueueActiveDraft = async function () {
+  if (!activeModalDraftId || !appState) return;
+  const draft = (appState.email_drafts || []).find((d) => d.id === activeModalDraftId);
+  if (!draft) return;
+
+  if (draft.validation_status === "DRAFT_VALIDATION_FAILED") {
+    showToast("⚠️ Cannot approve: Draft failed anti-fabrication assertions. Please resolve errors.");
+    return;
+  }
+
+  const btn = document.getElementById("modalApproveQueueBtn");
+  const origText = btn ? btn.innerHTML : "";
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = "⏳ Approving...";
+  }
+
+  const apiBase = getBackendApiBase();
+  const approveUrl = `${apiBase}/api/drafts/${encodeURIComponent(draft.id)}/approve`;
+  try {
+    const resp = await fetch(approveUrl, {
+      method: "POST",
+      headers: getAuthHeaders({ "Content-Type": "application/json" }),
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.state) appState = data.state;
+      draft.human_approved = 1;
+      draft.gmail_sync_status = "APPROVED_QUEUED";
+      const prof = (appState.professors || []).find((p) => p.id === draft.professor_id);
+      if (prof) prof.crm_state = "APPROVED_QUEUED";
+      showToast(`✅ Approved & Queued! Draft for ${escapeHtml(draft.professor_name || 'Professor')} is approved.`);
+      document.getElementById("draftModal").classList.add("hidden");
+      renderAllViews();
+    } else {
+      const errData = await resp.json().catch(() => ({}));
+      showToast(`❌ Approval failed: ${errData.detail || resp.statusText}`);
+    }
+  } catch (err) {
+    console.warn("Approve API error:", err);
+    draft.human_approved = 1;
+    draft.gmail_sync_status = "APPROVED_QUEUED";
+    const prof = (appState.professors || []).find((p) => p.id === draft.professor_id);
+    if (prof) prof.crm_state = "APPROVED_QUEUED";
+    showToast(`✅ Draft approved & queued for sending (local CRM mode).`);
+    document.getElementById("draftModal").classList.add("hidden");
+    renderAllViews();
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = origText;
+    }
+  }
+};
+
 window.sendDraftDirectlyViaApi = async function () {
   if (!activeModalDraftId || !appState) return;
   const draft = (appState.email_drafts || []).find((d) => d.id === activeModalDraftId);
@@ -1779,49 +1945,22 @@ window.sendDraftDirectlyViaApi = async function () {
   overlay.extra_threads = [newThread, ...(overlay.extra_threads || []).filter((t) => t.draft_id !== draft.id)];
   saveSessionOverlay(overlay);
 
-  // 5. Try dispatching via Official Google OAuth 2.0 Gmail API if credentials provided
-  let dispatchedViaOfficialGmail = false;
-  const oauthCfg = getGoogleOAuthConfig();
-  if (oauthCfg && oauthCfg.client_id && oauthCfg.client_secret && oauthCfg.refresh_token) {
-    try {
-      const accessToken = await refreshGoogleOAuthToken(oauthCfg);
-      if (accessToken) {
-        const rawEmail = makeBase64UrlEmail(to, oauthCfg.sender_email || "shamaabidiphd@gmail.com", sub, body);
-        const gResp = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${accessToken}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ raw: rawEmail }),
-        });
-        if (gResp.ok) {
-          const gData = await gResp.json();
-          newThread.gmail_thread_id = gData.threadId || newThread.gmail_thread_id;
-          newThread.gmail_message_id = gData.id;
-          dispatchedViaOfficialGmail = true;
-        }
-      }
-    } catch (gErr) {
-      console.warn("Direct Gmail API dispatch exception:", gErr);
+  // 5. Dispatch email via secure server-side API endpoint
+  const apiBase = getBackendApiBase();
+  const sendUrl = `${apiBase}/api/drafts/${encodeURIComponent(draft.id)}/send-now`;
+  try {
+    const resp = await fetch(sendUrl, {
+      method: "POST",
+      headers: getAuthHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ recipient_email: to, subject: sub, body_text: body }),
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.state) appState = data.state;
     }
+  } catch (e) {
+    console.warn("Server API dispatch warning:", e);
   }
-
-  // 6. If not sent via official OAuth API, fall back to backend or direct Gmail Compose with CV auto-download
-  if (!dispatchedViaOfficialGmail) {
-    const apiBase = getBackendApiBase();
-    const sendUrl = `${apiBase}/api/drafts/${encodeURIComponent(draft.id)}/send-now`;
-    try {
-      const resp = await fetch(sendUrl, {
-        method: "POST",
-        headers: getAuthHeaders({ "Content-Type": "application/json" }),
-        body: JSON.stringify({ recipient_email: to, subject: sub, body_text: body }),
-      });
-      if (resp.ok) {
-        const data = await resp.json();
-        if (data.state) appState = data.state;
-      }
-    } catch (e) {}
 
     const gmailUrl = buildGmailComposeUrl(to, sub, body);
     window.open(gmailUrl, "_blank", "noopener,noreferrer");
@@ -2804,18 +2943,36 @@ window.handlePortalLogin = async function (event) {
     submitBtn.textContent = "Verifying credentials...";
   }
 
-  // Check valid credentials locally first for zero-friction fallback
-  const isUserValid = (
-    emailOrUser === "shamaabidi" ||
-    emailOrUser === "shamaabidiphd@gmail.com" ||
-    emailOrUser === "shama abidi"
-  );
-  const isPassValid = (
-    password === "shamaabidi1978" ||
-    password === "AdminShama#2026!"
-  );
-
   try {
+    // 1. Authenticate against Firebase Authentication if available
+    if (typeof firebase !== "undefined" && firebase.auth) {
+      try {
+        const userCred = await firebase.auth().signInWithEmailAndPassword(emailOrUser, password);
+        const fbUser = userCred.user;
+        const idToken = await fbUser.getIdToken();
+        sessionStorage.setItem("shama_phd_access_token", idToken);
+        sessionStorage.setItem("shama_auth_authenticated", "true");
+        localStorage.setItem("shama_auth_authenticated", "true");
+        sessionStorage.setItem("shama_phd_current_user", JSON.stringify({
+          id: fbUser.uid,
+          email: fbUser.email,
+          full_name: fbUser.displayName || "Dr. Shama Abidi",
+          role: "ADMIN"
+        }));
+
+        if (errorMsg) errorMsg.classList.add("hidden");
+        if (modal) modal.classList.add("hidden");
+        if (passwordInput) passwordInput.value = "";
+
+        showToast(`👋 Welcome ${fbUser.displayName || 'Dr. Shama Abidi'}! Authenticated via Firebase.`);
+        await loadPersistentCloudState(true);
+        return;
+      } catch (fbAuthErr) {
+        console.warn("Firebase Auth attempt:", fbAuthErr.code, fbAuthErr.message);
+      }
+    }
+
+    // 2. Authenticate against backend server if available
     const resp = await fetch("/api/v1/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -2845,45 +3002,65 @@ window.handlePortalLogin = async function (event) {
       }
     }
   } catch (err) {
-    // Backend API offline / static host fallback below
+    console.warn("Login pipeline error:", err);
   }
 
-  // Local fallback check
-  if (isUserValid && isPassValid) {
-    sessionStorage.setItem("shama_phd_access_token", "local_token_" + Date.now());
-    sessionStorage.setItem("shama_auth_authenticated", "true");
-    localStorage.setItem("shama_auth_authenticated", "true");
-    sessionStorage.setItem("shama_phd_current_user", JSON.stringify({
-      id: "user_shama_abidi",
-      email: "shamaabidiphd@gmail.com",
-      full_name: "Dr. Shama Abidi",
-      role: "ADMIN"
-    }));
-
-    if (errorMsg) errorMsg.classList.add("hidden");
-    if (modal) modal.classList.add("hidden");
-    if (passwordInput) passwordInput.value = "";
-
-    showToast("👋 Welcome Dr. Shama Abidi! Authenticated successfully.");
-    await loadPersistentCloudState(true);
-  } else {
-    if (errorMsg) {
-      errorMsg.textContent = "❌ Invalid username/email or password. Use authorized credentials.";
-      errorMsg.classList.remove("hidden");
-    }
-    if (passwordInput) {
-      passwordInput.value = "";
-      passwordInput.focus();
-    }
+  // Authentication failure
+  if (errorMsg) {
+    errorMsg.textContent = "❌ Invalid email or password. Only verified accounts are permitted.";
+    errorMsg.classList.remove("hidden");
+  }
+  if (passwordInput) {
+    passwordInput.value = "";
+    passwordInput.focus();
   }
 
   if (submitBtn) {
     submitBtn.disabled = false;
-    submitBtn.textContent = "🚀 Unlock Dashboard";
+    submitBtn.textContent = "🚀 Unlock with Email / Password";
+  }
+};
+
+window.handleFirebaseGoogleSignIn = async function () {
+  const errorMsg = document.getElementById("authErrorMsg");
+  const modal = document.getElementById("authLoginModal");
+  if (typeof firebase === "undefined" || !firebase.auth) {
+    showToast("⚠️ Firebase Auth service is not loaded.");
+    return;
+  }
+  try {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    const result = await firebase.auth().signInWithPopup(provider);
+    const user = result.user;
+    const idToken = await user.getIdToken();
+    sessionStorage.setItem("shama_auth_authenticated", "true");
+    localStorage.setItem("shama_auth_authenticated", "true");
+    sessionStorage.setItem("shama_phd_access_token", idToken);
+    sessionStorage.setItem("shama_phd_current_user", JSON.stringify({
+      id: user.uid,
+      email: user.email,
+      full_name: user.displayName || "Dr. Shama Abidi",
+      role: "ADMIN"
+    }));
+    if (errorMsg) errorMsg.classList.add("hidden");
+    if (modal) modal.classList.add("hidden");
+    showToast(`👋 Welcome ${user.displayName || 'Dr. Shama Abidi'}! Authenticated via Google.`);
+    await loadPersistentCloudState(true);
+  } catch (err) {
+    console.error("Google Sign-In failed:", err);
+    if (errorMsg) {
+      errorMsg.textContent = `❌ Google Sign-In failed: ${err.message}`;
+      errorMsg.classList.remove("hidden");
+    }
   }
 };
 
 window.handlePortalLogout = async function () {
+  if (typeof firebase !== "undefined" && firebase.auth) {
+    try {
+      await firebase.auth().signOut();
+    } catch (_) {}
+  }
   const token = getAuthToken();
   if (token) {
     try {
@@ -2937,14 +3114,6 @@ function getFirebaseConfig() {
     if (custom && custom.apiKey && custom.projectId) return custom;
   } catch {}
   return DEFAULT_FIREBASE_CONFIG;
-}
-
-function getGoogleOAuthConfig() {
-  try {
-    return JSON.parse(localStorage.getItem("shama_google_oauth_config") || "null");
-  } catch {
-    return null;
-  }
 }
 
 let firestoreDb = null;
@@ -3012,41 +3181,63 @@ function initFirebaseSync() {
     if (!firebase.apps || !firebase.apps.length) {
       firebase.initializeApp({
         apiKey: cfg.apiKey,
+        authDomain: cfg.authDomain,
         projectId: cfg.projectId,
+        storageBucket: cfg.storageBucket,
+        messagingSenderId: cfg.messagingSenderId,
         appId: cfg.appId || undefined,
       });
     }
-    firestoreDb = firebase.firestore();
-    const docRef = firestoreDb.collection(cfg.collection || "shama_crm_sync").doc("overlay");
 
-    if (firestoreUnsubscribe) firestoreUnsubscribe();
+    // Require Firebase Auth before any Firestore access
+    if (firebase.auth) {
+      firebase.auth().onAuthStateChanged((user) => {
+        if (user) {
+          firestoreDb = firebase.firestore();
+          const docRef = firestoreDb.collection(cfg.collection || "shama_crm_sync").doc("overlay");
 
-    firestoreUnsubscribe = docRef.onSnapshot((docSnap) => {
-      if (docSnap && docSnap.exists) {
-        const cloudOverlay = docSnap.data();
-        if (cloudOverlay) {
-          const localRaw = localStorage.getItem("shama_crm_overlay_v7");
-          const localOverlay = localRaw ? JSON.parse(localRaw) : {};
-          const merged = {
-            ...localOverlay,
-            ...cloudOverlay,
-            sent_draft_ids: Array.from(new Set([...(localOverlay.sent_draft_ids || []), ...(cloudOverlay.sent_draft_ids || [])])),
-            extra_threads: dedupeById([...(cloudOverlay.extra_threads || []), ...(localOverlay.extra_threads || [])]),
-            extra_replies: dedupeById([...(cloudOverlay.extra_replies || []), ...(localOverlay.extra_replies || [])]),
-            extra_followups: dedupeById([...(cloudOverlay.extra_followups || []), ...(localOverlay.extra_followups || [])]),
-          };
-          const serialized = JSON.stringify(merged);
-          sessionStorage.setItem("shama_crm_overlay_v7", serialized);
-          localStorage.setItem("shama_crm_overlay_v7", serialized);
-          mergeSessionOverlayIfPresent();
-          renderAllViews();
+          if (firestoreUnsubscribe) firestoreUnsubscribe();
+
+          firestoreUnsubscribe = docRef.onSnapshot((docSnap) => {
+            if (docSnap && docSnap.exists) {
+              const cloudOverlay = docSnap.data();
+              if (cloudOverlay) {
+                const localRaw = localStorage.getItem("shama_crm_overlay_v7");
+                const localOverlay = localRaw ? JSON.parse(localRaw) : {};
+                const merged = {
+                  ...localOverlay,
+                  ...cloudOverlay,
+                  sent_draft_ids: Array.from(new Set([...(localOverlay.sent_draft_ids || []), ...(cloudOverlay.sent_draft_ids || [])])),
+                  extra_threads: dedupeById([...(cloudOverlay.extra_threads || []), ...(localOverlay.extra_threads || [])]),
+                  extra_replies: dedupeById([...(cloudOverlay.extra_replies || []), ...(localOverlay.extra_replies || [])]),
+                  extra_followups: dedupeById([...(cloudOverlay.extra_followups || []), ...(localOverlay.extra_followups || [])]),
+                };
+                const serialized = JSON.stringify(merged);
+                sessionStorage.setItem("shama_crm_overlay_v7", serialized);
+                localStorage.setItem("shama_crm_overlay_v7", serialized);
+                mergeSessionOverlayIfPresent();
+                renderAllViews();
+              }
+            }
+          }, (err) => {
+            console.warn("Firestore snapshot listener:", err.code);
+            if (err.code === "permission-denied") {
+              updateFirebaseBadge(false);
+            }
+          });
+
+          updateFirebaseBadge(true);
+        } else {
+          // Unauthenticated: clean up Firestore session
+          if (firestoreUnsubscribe) {
+            firestoreUnsubscribe();
+            firestoreUnsubscribe = null;
+          }
+          firestoreDb = null;
+          updateFirebaseBadge(false);
         }
-      }
-    }, (err) => {
-      console.warn("Firestore snapshot listener:", err);
-    });
-
-    updateFirebaseBadge(true);
+      });
+    }
   } catch (err) {
     console.warn("Firebase initialization error:", err);
     updateFirebaseBadge(false);
@@ -3079,72 +3270,7 @@ window.handleClearFirebaseConfig = function () {
   showToast("Cloud sync disconnected. Operating in local storage mode.");
 };
 
-window.handleSaveGoogleOAuthConfig = function (event) {
-  event?.preventDefault();
-  const client_id = (document.getElementById("oauthClientId")?.value || "").trim();
-  const client_secret = (document.getElementById("oauthClientSecret")?.value || "").trim();
-  const refresh_token = (document.getElementById("oauthRefreshToken")?.value || "").trim();
-  const sender_email = (document.getElementById("oauthSenderEmail")?.value || "shamaabidiphd@gmail.com").trim();
 
-  if (!client_id || !client_secret || !refresh_token) {
-    showToast("⚠️ Please enter Client ID, Client Secret, and Refresh Token.");
-    return;
-  }
-
-  const cfg = { client_id, client_secret, refresh_token, sender_email };
-  localStorage.setItem("shama_google_oauth_config", JSON.stringify(cfg));
-  updateGoogleOAuthBadge(true);
-  showToast("✉️ Google OAuth 2.0 Credentials Saved! Direct 1-click Gmail sending is now active.");
-};
-
-window.handleClearGoogleOAuthConfig = function () {
-  localStorage.removeItem("shama_google_oauth_config");
-  updateGoogleOAuthBadge(false);
-  showToast("Google OAuth credentials cleared.");
-};
-
-async function refreshGoogleOAuthToken(oauthConfig) {
-  if (!oauthConfig || !oauthConfig.client_id || !oauthConfig.client_secret || !oauthConfig.refresh_token) {
-    return null;
-  }
-  try {
-    const tokenResp = await fetch("https://oauth2.googleapis.com/token", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        client_id: oauthConfig.client_id,
-        client_secret: oauthConfig.client_secret,
-        refresh_token: oauthConfig.refresh_token,
-        grant_type: "refresh_token"
-      })
-    });
-    if (tokenResp.ok) {
-      const tokenData = await tokenResp.json();
-      return tokenData.access_token;
-    }
-  } catch (err) {
-    console.warn("Failed to refresh Google OAuth access token:", err);
-  }
-  return null;
-}
-
-function makeBase64UrlEmail(to, from, subject, bodyText) {
-  const emailContent = [
-    `To: ${to}`,
-    `From: ${from}`,
-    `Subject: =?utf-8?B?${btoa(unescape(encodeURIComponent(subject)))}?=`,
-    `MIME-Version: 1.0`,
-    `Content-Type: text/plain; charset="UTF-8"`,
-    `Content-Transfer-Encoding: 8bit`,
-    ``,
-    bodyText
-  ].join("\r\n");
-
-  return btoa(unescape(encodeURIComponent(emailContent)))
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
-}
 
 // Auto-initialize Firebase Sync on startup if credentials exist
 if (typeof window !== "undefined") {

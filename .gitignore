@@ -23,3 +23,13 @@ data/production_state.json
 *.sql
 storage/uploads/*
 !storage/uploads/.gitkeep
+data/documents/Dr_Shama_Abidi_Academic_CV_2026.pdf
+data/documents/*CV*
+data/documents/*.pdf
+*.pdf
+firestore-debug.log
+firebase-debug.log
+data/suppression_list.json
+data/send_throttle.json
+data/followup_tracking.json
+

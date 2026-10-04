@@ -78,6 +78,14 @@ from whatsapp_service import (
     send_grouped_whatsapp_notification,
 )
 
+from backend.draft_validator import (
+    extract_synergy_paragraph,
+    validate_and_score_draft,
+)
+from backend.verified_publications import (
+    SHAMA_CANDIDATE_PROFILE,
+    SHAMA_VERIFIED_PUBLICATIONS,
+)
 from backend.app.db_session import SessionLocal
 from backend.app.opportunity_service import upsert_phd_opportunity
 from backend.app.target_countries import (
@@ -85,6 +93,43 @@ from backend.app.target_countries import (
     is_country_excluded,
     resolve_target_country,
 )
+
+
+INSTITUTIONAL_TLDS = {
+    ".edu", ".ac.uk", ".edu.au", ".ca", ".edu.sg", ".ac.nz", ".edu.hk",
+    ".de", ".fr", ".nl", ".se", ".ch", ".no", ".dk", ".fi", ".es", ".it",
+    ".ie", ".be", ".at", ".lu", ".edu.my", ".ac.za", ".org", ".gov"
+}
+FREE_EMAIL_DOMAINS = {
+    "gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "live.com",
+    "aol.com", "icloud.com", "mail.com", "protonmail.com", "zoho.com", "yandex.com"
+}
+
+
+def verify_institutional_email(email: str, prof_name: str = "") -> Tuple[str, str]:
+    """
+    Verifies if an email address is an authentic institutional academic email.
+    Returns: (verification_status, reason)
+      - verification_status: 'VERIFIED_INSTITUTIONAL' or 'UNVERIFIED_EMAIL'
+    """
+    if not email or "@" not in email:
+        return "UNVERIFIED_EMAIL", "No valid email address format."
+    email_clean = email.strip().lower()
+    domain = email_clean.split("@")[-1]
+    if domain in FREE_EMAIL_DOMAINS:
+        return "UNVERIFIED_EMAIL", f"Public commercial webmail domain ({domain}) is not a verified academic institutional address."
+    if domain.endswith(".pk") or "pakistan" in domain:
+        return "UNVERIFIED_EMAIL", "Excluded domain region."
+
+    # Check institutional TLD or recognized academic pattern (.edu, .ac., etc.)
+    is_inst = (
+        any(domain.endswith(tld) or f".{tld.strip('.')}" in domain for tld in [".edu", ".ac.", ".gov", ".org"])
+        or any(domain.endswith(tld) for tld in INSTITUTIONAL_TLDS)
+    )
+    if not is_inst:
+        return "UNVERIFIED_EMAIL", f"Domain {domain} does not match verified institutional academic TLD patterns."
+
+    return "VERIFIED_INSTITUTIONAL", f"Verified institutional academic address at {domain}."
 
 
 # Rotating international clinical pharmacy search queries aligned with Shama Abidi's 5 publications
@@ -718,7 +763,7 @@ def run_job_research_discovery(target_min: int = 50, target_max: int = 50) -> Di
         for cand in eupmc_batch:
             if inserted_count >= target_max:
                 break
-            if cand["country_code"] == "PK" or "pakistan" in cand["country"].lower():
+            if cand["country_code"] == "PK" or "pakistan" in cand["country"].lower() or cand.get("official_email", "").endswith(".pk"):
                 continue
             if not cand.get("official_email") or "@" not in cand["official_email"]:
                 continue
@@ -758,6 +803,13 @@ def run_job_research_discovery(target_min: int = 50, target_max: int = 50) -> Di
 
             norm_key = normalize_name_uni(cand["full_name"], cand["university_name"])
             prof_id = make_id("prof", norm_key)
+            src_url = (
+                f"https://doi.org/{cand['paper_doi']}"
+                if cand["paper_doi"]
+                else (f"https://pubmed.ncbi.nlm.nih.gov/{cand['paper_pmid']}/" if cand["paper_pmid"] else cand["profile_url"])
+            )
+            em_status, em_reason = verify_institutional_email(cand.get("official_email", ""), cand.get("full_name", ""))
+            has_rec_pub = 1 if (cand.get("paper_year") and cand["paper_year"] >= 2023) else 0
 
             conn.execute(
                 """
@@ -767,9 +819,11 @@ def run_job_research_discovery(target_min: int = 50, target_max: int = 50) -> Di
                     official_email, email_source_type, profile_url, research_areas_json,
                     recent_paper_title, recent_paper_year, recent_paper_doi,
                     why_matches_shama, matched_shama_doc_id, matched_shama_Work_title,
-                    relevance_score, funding_status, verification_status, crm_state,
-                    discovery_source, discovered_batch_date, discovered_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, '', 0.0, 'NO EVIDENCE FOUND', 'NEEDS REVIEW', 'DISCOVERED', ?, ?, ?, ?)
+                    relevance_score, funding_status, funding_source_url, funding_last_verified, grant_id,
+                    min_qualification, english_requirement, international_eligibility, application_deadline, deadline_source_url,
+                    email_verification_status, email_source_url, has_recent_publication, topic_match_details,
+                    verification_status, crm_state, discovery_source, discovered_batch_date, discovered_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, '', 0.0, 'UNKNOWN', '', '', '', 'UNKNOWN', 'UNKNOWN', 'UNKNOWN', 'UNKNOWN', '', ?, ?, ?, '{}', 'NEEDS REVIEW', 'DISCOVERED', ?, ?, ?, ?)
                 """,
                 (
                     prof_id,
@@ -790,6 +844,9 @@ def run_job_research_discovery(target_min: int = 50, target_max: int = 50) -> Di
                     cand["paper_year"],
                     cand["paper_doi"],
                     "Pending semantic & methodology alignment analysis.",
+                    em_status,
+                    src_url,
+                    has_rec_pub,
                     cand["discovery_source"],
                     batch_date,
                     now,
@@ -966,7 +1023,11 @@ def run_job_professor_matching() -> Dict[str, Any]:
         )
         combined_prof_text = f"{prof.get('department', '')} {prof.get('recent_paper_title', '')} {pub_text}"
 
-        alignment = compute_research_alignment(combined_prof_text, shama_docs)
+        alignment = compute_research_alignment(
+            combined_prof_text,
+            shama_docs,
+            recent_paper_year=prof.get("recent_paper_year"),
+        )
 
         conn.execute(
             """
@@ -975,6 +1036,8 @@ def run_job_professor_matching() -> Dict[str, Any]:
                 matched_shama_doc_id = ?,
                 matched_shama_Work_title = ?,
                 relevance_score = ?,
+                has_recent_publication = ?,
+                topic_match_details = ?,
                 updated_at = ?
             WHERE id = ?
             """,
@@ -983,6 +1046,8 @@ def run_job_professor_matching() -> Dict[str, Any]:
                 alignment["matched_shama_doc_id"] or None,
                 alignment["matched_shama_work_title"],
                 alignment["relevance_score"],
+                1 if alignment.get("has_recent_publication") else 0,
+                json.dumps(alignment.get("topic_match_details") or {}, ensure_ascii=False),
                 now,
                 prof["id"],
             ),
@@ -1067,21 +1132,56 @@ def run_job_funding_and_candidate_verification() -> Dict[str, Any]:
             "SELECT * FROM funding_evidence WHERE professor_id = ?",
             (prof["id"],),
         ).fetchone()
-        f_status = f_row["funding_status"] if f_row else "NO EVIDENCE FOUND"
-        if f_status in ("VERIFIED", "PARTIALLY VERIFIED"):
+
+        # Phase 4 Funding Rules: OPEN_FUNDED_POSITION, FUNDING_SCHEME_AVAILABLE, UNKNOWN
+        # NEVER assume funding without evidence; default to UNKNOWN
+        f_status = "UNKNOWN"
+        f_source_url = ""
+        grant_id = ""
+        funding_verified_at = ""
+
+        if f_row:
+            raw_status = f_row["funding_status"]
+            raw_ev_type = f_row.get("evidence_type", "")
+            raw_gid = f_row.get("grant_id_or_program", "")
+            raw_url = f_row.get("source_url", "")
+
+            if raw_ev_type == "OPEN_FUNDED_POSITION" and raw_url:
+                f_status = "OPEN_FUNDED_POSITION"
+                f_source_url = raw_url
+                grant_id = raw_gid
+                funding_verified_at = now
+            elif raw_ev_type == "ACTIVE_GRANT_RECORD" and raw_gid and raw_url:
+                f_status = "FUNDING_SCHEME_AVAILABLE"
+                f_source_url = raw_url
+                grant_id = raw_gid
+                funding_verified_at = now
+            elif raw_status in ("VERIFIED", "PARTIALLY VERIFIED") and raw_url and (raw_gid or f_row.get("grant_agency")):
+                f_status = "FUNDING_SCHEME_AVAILABLE"
+                f_source_url = raw_url
+                grant_id = raw_gid
+                funding_verified_at = now
+            else:
+                f_status = "UNKNOWN"
+
+        if f_status in ("OPEN_FUNDED_POSITION", "FUNDING_SCHEME_AVAILABLE"):
             funded_count += 1
+
+        # Email authenticity verification
+        em_status, em_reason = verify_institutional_email(prof.get("official_email", ""), prof.get("full_name", ""))
+        em_source = prof.get("email_source_url") or (f"https://doi.org/{prof['recent_paper_doi']}" if prof.get("recent_paper_doi") else "")
 
         # Candidate verification checks (Section 12)
         has_person = int(bool(prof.get("full_name") and len(prof["full_name"]) > 5))
         has_uni = int(bool(prof.get("university_name") and len(prof["university_name"]) > 5))
         has_pub = int(bool(prof.get("recent_paper_title") and (prof.get("recent_paper_year") or 0) >= 2022))
-        has_align = int((prof.get("relevance_score") or 0.0) >= 70.0)
+        has_align = int((prof.get("relevance_score") or 0.0) >= 50.0)
         outside_pk = int(prof.get("country_code") != "PK" and "pakistan" not in (prof.get("country") or "").lower())
-        has_public_email = bool(prof.get("official_email") and "@" in prof["official_email"])
+        has_verified_email = (em_status == "VERIFIED_INSTITUTIONAL")
         has_orcid_or_doi = bool(prof.get("orcid_id") or prof.get("recent_paper_doi"))
 
-        if has_person and has_uni and has_pub and has_align and outside_pk and (has_public_email or has_orcid_or_doi):
-            v_status = "VERIFIED" if has_public_email else "PARTIALLY VERIFIED"
+        if has_person and has_uni and has_pub and has_align and outside_pk and (has_verified_email or has_orcid_or_doi):
+            v_status = "VERIFIED" if has_verified_email else "PARTIALLY VERIFIED"
             verified_count += 1
         elif has_person and has_uni and outside_pk:
             v_status = "NEEDS REVIEW"
@@ -1089,9 +1189,9 @@ def run_job_funding_and_candidate_verification() -> Dict[str, Any]:
             v_status = "NOT VERIFIED"
 
         email_note = (
-            f"Verified corresponding author email ({prof['official_email']}) extracted directly from published paper metadata."
-            if has_public_email
-            else "No corresponding email in abstract metadata; official ORCID / DOI / University profile link verified."
+            f"Institutional email ({prof['official_email']}) verified via domain and author metadata."
+            if has_verified_email
+            else f"Email unverified ({em_reason}); manual verification required prior to sending."
         )
         v_notes = (
             f"Identity, {prof['university_name']} ({prof['country']}) affiliation, {prof['recent_paper_year']} publication, "
@@ -1127,13 +1227,50 @@ def run_job_funding_and_candidate_verification() -> Dict[str, Any]:
         if new_crm_state == "DISCOVERED" and v_status in ("VERIFIED", "PARTIALLY VERIFIED"):
             new_crm_state = "VERIFIED"
 
+        # Programme eligibility verification:
+        # Default UNKNOWN unless explicitly verified from official prospectus/faculty URL
+        min_qual = prof.get("min_qualification") or "UNKNOWN"
+        eng_req = prof.get("english_requirement") or "UNKNOWN"
+        intl_elig = prof.get("international_eligibility") or ("ELIGIBLE" if outside_pk else "INELIGIBLE")
+        app_deadline = prof.get("application_deadline") or "UNKNOWN"
+        deadline_url = prof.get("deadline_source_url") or ""
+
         conn.execute(
             """
             UPDATE professors
-            SET funding_status = ?, verification_status = ?, crm_state = ?, updated_at = ?
+            SET funding_status = ?,
+                funding_source_url = ?,
+                funding_last_verified = ?,
+                grant_id = ?,
+                min_qualification = ?,
+                english_requirement = ?,
+                international_eligibility = ?,
+                application_deadline = ?,
+                deadline_source_url = ?,
+                email_verification_status = ?,
+                email_source_url = ?,
+                verification_status = ?,
+                crm_state = ?,
+                updated_at = ?
             WHERE id = ?
             """,
-            (f_status, v_status, new_crm_state, now, prof["id"]),
+            (
+                f_status,
+                f_source_url,
+                funding_verified_at,
+                grant_id,
+                min_qual,
+                eng_req,
+                intl_elig,
+                app_deadline,
+                deadline_url,
+                em_status,
+                em_source,
+                v_status,
+                new_crm_state,
+                now,
+                prof["id"],
+            ),
         )
 
     conn.commit()
@@ -1220,7 +1357,7 @@ def compose_personalized_outreach_email(prof: Dict[str, Any]) -> Tuple[str, str]
 
     doi_text = f" (DOI: {paper_doi})" if paper_doi else ""
 
-    if funding_status in ("VERIFIED", "PARTIALLY VERIFIED"):
+    if funding_status in ("OPEN_FUNDED_POSITION", "FUNDING_SCHEME_AVAILABLE", "VERIFIED", "PARTIALLY VERIFIED"):
         funding_block = (
             "I noted your research group's active externally funded grants and would be grateful to discuss whether funded PhD studentships, "
             "graduate assistantships, or university doctoral scholarship nominations are anticipated for the 2026/2027 academic cycle."
@@ -1286,9 +1423,11 @@ def run_job_email_draft_generation(daily_limit: Optional[int] = None) -> Dict[st
               AND p.country_code != 'PK'
               AND LOWER(p.country) NOT LIKE '%pakistan%'
             ORDER BY
-              CASE WHEN p.funding_status = 'VERIFIED' THEN 2
-                   WHEN p.funding_status = 'PARTIALLY VERIFIED' THEN 1
+              CASE WHEN p.funding_status = 'OPEN_FUNDED_POSITION' THEN 3
+                   WHEN p.funding_status = 'FUNDING_SCHEME_AVAILABLE' THEN 2
+                   WHEN p.funding_status IN ('VERIFIED', 'PARTIALLY VERIFIED') THEN 1
                    ELSE 0 END DESC,
+              p.has_recent_publication DESC,
               p.relevance_score DESC
             LIMIT ?
             """,
@@ -1308,17 +1447,23 @@ def run_job_email_draft_generation(daily_limit: Optional[int] = None) -> Dict[st
         )
 
         subject, body_text = compose_personalized_outreach_email(prof)
-        # Store draft cleanly in CRM Dashboard with 1-click Review & Send options
-        # Prevents overwhelming Gmail Drafts folder without professor context/country/source
+        synergy_p = extract_synergy_paragraph(body_text)
+        is_valid, q_score, val_errors, breakdown = validate_and_score_draft(subject, body_text, prof)
+
+        sync_status = "LOCAL_CRM_DRAFT_PENDING_OAUTH"
+        val_status = "VALIDATED" if is_valid else "DRAFT_VALIDATION_FAILED"
+        val_notes = "All anti-fabrication assertions passed." if is_valid else "; ".join(val_errors)
+
         draft_id = make_id("draft", f"{prof['id']}_INITIAL")
         conn.execute(
             """
             INSERT OR REPLACE INTO email_drafts (
                 id, professor_id, draft_type, recipient_email, subject,
                 body_text, referenced_professor_paper, referenced_shama_paper,
-                gmail_draft_id, gmail_sync_status, auto_send_disabled,
+                gmail_draft_id, gmail_sync_status, quality_score, validation_status,
+                validation_notes, synergy_paragraph, human_approved, auto_send_disabled,
                 batch_date, created_at, updated_at
-            ) VALUES (?, ?, 'INITIAL_OUTREACH', ?, ?, ?, ?, ?, '', 'LOCAL_CRM_DRAFT_PENDING_OAUTH', 1, ?, ?, ?)
+            ) VALUES (?, ?, 'INITIAL_OUTREACH', ?, ?, ?, ?, ?, '', ?, ?, ?, ?, ?, 0, 1, ?, ?, ?)
             """,
             (
                 draft_id,
@@ -1328,14 +1473,20 @@ def run_job_email_draft_generation(daily_limit: Optional[int] = None) -> Dict[st
                 body_text,
                 prof.get("recent_paper_title", ""),
                 prof.get("matched_shama_Work_title", ""),
+                sync_status,
+                q_score,
+                val_status,
+                val_notes,
+                synergy_p,
                 batch_date,
                 now,
                 now,
             ),
         )
+        new_prof_state = "DRAFT_READY" if is_valid else "DRAFT_NEEDS_REVIEW"
         conn.execute(
-            "UPDATE professors SET crm_state = 'DRAFT_READY', updated_at = ? WHERE id = ?",
-            (now, prof["id"]),
+            "UPDATE professors SET crm_state = ?, updated_at = ? WHERE id = ?",
+            (new_prof_state, now, prof["id"]),
         )
         created_drafts += 1
 
@@ -1601,6 +1752,9 @@ def run_job_system_health_check() -> Dict[str, Any]:
             "classification": "FREE",
             "connected": True,
             "status_label": "OPERATIONAL (100% FREE PUBLIC API)",
+            "claimed_legacy": "Biomedical Paper Retrieval API",
+            "actual_status": "OPERATIONAL (100% FREE PUBLIC API)",
+            "activation_instructions": "Pre-configured; requires no API key or subscription.",
             "detail": "Provides international biomedical papers, author affiliations, ORCIDs, DOIs, and grant/funder metadata.",
         },
         {
@@ -1608,6 +1762,9 @@ def run_job_system_health_check() -> Dict[str, Any]:
             "classification": "FREE",
             "connected": True,
             "status_label": "OPERATIONAL (100% FREE POLITE POOL)",
+            "claimed_legacy": "Scholarly Entity & Affiliation Graph",
+            "actual_status": "OPERATIONAL (100% FREE POLITE POOL)",
+            "activation_instructions": "Pre-configured with polite pool mailto identification.",
             "detail": "Provides global university ROR/country metadata, author publication histories, and grant links.",
         },
         {
@@ -1615,21 +1772,60 @@ def run_job_system_health_check() -> Dict[str, Any]:
             "classification": "FREE",
             "connected": True,
             "status_label": "OPERATIONAL (100% FREE PUBLIC API)",
+            "claimed_legacy": "DOI & Funder Registry Lookups",
+            "actual_status": "OPERATIONAL (100% FREE PUBLIC API)",
+            "activation_instructions": "Pre-configured; requires no API key.",
             "detail": "Provides DOI verification and funder registry lookups.",
+        },
+        {
+            "service": "Vector Search Engine (Semantic Matching)",
+            "classification": "FREE",
+            "connected": True,
+            "status_label": "LOCAL TF-IDF / BM25 ACTIVE",
+            "claimed_legacy": "Pinecone / ChromaDB Cloud Cluster",
+            "actual_status": "LOCAL TF-IDF / BM25 ACTIVE (No Cloud Lock-In)",
+            "activation_instructions": "Operates natively via Python vector_engine.py; no third-party vector database subscription required.",
+            "detail": "Performs cosine similarity across Dr. Shama Abidi's 6 core research domains using local term frequency representations.",
+        },
+        {
+            "service": "Cache & Key-Value State Store",
+            "classification": "FREE",
+            "connected": True,
+            "status_label": "SQLITE WAL + IN-MEMORY ACTIVE",
+            "claimed_legacy": "Redis Distributed Cluster Broker",
+            "actual_status": "SQLITE WAL + IN-MEMORY CACHE ACTIVE (Local Persistence)",
+            "activation_instructions": "Operates natively with zero external dependencies. Optional: Set REDIS_URL in .env if running distributed multi-node clusters.",
+            "detail": "All state transitions, idempotency keys, and draft caches persist securely to SQLite in WAL mode.",
+        },
+        {
+            "service": "Task Queue & Background Execution",
+            "classification": "FREE WITH LIMITS",
+            "connected": True,
+            "status_label": "ASYNC BACKGROUNDTASKS + GITHUB CRON ACTIVE",
+            "claimed_legacy": "Celery Distributed Task Queue",
+            "actual_status": "PYTHON ASYNC + CLOUD CRON ACTIVE",
+            "activation_instructions": "Batch scheduled execution managed autonomously via GitHub Actions daily_phd_worker.yml and FastAPI BackgroundTasks.",
+            "detail": "Runs nightly automated batches without needing long-running Celery/RabbitMQ daemon processes.",
         },
         {
             "service": "OpenRouter AI / Free LLM Tier",
             "classification": "FREE WITH LIMITS",
             "connected": openrouter_configured,
             "status_label": "CONNECTED (OPENROUTER FREE MODEL)" if openrouter_configured else "FALLBACK DETERMINISTIC ENGINE ACTIVE",
-            "detail": "Used for research synthesis and email personalization with zero-cost deterministic fallback.",
+            "claimed_legacy": "OpenAI / Claude High-Tier LLM Pipeline",
+            "actual_status": "CONNECTED (OpenRouter Free Model)" if openrouter_configured else "FALLBACK DETERMINISTIC ENGINE ACTIVE (Zero API Cost)",
+            "activation_instructions": "Add OPENROUTER_API_KEY (or OPENAI_API_KEY) to .env to enable generative LLM text synthesis.",
+            "detail": "Used for research synthesis and email personalization with guaranteed zero-cost deterministic fallback.",
         },
         {
             "service": "GitHub Actions + Netlify Scheduled Functions",
             "classification": "FREE WITH LIMITS",
             "connected": True,
             "status_label": "ACTIVE (CLOUD CRON SCHEDULER)",
-            "detail": "Runs daily discovery, matching, verification, and draft generation in the cloud with laptop OFF.",
+            "claimed_legacy": "Self-Hosted Always-On VPS Daemon",
+            "actual_status": "ACTIVE (Cloud Cron Worker)",
+            "activation_instructions": "Workflow configured at .github/workflows/daily_phd_worker.yml.",
+            "detail": "Runs daily discovery, matching, verification, and draft generation in the cloud with user computer turned off.",
         },
         gmail_status,
         wa_status,

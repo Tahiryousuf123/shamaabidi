@@ -444,6 +444,13 @@ def send_draft_now_endpoint(
         conn.close()
         raise HTTPException(status_code=404, detail="Draft not found")
 
+    if draft["validation_status"] == "DRAFT_VALIDATION_FAILED":
+        conn.close()
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot send email: Draft failed anti-fabrication assertions: {draft['validation_notes'] or ''}",
+        )
+
     recipient = (payload.get("recipient_email") if payload else None) or draft["recipient_email"]
     subject = (payload.get("subject") if payload else None) or draft["subject"]
     body_text = (payload.get("body_text") if payload else None) or draft["body_text"]
@@ -455,6 +462,8 @@ def send_draft_now_endpoint(
             subject=subject,
             body_text=body_text,
             sender_email="shamaabidiphd@gmail.com",
+            human_approved=True,
+            actor_user=user.email if hasattr(user, "email") else "admin",
         )
     except Exception as e:
         conn.close()
@@ -555,40 +564,55 @@ def update_settings_endpoint(
         update_setting(payload.setting_key, "DISABLED", payload.description)
     else:
         update_setting(payload.setting_key, payload.setting_value, payload.description)
-@app.post("/api/drafts/{draft_id}/send-now")
-def send_draft_now_endpoint(
+    snapshot = export_production_state_snapshot()
+    return {"status": "SUCCESS", "state": snapshot}
+
+
+@app.post("/api/drafts/{draft_id}/approve")
+def approve_draft_endpoint(
     draft_id: str,
-    payload: DraftUpdatePayload,
+    user: User = Depends(require_roles(RoleEnum.ADMIN.value, RoleEnum.RESEARCHER.value)),
 ) -> Dict[str, Any]:
-    from database import get_connection, utc_now_iso
+    from database import get_connection, utc_now_iso, log_activity
     conn = get_connection()
     draft = conn.execute("SELECT * FROM email_drafts WHERE id = ?", (draft_id,)).fetchone()
     if not draft:
         conn.close()
         raise HTTPException(status_code=404, detail="Draft not found")
 
-    to_email = payload.recipient_email or draft["recipient_email"]
-    subject = payload.subject or draft["subject"]
-    body_text = payload.body_text or draft["body_text"]
+    if draft["validation_status"] == "DRAFT_VALIDATION_FAILED":
+        conn.close()
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot approve draft: Anti-fabrication assertion failed. {draft['validation_notes'] or ''}",
+        )
 
     now = utc_now_iso()
     conn.execute(
-        "UPDATE email_drafts SET recipient_email = ?, subject = ?, body_text = ?, updated_at = ? WHERE id = ?",
-        (to_email, subject, body_text, now, draft_id),
+        """
+        UPDATE email_drafts
+        SET human_approved = 1,
+            updated_at = ?
+        WHERE id = ?
+        """,
+        (now, draft_id),
+    )
+    conn.execute(
+        "UPDATE professors SET crm_state = 'DRAFT_READY', updated_at = ? WHERE id = ?",
+        (now, draft["professor_id"]),
+    )
+    log_activity(
+        event_type="DRAFT_HUMAN_APPROVED",
+        module_name="Draft Review & Quality Engine",
+        actor=getattr(user, "full_name", None) or getattr(user, "email", "SHAMA_ABIDI_HUMAN_ACTION"),
+        summary=f"Outreach draft {draft_id} human-approved and queued for sending.",
+        details={"draft_id": draft_id, "quality_score": draft["quality_score"], "professor_id": draft["professor_id"]},
+        conn=conn,
     )
     conn.commit()
     conn.close()
-
-    send_status = "SENT_OR_PREPARED"
-    try:
-        res = send_gmail_message(recipient_email=to_email, subject=subject, body_text=body_text)
-        send_status = res.get("status", "SENT")
-    except Exception as e:
-        logger.info(f"Gmail send exception (will mark sent in CRM): {e}")
-
-    mark_res = mark_draft_as_manually_sent_and_track_thread(draft_id)
     snapshot = export_production_state_snapshot()
-    return {"status": "SUCCESS", "send_status": send_status, "thread": mark_res, "state": snapshot}
+    return {"status": "APPROVED", "draft_id": draft_id, "state": snapshot}
 
 
 @app.post("/api/drafts/{draft_id}/mark-sent")

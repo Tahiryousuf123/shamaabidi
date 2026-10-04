@@ -48,5 +48,29 @@ def get_db() -> Generator[Session, None, None]:
 
 
 def init_orm_schema() -> None:
-    """Creates tables if not already migrated via Alembic."""
+    """Creates tables if not already migrated via Alembic, and migrates missing SQLite columns."""
     Base.metadata.create_all(bind=engine)
+    if is_sqlite:
+        with engine.begin() as conn:
+            try:
+                res = conn.exec_driver_sql("PRAGMA table_info(professors)").fetchall()
+                cols = {r[1] for r in res}
+                new_cols = [
+                    ("funding_source_url", "VARCHAR(500) DEFAULT ''"),
+                    ("funding_last_verified", "DATETIME"),
+                    ("grant_id", "VARCHAR(100) DEFAULT ''"),
+                    ("min_qualification", "VARCHAR(50) DEFAULT 'UNKNOWN'"),
+                    ("english_requirement", "VARCHAR(100) DEFAULT 'UNKNOWN'"),
+                    ("international_eligibility", "VARCHAR(50) DEFAULT 'UNKNOWN'"),
+                    ("application_deadline", "VARCHAR(100) DEFAULT 'UNKNOWN'"),
+                    ("deadline_source_url", "VARCHAR(500) DEFAULT ''"),
+                    ("email_verification_status", "VARCHAR(50) DEFAULT 'UNVERIFIED_EMAIL'"),
+                    ("email_source_url", "VARCHAR(500) DEFAULT ''"),
+                    ("has_recent_publication", "BOOLEAN DEFAULT 0"),
+                    ("topic_match_details", "TEXT DEFAULT '{}'"),
+                ]
+                for col_name, col_type in new_cols:
+                    if col_name not in cols:
+                        conn.exec_driver_sql(f"ALTER TABLE professors ADD COLUMN {col_name} {col_type}")
+            except Exception:
+                pass

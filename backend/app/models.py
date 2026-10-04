@@ -160,7 +160,23 @@ class Professor(Base):
     relevance_score = Column(Float, nullable=False, default=0.0, index=True)
     # Section 10 & 29: Controlled enum UNVERIFIED, PENDING, VERIFIED, REJECTED (Default: UNVERIFIED)
     verification_status = Column(String(50), nullable=False, default="UNVERIFIED", index=True)
-    funding_status = Column(String(50), nullable=False, default="UNVERIFIED", index=True)
+    # Phase 4 Funding Status: OPEN_FUNDED_POSITION, FUNDING_SCHEME_AVAILABLE, UNKNOWN (Default: UNKNOWN)
+    funding_status = Column(String(50), nullable=False, default="UNKNOWN", index=True)
+    funding_source_url = Column(String(500), nullable=False, default="")
+    funding_last_verified = Column(DateTime(timezone=True), nullable=True)
+    grant_id = Column(String(100), nullable=False, default="")
+    # Phase 4 Programme Eligibility & Deadlines
+    min_qualification = Column(String(50), nullable=False, default="UNKNOWN")
+    english_requirement = Column(String(100), nullable=False, default="UNKNOWN")
+    international_eligibility = Column(String(50), nullable=False, default="UNKNOWN")
+    application_deadline = Column(String(100), nullable=False, default="UNKNOWN")
+    deadline_source_url = Column(String(500), nullable=False, default="")
+    # Phase 4 Email Verification
+    email_verification_status = Column(String(50), nullable=False, default="UNVERIFIED_EMAIL", index=True)
+    email_source_url = Column(String(500), nullable=False, default="")
+    # Phase 4 Topic Match & Recency
+    has_recent_publication = Column(Boolean, nullable=False, default=False, index=True)
+    topic_match_details = Column(Text, nullable=False, default="{}")
     confidence_score = Column(Float, nullable=False, default=0.0)
     # Section 12 Provenance
     source_url = Column(String(500), nullable=False, default="")
@@ -173,6 +189,21 @@ class Professor(Base):
     is_deleted = Column(Boolean, nullable=False, default=False, index=True)
     created_at = Column(DateTime(timezone=True), nullable=False, default=utc_now)
     updated_at = Column(DateTime(timezone=True), nullable=False, default=utc_now, onupdate=utc_now)
+
+    def __init__(self, **kwargs):
+        kwargs.setdefault("funding_status", "UNKNOWN")
+        kwargs.setdefault("funding_source_url", "")
+        kwargs.setdefault("grant_id", "")
+        kwargs.setdefault("min_qualification", "UNKNOWN")
+        kwargs.setdefault("english_requirement", "UNKNOWN")
+        kwargs.setdefault("international_eligibility", "UNKNOWN")
+        kwargs.setdefault("application_deadline", "UNKNOWN")
+        kwargs.setdefault("deadline_source_url", "")
+        kwargs.setdefault("email_verification_status", "UNVERIFIED_EMAIL")
+        kwargs.setdefault("email_source_url", "")
+        kwargs.setdefault("has_recent_publication", False)
+        kwargs.setdefault("topic_match_details", "{}")
+        super().__init__(**kwargs)
 
     university = relationship("University", back_populates="professors")
     publications = relationship("Publication", back_populates="professor", cascade="all, delete-orphan")

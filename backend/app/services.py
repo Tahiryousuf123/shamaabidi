@@ -146,19 +146,12 @@ def seed_roles_users_and_jobs(db: Session) -> None:
         admin_email = settings.INITIAL_ADMIN_EMAIL or "shamaabidiphd@gmail.com"
         admin_pass = settings.INITIAL_ADMIN_PASSWORD
         if not admin_pass:
-            if settings.ENVIRONMENT == "production":
-                logger.warning(
-                    "CRITICAL_ADMIN_BOOTSTRAP_NOTICE: No administrator exists in database. "
-                    "Set INITIAL_ADMIN_PASSWORD in environment or run `python scripts/bootstrap_admin.py`."
-                )
-            else:
-                admin_pass = "AdminShama#2026!"
-
-        if admin_pass:
-            try:
-                validate_password_policy(admin_pass)
-            except ValueError:
-                admin_pass = "AdminShama#2026!"
+            logger.warning(
+                "CRITICAL_ADMIN_BOOTSTRAP_NOTICE: No administrator exists in database and INITIAL_ADMIN_PASSWORD is not set. "
+                "Set INITIAL_ADMIN_PASSWORD in environment or run `python scripts/bootstrap_admin.py`."
+            )
+        else:
+            validate_password_policy(admin_pass)
 
             db.add(
                 User(

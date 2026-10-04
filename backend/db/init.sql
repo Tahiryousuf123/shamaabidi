@@ -131,9 +131,21 @@ CREATE TABLE IF NOT EXISTS professors (
     matched_shama_doc_id TEXT REFERENCES research_documents(id) ON DELETE SET NULL,
     matched_shama_Work_title TEXT DEFAULT '',
     relevance_score REAL NOT NULL DEFAULT 0.0,
-    funding_status TEXT NOT NULL DEFAULT 'NO EVIDENCE FOUND' CHECK (
-        funding_status IN ('VERIFIED', 'PARTIALLY VERIFIED', 'NOT CONFIRMED', 'NO EVIDENCE FOUND')
+    funding_status TEXT NOT NULL DEFAULT 'UNKNOWN' CHECK (
+        funding_status IN ('OPEN_FUNDED_POSITION', 'FUNDING_SCHEME_AVAILABLE', 'UNKNOWN', 'VERIFIED', 'PARTIALLY VERIFIED', 'NOT CONFIRMED', 'NO EVIDENCE FOUND')
     ),
+    funding_source_url TEXT DEFAULT '',
+    funding_last_verified TEXT DEFAULT '',
+    grant_id TEXT DEFAULT '',
+    min_qualification TEXT DEFAULT 'UNKNOWN',
+    english_requirement TEXT DEFAULT 'UNKNOWN',
+    international_eligibility TEXT DEFAULT 'UNKNOWN',
+    application_deadline TEXT DEFAULT 'UNKNOWN',
+    deadline_source_url TEXT DEFAULT '',
+    email_verification_status TEXT DEFAULT 'UNVERIFIED_EMAIL',
+    email_source_url TEXT DEFAULT '',
+    has_recent_publication INTEGER DEFAULT 0,
+    topic_match_details TEXT DEFAULT '{}',
     verification_status TEXT NOT NULL DEFAULT 'NEEDS REVIEW' CHECK (
         verification_status IN ('VERIFIED', 'PARTIALLY VERIFIED', 'NEEDS REVIEW', 'NOT VERIFIED')
     ),
@@ -223,8 +235,15 @@ CREATE TABLE IF NOT EXISTS email_drafts (
     referenced_shama_paper TEXT NOT NULL,
     gmail_draft_id TEXT DEFAULT '',
     gmail_sync_status TEXT NOT NULL DEFAULT 'LOCAL_CRM_DRAFT_PENDING_OAUTH' CHECK (
-        gmail_sync_status IN ('GMAIL_DRAFT_CREATED', 'LOCAL_CRM_DRAFT_PENDING_OAUTH', 'MANUALLY_SENT_IN_GMAIL', 'ARCHIVED')
+        gmail_sync_status IN ('GMAIL_DRAFT_CREATED', 'LOCAL_CRM_DRAFT_PENDING_OAUTH', 'MANUALLY_SENT_IN_GMAIL', 'DRAFT_VALIDATION_FAILED', 'ARCHIVED')
     ),
+    quality_score INTEGER NOT NULL DEFAULT 0,
+    validation_status TEXT NOT NULL DEFAULT 'PENDING_VALIDATION' CHECK (
+        validation_status IN ('VALIDATED', 'DRAFT_VALIDATION_FAILED', 'PENDING_VALIDATION')
+    ),
+    validation_notes TEXT NOT NULL DEFAULT '',
+    synergy_paragraph TEXT NOT NULL DEFAULT '',
+    human_approved INTEGER NOT NULL DEFAULT 0,
     auto_send_disabled INTEGER NOT NULL DEFAULT 1 CHECK (auto_send_disabled = 1),
     batch_date TEXT NOT NULL,
     created_at TEXT NOT NULL,

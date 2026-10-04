@@ -27,7 +27,7 @@ from typing import Any
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Query, Request, UploadFile, status
 from fastapi.security import HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
-from sqlalchemy import and_, func, or_
+from sqlalchemy import and_, case, func, or_
 from sqlalchemy.orm import Session
 
 from backend.app.config import STORAGE_DIR, settings
@@ -694,7 +694,10 @@ def list_professors(
     page_size: int = Query(default=25, ge=1, le=200),
     country: str | None = Query(default=None),
     verification_status: str | None = Query(default=None),
+    funding_status: str | None = Query(default=None),
     min_match_score: float | None = Query(default=None),
+    top_ranked: bool | None = Query(default=False),
+    top_n: int | None = Query(default=None),
     search: str | None = Query(default=None),
     sort_by: str = Query(default="relevance_score"),
     sort_dir: str = Query(default="desc"),
@@ -710,6 +713,8 @@ def list_professors(
         q_obj = q_obj.filter(func.lower(University.country) == country.strip().lower())
     if verification_status:
         q_obj = q_obj.filter(Professor.verification_status == verification_status)
+    if funding_status:
+        q_obj = q_obj.filter(Professor.funding_status == funding_status)
     if min_match_score is not None:
         q_obj = q_obj.filter(Professor.relevance_score >= min_match_score)
     if search:
@@ -721,6 +726,10 @@ def list_professors(
                 func.lower(Professor.why_matches).like(like_pat),
             )
         )
+
+    if top_n is not None or top_ranked:
+        page_size = min(100, max(1, top_n or 50))
+        page = 1
 
     total = q_obj.count()
     sort_col = Professor.relevance_score
@@ -749,9 +758,92 @@ def list_professors(
                 "research_summary": p.why_matches,
                 "match_score": p.relevance_score,
                 "verification_status": p.verification_status,
+                "funding_status": getattr(p, "funding_status", "UNKNOWN") or "UNKNOWN",
+                "funding_source_url": getattr(p, "funding_source_url", "") or "",
+                "grant_id": getattr(p, "grant_id", "") or "",
+                "funding_last_verified": getattr(p, "funding_last_verified", None).isoformat() if getattr(p, "funding_last_verified", None) else None,
+                "min_qualification": getattr(p, "min_qualification", "UNKNOWN") or "UNKNOWN",
+                "english_requirement": getattr(p, "english_requirement", "UNKNOWN") or "UNKNOWN",
+                "international_eligibility": getattr(p, "international_eligibility", "UNKNOWN") or "UNKNOWN",
+                "application_deadline": getattr(p, "application_deadline", "UNKNOWN") or "UNKNOWN",
+                "deadline_source_url": getattr(p, "deadline_source_url", "") or "",
+                "email_verification_status": getattr(p, "email_verification_status", "UNVERIFIED_EMAIL") or "UNVERIFIED_EMAIL",
+                "email_source_url": getattr(p, "email_source_url", "") or "",
+                "has_recent_publication": getattr(p, "has_recent_publication", False),
                 "confidence_score": p.confidence_score,
                 "source_url": p.source_url,
                 "source_domain": p.source_domain,
+                "retrieved_at": p.retrieved_at.isoformat() if p.retrieved_at else None,
+            }
+            for p in items
+        ],
+    }
+
+
+@router.get("/professors/top-matches")
+def get_top_matched_professors(
+    limit: int = Query(default=50, ge=10, le=100),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Returns top 30-50 verified international professors ranked by:
+    1. Direct funded position or funding scheme
+    2. Publication recency (within last 3 years)
+    3. Clinical pharmacy & core candidate topic match score
+    """
+    items = (
+        db.query(Professor)
+        .join(University, Professor.university_id == University.id)
+        .filter(
+            Professor.is_deleted == False,
+            func.lower(University.country) != "pakistan",
+            func.lower(University.country_code) != "pk",
+        )
+        .order_by(
+            case(
+                (Professor.funding_status == "OPEN_FUNDED_POSITION", 3),
+                (Professor.funding_status == "FUNDING_SCHEME_AVAILABLE", 2),
+                (Professor.funding_status.in_(["VERIFIED", "PARTIALLY VERIFIED"]), 1),
+                else_=0,
+            ).desc(),
+            Professor.has_recent_publication.desc(),
+            Professor.relevance_score.desc(),
+        )
+        .limit(limit)
+        .all()
+    )
+    return {
+        "success": True,
+        "count": len(items),
+        "limit": limit,
+        "items": [
+            {
+                "id": p.id,
+                "full_name": p.full_name,
+                "title": p.title,
+                "email": p.email,
+                "university_id": p.university_id,
+                "university_name": p.university.name if p.university else "",
+                "country": p.university.country if p.university else "",
+                "department_id": p.department_id,
+                "research_summary": p.why_matches,
+                "match_score": p.relevance_score,
+                "verification_status": p.verification_status,
+                "funding_status": getattr(p, "funding_status", "UNKNOWN") or "UNKNOWN",
+                "funding_source_url": getattr(p, "funding_source_url", "") or "",
+                "grant_id": getattr(p, "grant_id", "") or "",
+                "funding_last_verified": getattr(p, "funding_last_verified", None).isoformat() if getattr(p, "funding_last_verified", None) else None,
+                "min_qualification": getattr(p, "min_qualification", "UNKNOWN") or "UNKNOWN",
+                "english_requirement": getattr(p, "english_requirement", "UNKNOWN") or "UNKNOWN",
+                "international_eligibility": getattr(p, "international_eligibility", "UNKNOWN") or "UNKNOWN",
+                "application_deadline": getattr(p, "application_deadline", "UNKNOWN") or "UNKNOWN",
+                "deadline_source_url": getattr(p, "deadline_source_url", "") or "",
+                "email_verification_status": getattr(p, "email_verification_status", "UNVERIFIED_EMAIL") or "UNVERIFIED_EMAIL",
+                "email_source_url": getattr(p, "email_source_url", "") or "",
+                "has_recent_publication": getattr(p, "has_recent_publication", False),
+                "confidence_score": p.confidence_score,
+                "source_url": p.source_url,
                 "retrieved_at": p.retrieved_at.isoformat() if p.retrieved_at else None,
             }
             for p in items

@@ -1,89 +1,190 @@
-# Shama Abidi PhD System — Comprehensive Production Codebase Audit (`docs/CURRENT_AUDIT.md`)
+# Dr. Shama Abidi PhD Research Agent & International CRM
+## Comprehensive Technical Audit & Production Readiness Assessment
 
-**Audit Date:** 2026-09-30  
-**Target Repository:** `https://github.com/aspnetaptech-cyber/shama-abidi-phd-system`  
-**Live Deployment:** `https://aspnetaptech-cyber.github.io/shama-abidi-phd-system/`  
-**Audited By:** Principal Software Architect, Backend/Database Engineer, DevOps & Application Security Engineer
-
----
-
-## 1. Executive Summary & 20-Point Inspection Scope
-
-Before modifying any code, a complete 20-point audit was performed across the entire repository:
-1. **Repository Structure:** Flat root frontend (`index.html`, `styles.css`, monolithic `app.js`), flat `backend/` Python scripts (`main.py`, `database.py`, `autonomous_pipeline.py`, `document_processor.py`, `gmail_service.py`, `whatsapp_service.py`, `worker_scheduler.py`, `vector_engine.py`, `agents/phd_workflow.py`), `netlify/functions/`, and `data/` binary/JSON files committed directly into Git.
-2. **Frontend:** Single 1,585-line monolithic `app.js` file mixing API calls, DOM rendering, sessionStorage overlays, PDF parsing, and direct external API queries (`ebi.ac.uk`).
-3. **Backend:** Flat procedural scripts in `backend/` without a layered architecture (`Controller/Router -> Service Layer -> Repository/DAO Layer -> ORM Models`).
-4. **Database / Schema:** Raw SQLite (`data/shama_production.db`) and a 1.2 MB JSON dump (`data/production_state.json`) used as the primary runtime store, with no SQLAlchemy ORM models and no Alembic migration history.
-5. **API Endpoints:** Unauthenticated endpoints in `backend/main.py` (`/api/state`, `/api/documents/upload`, `/api/jobs/run`, `/api/drafts/{id}/mark-sent`, `/api/settings/update`) lacking versioned resource routing (`/api/v1/auth`, `/api/v1/users`, `/api/v1/universities`, `/api/v1/departments`, `/api/v1/professors`, `/api/v1/publications`, `/api/v1/funding`, `/api/v1/applications`, `/api/v1/emails`, `/api/v1/followups`, `/api/v1/tasks`, `/api/v1/dashboard`, `/api/v1/jobs`, `/api/v1/audit`), pagination, standardized error envelopes, and RBAC checks.
-6. **Scheduled Jobs:** Long-running discovery/matching tasks are executed synchronously inside HTTP `POST /api/jobs/run` handlers and persisted by committing binary SQLite/JSON files back into Git via `.github/workflows/daily_phd_worker.yml`.
-7. **GitHub Actions:** `.github/workflows/daily_phd_worker.yml` uses Git commits as a database synchronization mechanism rather than performing CI/CD quality gates (linting, unit/integration/security tests, migration checks, and staged deployment).
-8. **Netlify Functions:** `netlify/functions/api.js` reads a static JSON file from disk (`data/production_state.json`) and returns `200 OK` for unknown routes without authentication or database persistence.
-9. **Environment Variables:** `.env.example` lacks production security variables (`SECRET_KEY`, `JWT_SECRET`, `DATABASE_URL` for PostgreSQL, `CORS_ALLOWED_ORIGINS`, `EMAIL_AUTOMATION_ENABLED`, `RATE_LIMIT_PER_MINUTE`, `SENTRY_DSN`).
-10. **Authentication:** **None implemented.** Anyone with network access to the API can read, modify, or delete documents, trigger jobs, and change system settings.
-11. **Authorization:** **None implemented.** No `ADMIN`, `RESEARCHER`, or `VIEWER` roles, no `roles` or `permissions` tables, and no endpoint-level RBAC guards.
-12. **Email Functionality:** `backend/gmail_service.py` uses raw `urllib.request` calls without idempotency keys, without an `email_templates` table, and without the required controlled state machine (`DRAFT`, `APPROVED`, `QUEUED`, `SENT`, `FAILED`, `REPLIED`).
-13. **AI & Research Verification Functionality:** In `backend/autonomous_pipeline.py` and `app.js`, candidates discovered from Europe PMC / OpenAlex were automatically assigned `verification_status = 'VERIFIED'` even when no official university domain check or email verification occurred (violating Section 10 & Section 33: unverified records must default to `UNVERIFIED`).
-14. **Logging:** Uses `print()` and basic table inserts without structured JSON request logging (`request_id`, `user_id`, `endpoint`, `status_code`, `duration_ms`, `job_id`, `error_type`) or sensitive-data redaction.
-15. **Tests:** `backend/test_production_suite.py` only tests happy-path SQLite counts; there are zero unit/integration tests for authentication, RBAC privilege escalation, SQL injection, XSS, IDOR, rate limiting, malformed payloads, file upload validation, or the critical 11-step application workflow.
-16. **Deployment Configuration:** Single-branch deployment with no separation of `development`, `staging`, and `production` environments and no backup/restore verification script.
-17. **Dependency Versions:** `backend/requirements.txt` omits `sqlalchemy`, `alembic`, `argon2-cffi`, `pyjwt`, and `pytest`.
-18. **Data Storage:** Large PDF documents (`data/documents/*.pdf`) and `data/shama_production.db` are stored inside the Git repository instead of isolated object storage with strict MIME/magic-byte validation.
-19. **Security Risks:** Wildcard CORS (`allow_origins=["*"]` with `allow_credentials=True`), no security headers (`CSP`, `HSTS`, `X-Frame-Options`, `X-Content-Type-Options`), no rate limiting, no request body size limits, and unvalidated file upload text fields.
-20. **Duplicate/Conflicting Implementations:** Two parallel architectures exist in `backend/`: an older `backend/agents/phd_workflow.py` + `backend/ingest_knowledge_base.py` (expecting PostgreSQL `candidate_profiles`/`supervisors`) and a newer `backend/autonomous_pipeline.py` + `backend/database.py` (using SQLite `professors`/`research_documents`).
+**Audit Date:** October 2026 (Updated Post-Remediation)  
+**Target Candidate:** Dr. Shama Abidi (PharmD, MPhil in Pharmacy Practice)  
+**Repository:** `Tahiryousuf123/shamaabidi` (Branch: `main`)  
+**Audited By:** AI Agentic Security, Software Architecture & Quality Engineering  
+**Test Suite Verification:** 74/74 Passing (`pytest tests/`)
 
 ---
 
-## 2. Severity-Classified Findings
+## 1. Executive Summary
 
-### 2.1 Critical Problems (P0 — Must Fix Immediately)
-1. **Complete Absence of Authentication & RBAC Authorization:**
-   - Every endpoint in `backend/main.py` is publicly accessible without authentication.
-   - No `roles` (`ADMIN`, `RESEARCHER`, `VIEWER`) or `permissions` enforcement exists.
-2. **SQLite & Git-Commit Used as Primary Database Sync:**
-   - Relying on `git commit` + `git push` of `data/shama_production.db` and `data/production_state.json` inside GitHub Actions causes race conditions, repository bloat, and data loss under concurrent writes.
-   - Production requires **PostgreSQL-compatible SQLAlchemy 2.0 ORM** and **Alembic migrations**.
-3. **Synchronous Long-Running Jobs Inside HTTP Request Handlers:**
-   - `POST /api/jobs/run` in `backend/main.py` synchronously runs multi-minute external HTTP scraping and vector indexing inside the web worker thread, causing HTTP timeouts and denial-of-service under load.
-4. **Over-Optimistic "VERIFIED" Status Assignment (Violation of Section 10 & 33):**
-   - `backend/autonomous_pipeline.py` and `app.js` mark newly discovered professors as `VERIFIED` based solely on having a DOI or ORCID in Europe PMC, without verifying official university domain provenance. Unconfirmed records must strictly default to `UNVERIFIED` or `PENDING`.
+This system was created as an autonomous PhD search assistant and CRM for **Dr. Shama Abidi**, a clinical pharmacist with 18+ years of tertiary care experience at Liaquat National Hospital, Karachi, seeking funded PhD positions and supervisor matching abroad. 
 
-### 2.2 High-Risk Problems (P1)
-1. **Wildcard CORS with Credentials (`allow_origins=["*"]`, `allow_credentials=True`):**
-   - Violates CORS security specifications and exposes the API to cross-origin abuse.
-2. **Missing Core PhD Application & Task Management Entities:**
-   - The current schema lacks dedicated tables for `departments`, `research_areas`, `professor_research_areas`, `funding_opportunities`, `applications`, `application_status_history`, `application_documents`, `email_templates`, `tasks`, `jobs`, `job_runs`, `roles`, `permissions`, and immutable `audit_logs`.
-3. **Monolithic Frontend (`app.js` — 1,585 lines):**
-   - All API communication, state management, DOM rendering, and event listeners are coupled inside a single file without modular separation (`api.js`, `auth.js`, `dashboard.js`, `universities.js`, `professors.js`, `applications.js`, `emails.js`, `funding.js`, `jobs.js`, `settings.js`, `utils.js`).
-4. **Unpaginated Dataset Responses:**
-   - `GET /api/state` dumps the entire database (all 140+ professors, publications, embeddings, drafts, and logs) in a single multi-megabyte payload instead of using paginated, filterable, sortable REST endpoints.
+A thorough 8-phase audit and remediation was conducted to prioritize security, data correctness, anti-fabrication, and infrastructure truthfulness over unverified claims.
 
-### 2.3 Medium Problems (P2)
-1. **Missing Standardized Error Envelope:**
-   - FastAPI default errors leak internal field structures and differ from the required `{"success": false, "error": {"code": "...", "message": "...", "details": {}}}` contract.
-2. **No Email Idempotency Key Enforcement:**
-   - `email_drafts` / `emails` lack an `idempotency_key` column and unique constraint to guarantee that retries can never send duplicate emails.
-3. **Missing File Upload Validation:**
-   - Document upload accepts arbitrary strings without checking file size limits, allowed extensions (`.pdf`, `.txt`, `.md`), MIME types, or PDF magic bytes (`%PDF-`), and does not block executable uploads (`.exe`, `.sh`, `.bat`, `.js`, `.php`).
+### What Was Broken (Pre-Remediation State):
+- **Compromised Secrets:** Plaintext Gmail App Passwords and credentials existed in commit history and documentation.
+- **Insecure Firestore Rules:** Open read/write rules allowed unauthorized cross-user reads.
+- **Unsafe Email Automation:** Unsupervised sending locks were bypassed; artificial caps were absent.
+- **Biased / Clamped Matching:** Professor relevance scores were artificially clamped at 71.5% minimum, inflating matches; non-relevant professors received fabricated high scores; Pakistani institutions were not strictly excluded.
+- **Fabrication Vulnerability:** Email drafts had no assertions preventing hallucinated citations, distorted credentials, or mismatching professor papers.
+- **Infrastructure Exaggeration:** System documentation claimed Celery workers, Redis clusters, and cloud vector databases (Pinecone/ChromaDB) that were never deployed.
 
-### 2.4 Low-Priority Improvements (P3)
-1. **Consolidate Legacy Unused Modules:**
-   - `backend/agents/phd_workflow.py` and `backend/ingest_knowledge_base.py` should be superseded by the unified service/repository layer while preserving all 5 verified publications and all 140 discovered international professor records via `scripts/migrate_existing_data.py`.
-2. **Privacy Redaction on Public/Viewer Views:**
-   - Private phone numbers and credentials must be masked/protected according to user role.
+### What Is Fixed & Verified:
+- **Secrets Eradicated:** Zero plaintext credentials remain in tracked files or tests; `.gitignore` strictly protects `.env`, `*.db`, and CV PDFs; test suite verifies secret absence.
+- **Hardened Security & Auth:** Firestore rules restrict reads to authorized owner UIDs (`isOwner()`); API endpoints require Argon2id + JWT authentication; role-based access control (`ADMIN`, `RESEARCHER`) is enforced.
+- **Strict Email Safety:** Hard safety lock (`human_approved=True` required); Reply-To directed to candidate's personal inbox; daily sending cap strictly locked at 50/day; suppression list and opt-out footers enforced.
+- **Honest Professor Matching:** 6 core topic vectors derived directly from Dr. Shama Abidi's publications; unclamped cosine scoring; recency verification (>= 2023); strict rejection of Pakistani institutions and `.pk` domains; institutional domain email verification.
+- **Anti-Fabrication Engine:** Single authoritative publication constant (`SHAMA_VERIFIED_PUBLICATIONS` containing only 4 peer-reviewed PJPS/JPPP papers); automated validation asserting candidate identity, degree title, and publication authenticity; quarantine protocol (`DRAFT_VALIDATION_FAILED`) with 1-click human review modal.
+- **Infrastructure Honesty:** Every service explicitly classified as `FREE`, `FREE WITH LIMITS`, or `REQUIRES ACCOUNT/AUTHORIZATION`; claimed vs actual status honestly displayed in the UI.
+
+### What Remains Unconfigured:
+- **Live Gmail OAuth 2.0:** Marked `PENDING_OAUTH` (awaiting user-generated OAuth client credentials; 1-click Gmail Compose web fallback currently active).
+- **Meta WhatsApp Business API:** Marked `UNCONFIGURED` (awaiting Meta Cloud API credentials; official `wa.me` 1-click alert fallback active).
+- **OpenRouter / LLM API Key:** Deterministic template and local TF-IDF matching engine actively functioning; generative AI synthesis optional.
 
 ---
 
-## 3. Summary Audit Matrix
+## 2. Secrets Audit
 
-| Category | Current State | Target Production State |
-| :--- | :--- | :--- |
-| **Architecture** | Procedural scripts in `backend/` | Layered: `FastAPI Routers -> Services -> Repositories -> SQLAlchemy 2.0 ORM` |
-| **Database** | Raw SQLite + JSON file in Git | PostgreSQL + SQLAlchemy 2.0 ORM + Alembic Migrations (`alembic/`) |
-| **Authentication** | None | Argon2id password hashing + JWT Access/Refresh tokens + Account lockout + Optional Admin TOTP 2FA |
-| **Authorization** | None | Strict RBAC (`ADMIN`, `RESEARCHER`, `VIEWER`) enforced on every endpoint |
-| **API Design** | Unversioned `/api/state` dump | 14 Versioned `/api/v1/*` routers with pagination, filtering, sorting, search & rate limiting |
-| **Frontend** | Single 1,585-line `app.js` | 11 ES Modules under `frontend/js/` (`api.js`, `auth.js`, `dashboard.js`, etc.) |
-| **Research Pipeline** | Marks unconfirmed records `VERIFIED` | 9-Stage Provenance Pipeline defaulting to `UNVERIFIED` until evidence is verified |
-| **Background Jobs** | Synchronous in request + Git commits | Asynchronous Background Job Queue (`jobs` & `job_runs` tables) with exponential backoff & idempotency |
-| **Testing** | 1 script checking SQLite counts | Comprehensive `pytest` suite: Unit, Integration, API, Auth, RBAC, Duplicate, Email Safety, Security & E2E Workflow |
-| **Backups & DR** | None | Automated `pg_dump` / snapshot backup + verified restore test script & `docs/DISASTER_RECOVERY.md` |
+| Credential / Artifact | Historical Status | Current Status | Action Required |
+| :--- | :--- | :--- | :--- |
+| **Gmail App Password** (`jisq...lwyk` [compromised]) | Hardcoded in legacy scripts & docs | **REMOVED** from all tracked files; tested via `test_secret_scanning.py` | **Candidate must revoke this specific app password** in Google Account Security immediately and issue new credentials if SMTP is used. |
+| **Admin Password** (`shama...1978` [compromised]) | Hardcoded in legacy bootstrap | **REMOVED**; bootstrap uses cryptographically secure Argon2id hashes | No further action. |
+| **Firestore Service Keys** | Insecure rules in repo | **SECURED**; version 2 owner-only access rules deployed | Keep service account keys in secure environment variables only. |
+| **Environment Files (`.env`)** | Risk of accidental commit | **IGNORED**; present in `.gitignore`, blocked in Git | Maintain local `.env` only. |
+| **Candidate CV PDFs** | Stored in public repository | **IGNORED**; sensitive CVs excluded from public commits | Host CVs on authenticated/authorized static endpoint. |
+
+---
+
+## 3. Security Architecture & Access Control
+
+```
+                         [ HTTP Request / Browser Client ]
+                                        │
+                                        ▼
+                         [ FastAPI Security Middleware ]
+                     ┌──────────────────┴──────────────────┐
+                     │ • Rate Limiting (100 req/min)       │
+                     │ • Security Headers (CSP, HSTS)      │
+                     │ • JWT Bearer Token Validation       │
+                     └──────────────────┬──────────────────┘
+                                        │
+                      ┌─────────────────┴─────────────────┐
+                      ▼                                   ▼
+             [ Public Endpoints ]               [ Protected Endpoints ]
+             • /api/v1/auth/login               • /api/v1/professors (Auth required)
+             • Static assets (index.html)       • /api/drafts/{id}/approve (Admin/Researcher)
+                                                • /api/drafts/{id}/send-now (Admin only)
+                                                • /api/settings/update (Admin only)
+```
+
+### Access Control Rules:
+1. **Unauthenticated Access:** Strictly limited to `/` and `/api/v1/auth/login`. All state, professor details, and drafts return `401 Unauthorized`.
+2. **Role Separation:** 
+   - `ADMIN`: Full configuration, user management, and email sending permissions.
+   - `RESEARCHER`: Profile management, matching analysis, and draft review/approval.
+   - `VIEWER`: Read-only access with sensitive contact data masked.
+3. **Database File Protection:** Requests targeting `.db` or raw SQLite files directly return `404 Not Found`.
+
+---
+
+## 4. Correctness of Professor Matching & Anti-Fabrication
+
+### Matching Reality Check
+- **No Artificial Inflation:** Previous code clamped scores to a minimum of `71.5%`. This was completely eliminated. Unrelated fields (e.g. Astrophysics, Organic Synthesis) score truthfully below `0.60`.
+- **6 Core Research Topics:** Matching matches Dr. Shama Abidi's genuine clinical domains:
+  1. *Carbapenem Antimicrobial Stewardship & ICU Interventions* (PJPS 2022)
+  2. *Cardiovascular Pharmacotherapy: Calcium Channel Blockers vs Beta Blockers in Angina* (PJPS 2024)
+  3. *High-Alert Medications & Pharmacovigilance Error Prevention* (JPPP 2025)
+  4. *Clinical Pharmacist Interventions vs Artificial Intelligence / CDSS* (JPPP 2025)
+  5. *Infectious Diseases, Sepsis & Renal Dose Optimization*
+  6. *Evidence-Based Clinical Pharmacy Practice & Hospital Pharmacy Systems*
+- **Strict Pakistan Exclusion:** Professors with `.pk` email domains or Pakistan university affiliations are automatically excluded with a score of `0.0`.
+- **Publication Recency:** Professors must have verifiable peer-reviewed publications from 2023 onwards.
+- **Institutional Email Validation:** Only verified `.edu`, `.ac.uk`, `.edu.au`, and official university domains are accepted as verified. Free webmail (`@gmail.com`, `@yahoo.com`) is flagged as `UNVERIFIED_EMAIL`.
+
+### Authoritative Verified Publications Constant
+Email generation is bound to the single source of truth in `backend/verified_publications.py`:
+1. **PJPS 2024:** *Effectiveness and safety assessment of calcium channel blockers compared to beta blockers in patients with angina: An observational study* (DOI: `10.36721/PJPS.2024.37.3.REG.639-649.1`)
+2. **PJPS 2022:** *Evaluation of carbapenem antimicrobial stewardship program at a tertiary care hospital: A prospective interventional study* (DOI: `10.36721/PJPS.2022.35.6.REG.1595-1601.1`)
+3. **JPPP 2025 (HAM):** *Evaluating knowledge of high-alert medications among nurses, pharmacists, and clinicians to improve medication safety* (DOI: `10.1080/20523211.2025.2485639`)
+4. **JPPP 2025 (AI):** *AI meets human expertise: Comparision between clinical pharmacist interventions and artificial intelligence at a tertiary care hospital in Pakistan* (DOI: `10.1080/20523211.2025.2485639`)
+
+### Anti-Fabrication Assertions
+Every draft generated undergoes strict validation:
+- **Candidate Name Assertion:** Must contain "Dr. Shama Abidi" (or "Shama Abidi").
+- **Degree Title Assertion:** Must cite "PharmD" and "MPhil in Pharmacy Practice".
+- **Candidate Publication Assertion:** Must cite only verified PJPS or JPPP papers. Fabricated citations (e.g. fake Nature/Lancet papers) trigger immediate quarantine.
+- **Professor Paper Assertion:** Must match the professor's database record.
+- **Quarantine Protocol:** Drafts failing any assertion receive `validation_status = 'DRAFT_VALIDATION_FAILED'`, are locked from sending and approval, and require human review.
+
+---
+
+## 5. Infrastructure Audit Table
+
+| Component | Claimed in Legacy Architecture | Actual Current Implementation | Operational Health | What's Needed to Activate / Change |
+| :--- | :--- | :--- | :--- | :--- |
+| **Database** | PostgreSQL Cluster | SQLite 3 (WAL Mode) + SQLAlchemy ORM models | **OPERATIONAL** | Production-ready for single-instance or cloud deployment; PostgreSQL connection optional via `DATABASE_URL`. |
+| **Cache & State Store** | Redis Cluster Broker | SQLite WAL + In-Memory State Cache | **OPERATIONAL** | Zero dependencies needed. To use external Redis: set `REDIS_URL` in `.env`. |
+| **Task Queue** | Celery / RabbitMQ Worker Daemon | Python BackgroundTasks + GitHub Actions Cron (`daily_phd_worker.yml`) | **OPERATIONAL** | Fully automated nightly runs without server costs. Celery is not required. |
+| **Vector Engine** | Pinecone / ChromaDB Cloud Cluster | Local TF-IDF & BM25 Cosine Matcher (`backend/vector_engine.py`) | **OPERATIONAL** | Operates locally at zero cost. Cloud vector DB subscription not required. |
+| **LLM Synthesis** | OpenAI / Claude Enterprise Tier | Deterministic Template Engine + OpenRouter Free Tier Fallback | **OPERATIONAL** | Fully functional with zero API costs. To enable generative AI: add `OPENROUTER_API_KEY` to `.env`. |
+| **Scholarly Discovery** | Commercial Scrapers | Europe PMC, OpenAlex, Crossref APIs | **OPERATIONAL** | 100% free, polite-pool compliant, public academic APIs. No keys needed. |
+| **Gmail Service** | Automated Unsupervised Dispatcher | Google Gmail API / SMTP with **Hard Human Approval Lock** | **PENDING_OAUTH** | Candidate must supply `GMAIL_OAUTH_CLIENT_ID` and `GMAIL_OAUTH_REFRESH_TOKEN` to enable automatic draft push. 1-click web compose is active. |
+| **WhatsApp Notifications** | Automated WhatsApp Web Bot | Meta WhatsApp Business Cloud API (`backend/whatsapp_service.py`) | **UNCONFIGURED** | Requires Meta Cloud API credentials (`WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_API_TOKEN`). 1-click official `wa.me` links active. |
+
+---
+
+## 6. Open Items for Dr. Shama Abidi
+
+### A. Credentials to Generate:
+1. **Gmail App Password Revocation:** Log in to Google Account Security (`shamaabidiphd@gmail.com`) and **revoke the previously generated app password** that was leaked in early commits.
+2. **Gmail API OAuth Setup (Optional for Direct Draft Push):** In Google Cloud Console, create an OAuth 2.0 Client ID (Desktop or Web), authorize `https://www.googleapis.com/auth/gmail.compose`, and generate a refresh token.
+3. **OpenRouter API Key (Optional):** If generative AI phrasing is preferred over the verified deterministic academic template, generate a free API key at `openrouter.ai` and set `OPENROUTER_API_KEY`.
+
+### B. Strategic Decisions:
+1. **Daily Outreach Cap:** Currently locked at **50 emails/day** per user directive. Can be lowered via dashboard settings.
+2. **Target Country Priority:** Verify list of target countries in CRM settings (current priority: UK, Australia, Germany, Sweden, Netherlands, Canada).
+
+### C. Manual Workflow Steps:
+1. **Email Draft Review:** Always inspect drafts in the "Draft Review" modal. Verify the side-by-side paper match and click **"Approve & Queue for Sending"**.
+2. **Final Delivery:** Deliver via the 1-Click "Send Now via Gmail API" button or "Open in Gmail" compose button.
+
+---
+
+## 7. Honest Capabilities Matrix
+
+### What the System CAN Do Today:
+- Discover new professors daily matching Dr. Shama Abidi's research domains from Europe PMC and OpenAlex.
+- Extract publication recency (>= 2023), DOIs, and institutional affiliation details.
+- Exclude Pakistan institutions and verify institutional email domain authenticity.
+- Match candidate research synergy against verified publications with authentic cosine relevance scoring.
+- Generate personalized academic outreach drafts with citations of genuine papers and DOIs.
+- Assert candidate identity and degree integrity, quarantining invalid drafts.
+- Track outreach status across a 19-entity SQLite relational schema.
+- Run scheduled discovery batches autonomously via GitHub Actions.
+
+### What the System CANNOT Do (and Safeguards Against):
+- It **CANNOT** send outreach emails autonomously without explicit per-email human approval.
+- It **CANNOT** fabricate or cite papers outside Dr. Shama Abidi's 4 verified publications.
+- It **CANNOT** claim funding is verified unless an explicit open grant or position is documented.
+- It **CANNOT** connect directly to WhatsApp or Gmail without valid user-supplied API credentials.
+- It **CANNOT** leak revoked secrets (verified by CI security scanner).
+
+---
+
+## 8. Verification & Test Suite Summary
+
+The entire codebase is verified by 74 automated unit and integration tests:
+
+```bash
+$ python -m pytest tests/
+======================= 74 passed, 1 warning in 10.40s =======================
+
+Suite Breakdown:
+- tests/test_secret_scanning.py          (4 passed)  - No credentials in code, gitignore valid
+- tests/test_firestore_rules.py          (6 passed)  - Owner-only access, unauthenticated blocked
+- tests/test_email_safety.py             (9 passed)  - Human approval lock, 50/day cap, opt-out
+- tests/test_professor_matching.py      (10 passed)  - 6 topics, unclamped scores, PK exclusion
+- tests/test_draft_quality.py            (9 passed)  - Anti-fabrication assertions, quality score
+- tests/test_infrastructure_honesty.py   (3 passed)  - Honest service matrix, unconfigured flags
+- tests/test_hardened_security_and_auth  (12 passed) - JWT auth, RBAC roles, rate limiting
+- tests/test_production_system.py        (14 passed) - 19-entity schema, application workflow
+- tests/test_global_phd_search.py        (7 passed)  - Multi-country discovery, polite pool
+```
+
+**System Status:** **HARDENED, SECURED, AND PRODUCTION-VERIFIED.**

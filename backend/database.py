@@ -48,12 +48,59 @@ def get_connection() -> sqlite3.Connection:
     return conn
 
 
+def ensure_phase4_schema(conn: sqlite3.Connection) -> None:
+    """Ensures Phase 4 schema columns exist on the professors table."""
+    try:
+        cols = {r["name"] for r in conn.execute("PRAGMA table_info(professors)").fetchall()}
+        new_cols = [
+            ("funding_source_url", "TEXT DEFAULT ''"),
+            ("funding_last_verified", "TEXT DEFAULT ''"),
+            ("grant_id", "TEXT DEFAULT ''"),
+            ("min_qualification", "TEXT DEFAULT 'UNKNOWN'"),
+            ("english_requirement", "TEXT DEFAULT 'UNKNOWN'"),
+            ("international_eligibility", "TEXT DEFAULT 'UNKNOWN'"),
+            ("application_deadline", "TEXT DEFAULT 'UNKNOWN'"),
+            ("deadline_source_url", "TEXT DEFAULT ''"),
+            ("email_verification_status", "TEXT DEFAULT 'UNVERIFIED_EMAIL'"),
+            ("email_source_url", "TEXT DEFAULT ''"),
+            ("has_recent_publication", "INTEGER DEFAULT 0"),
+            ("topic_match_details", "TEXT DEFAULT '{}'"),
+        ]
+        for col_name, col_def in new_cols:
+            if col_name not in cols:
+                conn.execute(f"ALTER TABLE professors ADD COLUMN {col_name} {col_def}")
+        conn.commit()
+    except Exception:
+        pass
+
+
+def ensure_drafts_quality_schema(conn: sqlite3.Connection) -> None:
+    """Ensures Phase 5 schema columns exist on the email_drafts table."""
+    try:
+        cols = {r["name"] for r in conn.execute("PRAGMA table_info(email_drafts)").fetchall()}
+        new_cols = [
+            ("quality_score", "INTEGER DEFAULT 0"),
+            ("validation_status", "TEXT DEFAULT 'PENDING_VALIDATION'"),
+            ("validation_notes", "TEXT DEFAULT ''"),
+            ("synergy_paragraph", "TEXT DEFAULT ''"),
+            ("human_approved", "INTEGER DEFAULT 0"),
+        ]
+        for col_name, col_def in new_cols:
+            if col_name not in cols:
+                conn.execute(f"ALTER TABLE email_drafts ADD COLUMN {col_name} {col_def}")
+        conn.commit()
+    except Exception:
+        pass
+
+
 def init_database() -> None:
     """Initializes all 19 tables from backend/db/init.sql and seeds default user & settings."""
     conn = get_connection()
     with open(INIT_SQL_PATH, "r", encoding="utf-8") as f:
         sql_script = f.read()
     conn.executescript(sql_script)
+    ensure_phase4_schema(conn)
+    ensure_drafts_quality_schema(conn)
 
     now = utc_now_iso()
     # 1. Seed primary user: Dr. Shama Abidi
@@ -317,6 +364,7 @@ def export_production_state_snapshot(service_health_matrix: Optional[List[Dict[s
     prof_by_id: Dict[str, Dict[str, Any]] = {}
     for prof in professors:
         prof["research_areas"] = json.loads(prof.get("research_areas_json") or "[]")
+        prof["topic_match_details"] = json.loads(prof.get("topic_match_details") or "{}")
         prof["publications"] = pubs_by_prof.get(prof["id"], [])
         prof["funding_detail"] = funding_by_prof.get(prof["id"], {})
         prof["verification_detail"] = verif_by_prof.get(prof["id"], {})
@@ -327,9 +375,14 @@ def export_production_state_snapshot(service_health_matrix: Optional[List[Dict[s
         d["professor_name"] = p_obj.get("full_name", "International Professor")
         d["university_name"] = p_obj.get("university_name", "")
         d["country"] = p_obj.get("country", "")
-        d["funding_status"] = p_obj.get("funding_status", "NO EVIDENCE FOUND")
+        d["funding_status"] = p_obj.get("funding_status", "UNKNOWN")
         d["verification_status"] = p_obj.get("verification_status", "VERIFIED")
         d["relevance_score"] = p_obj.get("relevance_score", 90.0)
+        d["quality_score"] = d.get("quality_score") or 0
+        d["validation_status"] = d.get("validation_status") or "PENDING_VALIDATION"
+        d["validation_notes"] = d.get("validation_notes") or ""
+        d["synergy_paragraph"] = d.get("synergy_paragraph") or ""
+        d["human_approved"] = bool(d.get("human_approved", 0))
 
     for t in threads:
         p_obj = prof_by_id.get(t["professor_id"], {})

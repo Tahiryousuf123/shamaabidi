@@ -46,7 +46,10 @@ def check_whatsapp_api_status() -> Dict[str, Any]:
             "service": "Meta WhatsApp Business Cloud API",
             "classification": "REQUIRES ACCOUNT/AUTHORIZATION",
             "connected": True,
-            "status_label": "CONNECTED (META CLOUD API CONFIGURED)",
+            "status_label": "CONNECTED",
+            "claimed_legacy": "Automated WhatsApp Cloud Gateway",
+            "actual_status": "CONNECTED (Meta Cloud API Configured)",
+            "activation_instructions": "Credentials configured and active in environment",
             "recipient_phone": recipient,
             "detail": f"Configured with Phone Number ID {phone_number_id[:6]}*** for recipient {recipient}.",
         }
@@ -54,7 +57,10 @@ def check_whatsapp_api_status() -> Dict[str, Any]:
         "service": "Meta WhatsApp Business Cloud API",
         "classification": "REQUIRES ACCOUNT/AUTHORIZATION",
         "connected": False,
-        "status_label": "REQUIRES META WHATSAPP BUSINESS API CREDENTIALS",
+        "status_label": "UNCONFIGURED",
+        "claimed_legacy": "Automated WhatsApp Cloud Gateway",
+        "actual_status": "UNCONFIGURED (Official wa.me 1-click fallback active)",
+        "activation_instructions": "Add WHATSAPP_PHONE_NUMBER_ID and WHATSAPP_API_TOKEN to .env",
         "recipient_phone": recipient,
         "detail": (
             "Set WHATSAPP_PHONE_NUMBER_ID and WHATSAPP_API_TOKEN in .env / Cloud Secrets to enable "

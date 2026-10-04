@@ -27,6 +27,18 @@ class FundingVerificationEnum(str, Enum):
     NO_EVIDENCE = "NO_EVIDENCE"
 
 
+class ProfessorFundingStatusEnum(str, Enum):
+    OPEN_FUNDED_POSITION = "OPEN_FUNDED_POSITION"
+    FUNDING_SCHEME_AVAILABLE = "FUNDING_SCHEME_AVAILABLE"
+    UNKNOWN = "UNKNOWN"
+
+
+class EmailVerificationStatusEnum(str, Enum):
+    VERIFIED_INSTITUTIONAL = "VERIFIED_INSTITUTIONAL"
+    UNVERIFIED_EMAIL = "UNVERIFIED_EMAIL"
+
+
+
 class ApplicationStatusEnum(str, Enum):
     DRAFT = "DRAFT"
     PREPARED = "PREPARED"

@@ -14,7 +14,10 @@ const tls = require("tls");
 function sendGmailSmtpDirect(recipient, subject, bodyText) {
   return new Promise((resolve, reject) => {
     const sender = process.env.GMAIL_SENDER_EMAIL || "shamaabidiphd@gmail.com";
-    const appPass = (process.env.GMAIL_APP_PASSWORD || "jisqsragwerolwyk").replace(/\s+/g, "");
+    const appPass = (process.env.GMAIL_APP_PASSWORD || "").replace(/\s+/g, "");
+    if (!appPass) {
+      return resolve({ success: false, error: "GMAIL_APP_PASSWORD environment variable is not configured." });
+    }
 
     const socket = tls.connect(465, "smtp.gmail.com", { rejectUnauthorized: false }, () => {
       let state = 0;
@@ -178,11 +181,11 @@ exports.handler = async (event) => {
   if (reqPath === "/v1/auth/login" || reqPath === "/auth/login") {
     let bodyObj = {};
     try { bodyObj = JSON.parse(event.body || "{}"); } catch (_) {}
-    const email = (bodyObj.email || "").toLowerCase().trim();
-    const pwd = bodyObj.password || "";
+    const validAdminPass = (process.env.ADMIN_PASSWORD || process.env.INITIAL_ADMIN_PASSWORD || "").trim();
     const isValid = (
+      validAdminPass.length >= 8 &&
       (email === "shamaabidi" || email === "shamaabidiphd@gmail.com" || email === "shama abidi") &&
-      (pwd === "shamaabidi1978" || pwd === "AdminShama#2026!")
+      pwd === validAdminPass
     );
 
     if (isValid) {
