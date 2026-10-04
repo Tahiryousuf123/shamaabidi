@@ -344,8 +344,6 @@ def send_gmail_message(
     when explicitly commanded by Dr. Shama Abidi clicking 'Send Now' in the dashboard.
     Attaches Dr. Shama Abidi Academic CV PDF.
     """
-    access_token = get_gmail_access_token()
-
     from email.mime.multipart import MIMEMultipart
     from email.mime.application import MIMEApplication
 
@@ -376,6 +374,26 @@ def send_gmail_message(
             except Exception:
                 pass
 
+    app_password = os.getenv("GMAIL_APP_PASSWORD", "").strip() or "jisqsragwerolwyk"
+    if app_password:
+        import smtplib
+        import ssl
+        try:
+            context = ssl.create_default_context()
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
+                server.login(sender_email, app_password.replace(" ", ""))
+                server.sendmail(sender_email, recipient_email, mime_msg.as_string())
+            msg_id = f"msg_smtp_{int(time.time())}_{secrets.token_hex(4)}"
+            th_id = f"th_smtp_{int(time.time())}_{secrets.token_hex(4)}"
+            return {
+                "status": "SENT",
+                "message_id": msg_id,
+                "thread_id": th_id,
+            }
+        except Exception as smtp_err:
+            logger.warning(f"SMTP send failed, falling back to Gmail API: {smtp_err}")
+
+    access_token = get_gmail_access_token()
     raw_base64 = base64.urlsafe_b64encode(mime_msg.as_bytes()).decode("utf-8")
     req_body = json.dumps({"raw": raw_base64}).encode("utf-8")
 
