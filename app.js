@@ -1313,29 +1313,6 @@ function renderSettingsView() {
   setVal("setFollowupDays", s.followup_days || "7");
   setVal("setGmailAccount", s.gmail_account || "shamaabidiphd@gmail.com");
   setVal("setWhatsappPhone", s.whatsapp_recipient_number || "+923002460474");
-
-  // Populate Firebase Sync Fields
-  const fbCfg = getFirebaseConfig();
-  if (fbCfg) {
-    setVal("fbApiKey", fbCfg.apiKey || "");
-    setVal("fbProjectId", fbCfg.projectId || "");
-    setVal("fbAppId", fbCfg.appId || "");
-    setVal("fbCollection", fbCfg.collection || "shama_crm_sync");
-    updateFirebaseBadge(Boolean(fbCfg.apiKey && fbCfg.projectId));
-  } else {
-    updateFirebaseBadge(false);
-  }
-
-  // Populate Google OAuth Fields
-  const oauthCfg = getGoogleOAuthConfig();
-  if (oauthCfg) {
-    setVal("oauthClientId", oauthCfg.client_id || "");
-    setVal("oauthClientSecret", oauthCfg.client_secret || "");
-    setVal("oauthRefreshToken", oauthCfg.refresh_token || "");
-    updateGoogleOAuthBadge(Boolean(oauthCfg.client_id && oauthCfg.refresh_token));
-  } else {
-    updateGoogleOAuthBadge(false);
-  }
 }
 
 function renderHealthView() {
