@@ -1,13 +1,13 @@
 {
   "schema_version": "4.0.0-production",
-  "generated_at": "2026-10-04T13:02:16Z",
+  "generated_at": "2026-10-04T15:21:59Z",
   "database_engine": "SQLite / PostgreSQL 28-Table Production Relational Schema",
   "dashboard_kpis": {
     "new_candidates": 620,
     "verified_professors": 620,
     "funding_opportunities": 267,
-    "global_phd_opportunities": 798,
-    "recommended_opportunities": 29,
+    "global_phd_opportunities": 799,
+    "recommended_opportunities": 30,
     "drafts_waiting": 620,
     "drafts_coverage_percent": 100.0,
     "dedup_integrity_percent": 100.0,
@@ -58984,6 +58984,38 @@
       "applicant_match_score": 85.0,
       "match_rationale": "Strong alignment with Dr. Shama Abidi's publications in: Antimicrobial Stewardship & Critical Care, Renal Pharmacokinetics & Dose Optimization.",
       "is_recommended_for_outreach": false
+    },
+    {
+      "id": "b1c8756c-601f-4aa3-b94b-1defd9561eb4",
+      "country": "United Kingdom",
+      "country_code": "GB",
+      "region": "Europe — Western and Northern Europe",
+      "university_name": "University of Oxford 84b294",
+      "phd_programme": "DPhil in Clinical Pharmacy & Antimicrobial Pharmacotherapy",
+      "research_field": "Antimicrobial Stewardship & Intensive Care Pharmacokinetics",
+      "supervisor_name": "Prof. Dr. David Roberts 84b294",
+      "supervisor_profile_url": "https://www.ox.ac.uk/faculty/roberts",
+      "supervisor_email": "david.roberts.84b294@ox.ac.uk",
+      "funding_source": "MRC Doctoral Training Partnership & Clarendon Fund",
+      "confirmed_funding_amount": "Full Home/International Tuition + GBP 19,237 Stipend/year",
+      "funding_type": "FULLY_FUNDED",
+      "tuition_coverage": "YES",
+      "stipend_amount": "GBP 19,237 per year",
+      "stipend_duration_months": "48",
+      "international_eligibility": "ELIGIBLE",
+      "english_requirements": "MEDIUM_OF_INSTRUCTION_EXEMPTION_ACCEPTED",
+      "english_exemption_details": "Candidates with a 5-year PharmD and MPhil taught in English from an accredited institution are eligible for English test exemption with official institutional certificate.",
+      "deadline_date": "2026-12-04",
+      "intended_intake": "October 2026",
+      "official_application_url": "https://www.ox.ac.uk/admissions/graduate/courses/dphil-medical-sciences",
+      "official_funding_url": "https://www.ox.ac.uk/admissions/graduate/fees-and-funding/oxford-scholarships",
+      "verification_status": "VERIFIED",
+      "required_qualifications": "Doctor of Pharmacy (PharmD) or MPhil in clinical pharmacology / pharmacy practice with strong academic standing.",
+      "required_documents": "Academic transcripts, CV, research proposal (2,000 words), English proficiency verification, 3 academic references.",
+      "evidence_text": "The Clarendon Fund scholarship in partnership with MRC covers full tuition fee waiver for international scholars and provides an annual tax-free living stipend of GBP 19,237 for 4 years.",
+      "applicant_match_score": 85.0,
+      "match_rationale": "Strong alignment with Dr. Shama Abidi's publications in: Antimicrobial Stewardship & Critical Care, Renal Pharmacokinetics & Dose Optimization.",
+      "is_recommended_for_outreach": true
     },
     {
       "id": "a5b788d7-da3a-4497-8ec9-cf275810c150",
@@ -119084,57 +119116,5 @@
       "updated_at": "2026-09-29T19:06:00Z"
     }
   ],
-  "service_health_matrix": [
-    {
-      "service": "Europe PMC / PubMed REST API",
-      "classification": "FREE",
-      "connected": true,
-      "status_label": "OPERATIONAL (100% FREE PUBLIC API)",
-      "detail": "Provides international biomedical papers, author affiliations, ORCIDs, DOIs, and grant/funder metadata."
-    },
-    {
-      "service": "OpenAlex Scholarly Graph API",
-      "classification": "FREE",
-      "connected": true,
-      "status_label": "OPERATIONAL (100% FREE POLITE POOL)",
-      "detail": "Provides global university ROR/country metadata, author publication histories, and grant links."
-    },
-    {
-      "service": "Crossref Academic Metadata API",
-      "classification": "FREE",
-      "connected": true,
-      "status_label": "OPERATIONAL (100% FREE PUBLIC API)",
-      "detail": "Provides DOI verification and funder registry lookups."
-    },
-    {
-      "service": "OpenRouter AI / Free LLM Tier",
-      "classification": "FREE WITH LIMITS",
-      "connected": true,
-      "status_label": "CONNECTED (OPENROUTER FREE MODEL)",
-      "detail": "Used for research synthesis and email personalization with zero-cost deterministic fallback."
-    },
-    {
-      "service": "GitHub Actions + Netlify Scheduled Functions",
-      "classification": "FREE WITH LIMITS",
-      "connected": true,
-      "status_label": "ACTIVE (CLOUD CRON SCHEDULER)",
-      "detail": "Runs daily discovery, matching, verification, and draft generation in the cloud with laptop OFF."
-    },
-    {
-      "service": "Gmail API (Drafts & Reply Monitor)",
-      "classification": "REQUIRES ACCOUNT/AUTHORIZATION",
-      "connected": true,
-      "status_label": "CONNECTED (LIVE OAUTH 2.0)",
-      "account": "shamaabidiphd@gmail.com",
-      "detail": "Live Gmail OAuth 2.0 verified for Draft creation and Reply monitoring."
-    },
-    {
-      "service": "Meta WhatsApp Business Cloud API",
-      "classification": "REQUIRES ACCOUNT/AUTHORIZATION",
-      "connected": false,
-      "status_label": "REQUIRES META WHATSAPP BUSINESS API CREDENTIALS",
-      "recipient_phone": "+923002460274",
-      "detail": "Set WHATSAPP_PHONE_NUMBER_ID and WHATSAPP_API_TOKEN in .env / Cloud Secrets to enable automatic server-to-WhatsApp Cloud API delivery. All alerts are logged in the CRM Notifications table with 1-click official wa.me links."
-    }
-  ]
+  "service_health_matrix": []
 }

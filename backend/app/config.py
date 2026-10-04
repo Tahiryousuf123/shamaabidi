@@ -3,9 +3,9 @@ Shama Abidi PhD System — Production Configuration (`backend/app/config.py`)
 Loads and validates environment variables with safe defaults and strict security settings.
 """
 
-import hashlib
 import os
 from pathlib import Path
+import secrets
 from typing import List
 
 
@@ -32,41 +32,94 @@ def _load_dotenv_file() -> None:
 _load_dotenv_file()
 
 
-def _resolve_database_url() -> str:
+def _resolve_environment() -> str:
+    return os.getenv("ENVIRONMENT", "development").strip().lower()
+
+
+def _resolve_database_url(env: str) -> str:
     raw_url = os.getenv("DATABASE_URL", "").strip()
+    if env == "production":
+        if not raw_url:
+            raise RuntimeError(
+                "CRITICAL_CONFIGURATION_ERROR: DATABASE_URL is missing in production. "
+                "Production requires a PostgreSQL connection (e.g. postgresql+psycopg://...). "
+                "Application startup aborted."
+            )
+        if raw_url.startswith("sqlite"):
+            raise RuntimeError(
+                "CRITICAL_CONFIGURATION_ERROR: SQLite is not allowed in production. "
+                "Please configure a PostgreSQL connection string. Application startup aborted."
+            )
+        return raw_url
+
     default_sqlite = f"sqlite:///{(DATA_DIR / 'shama_production_orm.db').as_posix()}"
-    if not raw_url:
-        return default_sqlite
-    # If .env has the docker-compose internal hostname `@postgres:5432` while running on host OS, use local ORM DB
-    if "@postgres:" in raw_url or "asyncpg" in raw_url:
+    if not raw_url or "@postgres:" in raw_url or "asyncpg" in raw_url:
         return default_sqlite
     return raw_url
 
 
-class Settings:
-    ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development").lower()
-    DATABASE_URL: str = _resolve_database_url()
+def _resolve_secret_key(env: str) -> str:
+    raw = os.getenv("SECRET_KEY", "").strip()
+    if not raw:
+        if env == "production":
+            raise RuntimeError(
+                "CRITICAL_CONFIGURATION_ERROR: SECRET_KEY is not configured in production. "
+                "Application startup aborted to prevent insecure execution."
+            )
+        return secrets.token_hex(32)
+    if env == "production" and len(raw) < 32:
+        raise RuntimeError("CRITICAL_CONFIGURATION_ERROR: Production SECRET_KEY must be >= 32 characters.")
+    return raw
 
-    SECRET_KEY: str = os.getenv(
-        "SECRET_KEY",
-        hashlib.sha256(b"shama-abidi-phd-system-secret-key-v5").hexdigest(),
-    )
-    JWT_SECRET: str = os.getenv(
-        "JWT_SECRET",
-        hashlib.sha256(b"shama-abidi-phd-system-jwt-secret-v5").hexdigest(),
-    )
+
+def _resolve_jwt_secret(env: str) -> str:
+    raw = os.getenv("JWT_SECRET", "").strip()
+    if not raw:
+        if env == "production":
+            raise RuntimeError(
+                "CRITICAL_CONFIGURATION_ERROR: JWT_SECRET is not configured in production. "
+                "Application startup aborted to prevent insecure token minting."
+            )
+        return secrets.token_hex(32)
+    if env == "production" and len(raw) < 32:
+        raise RuntimeError("CRITICAL_CONFIGURATION_ERROR: Production JWT_SECRET must be >= 32 characters.")
+    return raw
+
+
+def _resolve_cors_origins(env: str) -> List[str]:
+    raw = os.getenv("CORS_ALLOWED_ORIGINS", "").strip()
+    if raw:
+        return [o.strip() for o in raw.split(",") if o.strip()]
+    if env == "production":
+        prod_origins = os.getenv("PRODUCTION_FRONTEND_URL", "").strip()
+        origins = [o.strip() for o in prod_origins.split(",") if o.strip()] if prod_origins else []
+        if not origins:
+            origins = ["https://shamaabidiphd.sbs", "https://www.shamaabidiphd.sbs"]
+        return origins
+    return [
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:5500",
+        "http://127.0.0.1:5500",
+    ]
+
+
+class Settings:
+    ENVIRONMENT: str = _resolve_environment()
+    DATABASE_URL: str = _resolve_database_url(ENVIRONMENT)
+
+    SECRET_KEY: str = _resolve_secret_key(ENVIRONMENT)
+    JWT_SECRET: str = _resolve_jwt_secret(ENVIRONMENT)
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = int(os.getenv("JWT_REFRESH_TOKEN_EXPIRE_DAYS", "7"))
 
-    CORS_ALLOWED_ORIGINS: List[str] = [
-        o.strip()
-        for o in os.getenv(
-            "CORS_ALLOWED_ORIGINS",
-            "https://shamaabidiphd.sbs,https://www.shamaabidiphd.sbs,https://tahiryousuf123.github.io,https://aspnetaptech-cyber.github.io,http://localhost:8000,http://127.0.0.1:8000,http://localhost:3000",
-        ).split(",")
-        if o.strip()
-    ]
+    INITIAL_ADMIN_EMAIL: str = os.getenv("INITIAL_ADMIN_EMAIL", "shamaabidiphd@gmail.com").strip().lower()
+    INITIAL_ADMIN_PASSWORD: str = os.getenv("INITIAL_ADMIN_PASSWORD", "").strip()
+
+    CORS_ALLOWED_ORIGINS: List[str] = _resolve_cors_origins(ENVIRONMENT)
 
     RATE_LIMIT_PER_MINUTE: int = int(os.getenv("RATE_LIMIT_PER_MINUTE", "120"))
     AUTH_LOCKOUT_THRESHOLD: int = int(os.getenv("AUTH_LOCKOUT_THRESHOLD", "5"))
@@ -84,3 +137,4 @@ class Settings:
 
 
 settings = Settings()
+

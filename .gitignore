@@ -12,8 +12,14 @@ venv/
 node_modules/
 .vercel/
 .whatsapp_auth_session/
-backups/*.sql
-backups/*.db
-backups/production_state_backup_*.json
+backups/
+!backups/.gitkeep
+data/*.db
+data/*.sqlite*
+data/production_state.json
+*.db
+*.sqlite
+*.sqlite3
+*.sql
 storage/uploads/*
 !storage/uploads/.gitkeep

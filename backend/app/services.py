@@ -140,77 +140,79 @@ def seed_roles_users_and_jobs(db: Session) -> None:
             db.add(Permission(code=code, description=desc, role_name=r_name))
     db.commit()
 
-    # 3. Default Users (Admin: Dr. Shama Abidi, Researcher, Viewer)
-    shama_user = db.query(User).filter(User.email == "shamaabidiphd@gmail.com").first()
-    if shama_user:
-        shama_user.password_hash = hash_password("shamaabidi1978")
-    else:
-        db.add(
-            User(
-                id="user_admin_shama_phd",
-                email="shamaabidiphd@gmail.com",
-                full_name="Dr. Shama Abidi",
-                password_hash=hash_password("shamaabidi1978"),
-                role=RoleEnum.ADMIN.value,
-                is_active=True,
-                totp_secret="JBSWY3DPEHPK3PXP",
-                totp_enabled=False,
-                degree_title="PharmD, MPhil in Pharmacy Practice",
-                institution="Liaquat National Hospital & University of Karachi",
+    # 3. Secure First-Admin Bootstrap (Section 6: Never overwrite existing credentials)
+    existing_admin = db.query(User).filter(User.role == RoleEnum.ADMIN.value).first()
+    if not existing_admin:
+        admin_email = settings.INITIAL_ADMIN_EMAIL or "shamaabidiphd@gmail.com"
+        admin_pass = settings.INITIAL_ADMIN_PASSWORD
+        if not admin_pass:
+            if settings.ENVIRONMENT == "production":
+                logger.warning(
+                    "CRITICAL_ADMIN_BOOTSTRAP_NOTICE: No administrator exists in database. "
+                    "Set INITIAL_ADMIN_PASSWORD in environment or run `python scripts/bootstrap_admin.py`."
+                )
+            else:
+                admin_pass = "AdminShama#2026!"
+
+        if admin_pass:
+            try:
+                validate_password_policy(admin_pass)
+            except ValueError:
+                admin_pass = "AdminShama#2026!"
+
+            db.add(
+                User(
+                    id="user_admin_shama_phd",
+                    email=admin_email,
+                    full_name="Dr. Shama Abidi",
+                    password_hash=hash_password(admin_pass),
+                    role=RoleEnum.ADMIN.value,
+                    is_active=True,
+                    totp_secret=None,
+                    totp_enabled=False,
+                    degree_title="PharmD, MPhil in Pharmacy Practice",
+                    institution="Liaquat National Hospital & University of Karachi",
+                )
             )
-        )
-    if not db.query(User).filter(User.email == "shamaabidi").first():
-        db.add(
-            User(
-                id="user_admin_shamaabidi_alias",
-                email="shamaabidi",
-                full_name="Dr. Shama Abidi",
-                password_hash=hash_password("shamaabidi1978"),
-                role=RoleEnum.ADMIN.value,
-                is_active=True,
-                totp_secret="JBSWY3DPEHPK3PXP",
-                totp_enabled=False,
-                degree_title="PharmD, MPhil in Pharmacy Practice",
-                institution="Liaquat National Hospital & University of Karachi",
+            logger.info(f"Admin Bootstrap: Created initial administrator account for {admin_email}.")
+
+    # In development & testing environments only, seed helper test accounts if absent (never overwrite)
+    if settings.ENVIRONMENT != "production":
+        if not db.query(User).filter(User.email == "shama.abidi80@gmail.com").first():
+            db.add(
+                User(
+                    id="user_admin_shama_dev",
+                    email="shama.abidi80@gmail.com",
+                    full_name="Dr. Shama Abidi (Test Dev)",
+                    password_hash=hash_password("ShamaPhD#2026!Secure"),
+                    role=RoleEnum.ADMIN.value,
+                    is_active=True,
+                    degree_title="PharmD, MPhil in Pharmacy Practice",
+                    institution="Liaquat National Hospital & University of Karachi",
+                )
             )
-        )
-    if not db.query(User).filter(User.email == "shama.abidi80@gmail.com").first():
-        db.add(
-            User(
-                id="user_admin_shama",
-                email="shama.abidi80@gmail.com",
-                full_name="Dr. Shama Abidi",
-                password_hash=hash_password("ShamaPhD#2026!Secure"),
-                role=RoleEnum.ADMIN.value,
-                is_active=True,
-                totp_secret="JBSWY3DPEHPK3PXP",
-                totp_enabled=False,
-                degree_title="PharmD, MPhil in Pharmacy Practice",
-                institution="Liaquat National Hospital & University of Karachi",
+        if not db.query(User).filter(User.email == "researcher@shama-phd.org").first():
+            db.add(
+                User(
+                    id="user_researcher_default",
+                    email="researcher@shama-phd.org",
+                    full_name="Clinical Pharmacy Research Associate",
+                    password_hash=hash_password("Researcher#2026!Pass"),
+                    role=RoleEnum.RESEARCHER.value,
+                    is_active=True,
+                )
             )
-        )
-    if not db.query(User).filter(User.email == "researcher@shama-phd.org").first():
-        db.add(
-            User(
-                id="user_researcher_default",
-                email="researcher@shama-phd.org",
-                full_name="Clinical Pharmacy Research Associate",
-                password_hash=hash_password("Researcher#2026!Pass"),
-                role=RoleEnum.RESEARCHER.value,
-                is_active=True,
+        if not db.query(User).filter(User.email == "viewer@shama-phd.org").first():
+            db.add(
+                User(
+                    id="user_viewer_default",
+                    email="viewer@shama-phd.org",
+                    full_name="Academic Advisory Viewer",
+                    password_hash=hash_password("ViewerRead#2026!Pass"),
+                    role=RoleEnum.VIEWER.value,
+                    is_active=True,
+                )
             )
-        )
-    if not db.query(User).filter(User.email == "viewer@shama-phd.org").first():
-        db.add(
-            User(
-                id="user_viewer_default",
-                email="viewer@shama-phd.org",
-                full_name="Academic Advisory Viewer",
-                password_hash=hash_password("ViewerRead#2026!Pass"),
-                role=RoleEnum.VIEWER.value,
-                is_active=True,
-            )
-        )
     db.commit()
 
     # 4. Default Research Areas aligned with Dr. Shama Abidi's verified publications

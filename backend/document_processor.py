@@ -57,16 +57,20 @@ UPLOADED_PDF_SOURCES = [
 
 
 def ensure_uploaded_pdfs_copied() -> List[Path]:
-    """Copies the 4 real uploaded PDFs into data/documents/ if available locally."""
+    """Ensures verified academic PDFs exist in data/documents/."""
     DOCUMENTS_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
     copied: List[Path] = []
+    # 1. Existing documents in storage directory
+    for pdf_file in DOCUMENTS_STORAGE_DIR.glob("*.pdf"):
+        if pdf_file.is_file():
+            copied.append(pdf_file)
+    # 2. Check fallback sources if not already present
     for src, target_name in UPLOADED_PDF_SOURCES:
         dst = DOCUMENTS_STORAGE_DIR / target_name
         if src.exists() and not dst.exists():
             shutil.copy2(src, dst)
-        if dst.exists():
             copied.append(dst)
-    return copied
+    return list(dict.fromkeys(copied))
 
 
 def extract_facts_from_publication(pub: Dict[str, Any], doc_id: str, now: str) -> List[Dict[str, Any]]:

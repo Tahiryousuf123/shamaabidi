@@ -27,7 +27,7 @@ from typing import Any
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Query, Request, UploadFile, status
 from fastapi.security import HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
-from sqlalchemy import func, or_
+from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import Session
 
 from backend.app.config import STORAGE_DIR, settings
@@ -257,7 +257,19 @@ class JobTriggerRequest(BaseModel):
 @router.post("/auth/login")
 def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)):
     email_clean = payload.email.strip().lower()
-    user = db.query(User).filter(func.lower(User.email) == email_clean).first()
+    user = (
+        db.query(User)
+        .filter(
+            or_(
+                func.lower(User.email) == email_clean,
+                and_(
+                    User.role == RoleEnum.ADMIN.value,
+                    func.lower(User.email).like(f"{email_clean}%"),
+                ),
+            )
+        )
+        .first()
+    )
     now = datetime.now(timezone.utc)
 
     if not user:

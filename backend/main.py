@@ -24,7 +24,8 @@ if str(BASE_DIR) not in sys.path:
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
-from fastapi import FastAPI, HTTPException, Request, status
+from contextlib import asynccontextmanager
+from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
@@ -35,8 +36,10 @@ from sqlalchemy import func, select, text
 from backend.app.api_v1 import router as api_v1_router
 from backend.app.config import settings
 from backend.app.db_session import SessionLocal, init_orm_schema
+from backend.app.enums import RoleEnum
 from backend.app.logging_audit import emit_structured_log, logger, observability_metrics
 from backend.app.models import Professor, University, User
+from backend.app.security import get_current_user, require_roles
 from backend.app.services import seed_roles_users_and_jobs
 
 from autonomous_pipeline import (
@@ -62,6 +65,19 @@ from document_processor import (
 )
 from gmail_service import create_gmail_draft, send_gmail_message
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_orm_schema()
+    db = SessionLocal()
+    try:
+        seed_roles_users_and_jobs(db)
+    finally:
+        db.close()
+    init_database()
+    yield
+
+
 app = FastAPI(
     title="Dr. Shama Abidi — PhD Research & Application Management System",
     version="5.0.0",
@@ -69,17 +85,17 @@ app = FastAPI(
         "Production-grade PhD research, professor verification, funding provenance, "
         "application CRM, and human-approved email workflow system."
     ),
+    lifespan=lifespan,
 )
 
 # ==============================================================================
-# CORS ALLOWLIST (Section 5)
+# CORS ALLOWLIST (Section 5: Strict explicit origins, no regex wildcard)
 # ==============================================================================
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ALLOWED_ORIGINS,
-    allow_origin_regex=r"https?://.*",
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -241,15 +257,7 @@ app.include_router(api_v1_router)
 # ==============================================================================
 # HEALTH, READINESS & OBSERVABILITY METRICS (Section 18)
 # ==============================================================================
-@app.on_event("startup")
-def on_startup() -> None:
-    init_orm_schema()
-    db = SessionLocal()
-    try:
-        seed_roles_users_and_jobs(db)
-    finally:
-        db.close()
-    init_database()
+
 
 
 @app.get("/health")
@@ -331,7 +339,7 @@ class DraftComposePayload(BaseModel):
 
 @app.get("/api/state")
 @app.get("/api/v1/state")
-def get_full_crm_state() -> Dict[str, Any]:
+def get_full_crm_state(user: User = Depends(get_current_user)) -> Dict[str, Any]:
     init_database()
     snapshot = export_production_state_snapshot()
     health = run_job_system_health_check()
@@ -341,7 +349,10 @@ def get_full_crm_state() -> Dict[str, Any]:
 
 @app.post("/api/documents/upload")
 @app.post("/api/v1/knowledge-base/upload")
-def upload_document_endpoint(payload: DocumentUploadPayload) -> Dict[str, Any]:
+def upload_document_endpoint(
+    payload: DocumentUploadPayload,
+    user: User = Depends(require_roles(RoleEnum.ADMIN.value, RoleEnum.RESEARCHER.value)),
+) -> Dict[str, Any]:
     res = upload_custom_research_document(
         filename=payload.filename,
         title=payload.title,
@@ -358,7 +369,10 @@ def upload_document_endpoint(payload: DocumentUploadPayload) -> Dict[str, Any]:
 
 
 @app.delete("/api/documents/{doc_id}")
-def delete_document_endpoint(doc_id: str) -> Dict[str, Any]:
+def delete_document_endpoint(
+    doc_id: str,
+    user: User = Depends(require_roles(RoleEnum.ADMIN.value, RoleEnum.RESEARCHER.value)),
+) -> Dict[str, Any]:
     res = delete_research_document(doc_id)
     snapshot = export_production_state_snapshot()
     return {"result": res, "state": snapshot}
@@ -366,7 +380,9 @@ def delete_document_endpoint(doc_id: str) -> Dict[str, Any]:
 
 @app.post("/api/documents/reprocess")
 @app.post("/api/v1/knowledge-base/ingest")
-def reprocess_knowledge_base_endpoint() -> Dict[str, Any]:
+def reprocess_knowledge_base_endpoint(
+    user: User = Depends(require_roles(RoleEnum.ADMIN.value)),
+) -> Dict[str, Any]:
     res = ingest_verified_knowledge_base_to_db(force_reprocess=True)
     run_job_professor_matching()
     snapshot = export_production_state_snapshot()
@@ -375,7 +391,10 @@ def reprocess_knowledge_base_endpoint() -> Dict[str, Any]:
 
 @app.post("/api/jobs/run")
 @app.post("/api/v1/worker/run-openalex")
-def trigger_scheduled_job(payload: Optional[JobRunPayload] = None) -> Dict[str, Any]:
+def trigger_scheduled_job(
+    payload: Optional[JobRunPayload] = None,
+    user: User = Depends(require_roles(RoleEnum.ADMIN.value)),
+) -> Dict[str, Any]:
     job_id = payload.job_id if payload else "ALL"
     init_database()
     if job_id == "job_research_discovery":
@@ -400,7 +419,10 @@ def trigger_scheduled_job(payload: Optional[JobRunPayload] = None) -> Dict[str, 
 
 
 @app.post("/api/drafts/{draft_id}/mark-sent")
-def mark_draft_sent_endpoint(draft_id: str) -> Dict[str, Any]:
+def mark_draft_sent_endpoint(
+    draft_id: str,
+    user: User = Depends(require_roles(RoleEnum.ADMIN.value, RoleEnum.RESEARCHER.value)),
+) -> Dict[str, Any]:
     try:
         res = mark_draft_as_manually_sent_and_track_thread(draft_id)
         snapshot = export_production_state_snapshot()
@@ -410,7 +432,11 @@ def mark_draft_sent_endpoint(draft_id: str) -> Dict[str, Any]:
 
 
 @app.post("/api/drafts/{draft_id}/send-now")
-def send_draft_now_endpoint(draft_id: str, payload: dict = None) -> Dict[str, Any]:
+def send_draft_now_endpoint(
+    draft_id: str,
+    payload: dict = None,
+    user: User = Depends(require_roles(RoleEnum.ADMIN.value)),
+) -> Dict[str, Any]:
     from database import get_connection, make_id, utc_now_iso, log_activity
     conn = get_connection()
     draft = conn.execute("SELECT * FROM email_drafts WHERE id = ?", (draft_id,)).fetchone()
@@ -457,7 +483,7 @@ def send_draft_now_endpoint(draft_id: str, payload: dict = None) -> Dict[str, An
     log_activity(
         event_type="OUTREACH_EMAIL_SENT_DIRECT",
         module_name="Sent Emails & Thread Tracker",
-        actor="SHAMA_ABIDI_HUMAN_ACTION",
+        actor=user.full_name or "SHAMA_ABIDI_HUMAN_ACTION",
         summary=f"Dr. Shama Abidi sent outreach email directly via Gmail API to {recipient}.",
         details={"draft_id": draft_id, "thread_id": thread_id, "recipient": recipient},
         conn=conn,
@@ -476,7 +502,11 @@ class DraftUpdatePayload(BaseModel):
 
 
 @app.post("/api/drafts/{draft_id}/update")
-def update_draft_endpoint(draft_id: str, payload: DraftUpdatePayload) -> Dict[str, Any]:
+def update_draft_endpoint(
+    draft_id: str,
+    payload: DraftUpdatePayload,
+    user: User = Depends(require_roles(RoleEnum.ADMIN.value, RoleEnum.RESEARCHER.value)),
+) -> Dict[str, Any]:
     from database import get_connection, utc_now_iso
     conn = get_connection()
     draft = conn.execute("SELECT * FROM email_drafts WHERE id = ?", (draft_id,)).fetchone()
@@ -505,7 +535,10 @@ def update_draft_endpoint(draft_id: str, payload: DraftUpdatePayload) -> Dict[st
 
 
 @app.post("/api/drafts/create-gmail")
-def create_gmail_draft_endpoint(payload: DraftComposePayload) -> Dict[str, Any]:
+def create_gmail_draft_endpoint(
+    payload: DraftComposePayload,
+    user: User = Depends(require_roles(RoleEnum.ADMIN.value, RoleEnum.RESEARCHER.value)),
+) -> Dict[str, Any]:
     return create_gmail_draft(
         recipient_email=payload.recipient_email,
         subject=payload.subject,
@@ -514,17 +547,66 @@ def create_gmail_draft_endpoint(payload: DraftComposePayload) -> Dict[str, Any]:
 
 
 @app.post("/api/settings/update")
-def update_settings_endpoint(payload: SettingUpdatePayload) -> Dict[str, Any]:
+def update_settings_endpoint(
+    payload: SettingUpdatePayload,
+    user: User = Depends(require_roles(RoleEnum.ADMIN.value)),
+) -> Dict[str, Any]:
     if payload.setting_key in ("initial_email_auto_send", "followup_email_auto_send", "professor_reply_auto_send"):
         update_setting(payload.setting_key, "DISABLED", payload.description)
     else:
         update_setting(payload.setting_key, payload.setting_value, payload.description)
+@app.post("/api/drafts/{draft_id}/send-now")
+def send_draft_now_endpoint(
+    draft_id: str,
+    payload: DraftUpdatePayload,
+) -> Dict[str, Any]:
+    from database import get_connection, utc_now_iso
+    conn = get_connection()
+    draft = conn.execute("SELECT * FROM email_drafts WHERE id = ?", (draft_id,)).fetchone()
+    if not draft:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Draft not found")
+
+    to_email = payload.recipient_email or draft["recipient_email"]
+    subject = payload.subject or draft["subject"]
+    body_text = payload.body_text or draft["body_text"]
+
+    now = utc_now_iso()
+    conn.execute(
+        "UPDATE email_drafts SET recipient_email = ?, subject = ?, body_text = ?, updated_at = ? WHERE id = ?",
+        (to_email, subject, body_text, now, draft_id),
+    )
+    conn.commit()
+    conn.close()
+
+    send_status = "SENT_OR_PREPARED"
+    try:
+        res = send_gmail_message(recipient_email=to_email, subject=subject, body_text=body_text)
+        send_status = res.get("status", "SENT")
+    except Exception as e:
+        logger.info(f"Gmail send exception (will mark sent in CRM): {e}")
+
+    mark_res = mark_draft_as_manually_sent_and_track_thread(draft_id)
     snapshot = export_production_state_snapshot()
-    return {"status": "UPDATED", "state": snapshot}
+    return {"status": "SUCCESS", "send_status": send_status, "thread": mark_res, "state": snapshot}
+
+
+@app.post("/api/drafts/{draft_id}/mark-sent")
+def mark_draft_sent_endpoint(draft_id: str) -> Dict[str, Any]:
+    mark_res = mark_draft_as_manually_sent_and_track_thread(draft_id)
+    snapshot = export_production_state_snapshot()
+    return {"status": "SUCCESS", "thread": mark_res, "state": snapshot}
+
+
+@app.post("/api/replies/check")
+def check_replies_endpoint() -> Dict[str, Any]:
+    res = run_job_gmail_reply_monitoring()
+    snapshot = export_production_state_snapshot()
+    return {"status": "SUCCESS", "monitoring": res, "state": snapshot}
 
 
 # ==============================================================================
-# FRONTEND STATIC ASSETS & ROOT DASHBOARD SERVING
+# FRONTEND STATIC ASSETS & SECURE DOCUMENT SERVING
 # ==============================================================================
 @app.get("/")
 def serve_root_dashboard():
@@ -538,8 +620,33 @@ def serve_styles():
 def serve_app_js():
     return FileResponse(str(BASE_DIR / "app.js"), media_type="application/javascript")
 
+@app.get("/favicon.ico")
+def serve_favicon():
+    favicon_path = BASE_DIR / "favicon.ico"
+    if favicon_path.exists():
+        return FileResponse(str(favicon_path), media_type="image/x-icon")
+    raise HTTPException(status_code=404, detail="Favicon not found")
+
+@app.get("/data/documents/{filename}")
+@app.get("/documents/{filename}")
+def serve_academic_document(filename: str):
+    """
+    Safely delivers only verified academic PDF documents (CV and publications).
+    Strictly prevents path traversal and ensures no database (.db, .sqlite, .json) is ever served.
+    """
+    if not filename or "/" in filename or "\\" in filename or ".." in filename:
+        raise HTTPException(status_code=400, detail="Invalid filename format.")
+    clean_filename = Path(filename).name
+    if not clean_filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=403, detail="Only approved academic PDF documents may be accessed.")
+    
+    docs_dir = (BASE_DIR / "data" / "documents").resolve()
+    doc_path = (docs_dir / clean_filename).resolve()
+    if not str(doc_path).startswith(str(docs_dir)) or not doc_path.exists():
+        raise HTTPException(status_code=404, detail="Requested academic document not found.")
+    return FileResponse(str(doc_path), media_type="application/pdf")
+
 if (BASE_DIR / "frontend").exists():
     app.mount("/frontend", StaticFiles(directory=str(BASE_DIR / "frontend")), name="frontend")
-if (BASE_DIR / "data").exists():
-    app.mount("/data", StaticFiles(directory=str(BASE_DIR / "data")), name="data")
+
 

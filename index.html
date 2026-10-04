@@ -32,13 +32,13 @@
 
       <form id="authLoginForm" onsubmit="handlePortalLogin(event)" style="display:flex;flex-direction:column;gap:14px;margin-top:20px;">
         <div class="form-group">
-          <label for="authUsernameInput" style="font-size:0.8rem;color:#cbd5e1;font-weight:600;">Username</label>
+          <label for="authUsernameInput" style="font-size:0.8rem;color:#cbd5e1;font-weight:600;">Email or Username</label>
           <input 
             type="text" 
             id="authUsernameInput" 
             required 
             autocomplete="username" 
-            placeholder="Enter username (Shamaabidi)" 
+            placeholder="shamaabidiphd@gmail.com" 
             style="background:#0f172a;border:1px solid var(--border-color);color:#fff;padding:11px 14px;border-radius:8px;font-size:0.9rem;width:100%;"
           />
         </div>
@@ -623,6 +623,9 @@
                 Tracks emails that Dr. Shama Abidi has manually sent from <code>shamaabidiphd@gmail.com</code>. Threads without a reply after 7 days automatically receive a follow-up draft.
               </p>
             </div>
+            <button id="btnFastForwardSentThreads" class="btn btn-secondary" style="border-color:#38bdf8;color:#38bdf8;font-weight:700;">
+              ⚡ Fast-Forward 7 Days (Test Auto Follow-Up)
+            </button>
           </div>
           <div id="sentThreadsContainer" class="cards-stack"></div>
         </div>
