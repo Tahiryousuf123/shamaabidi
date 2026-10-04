@@ -705,6 +705,86 @@ function populateCountryFilterDropdown() {
   if (countries.includes(currentVal)) select.value = currentVal;
 }
 
+function getUniversityAdmissionDetails(uniName = "", country = "") {
+  const c = (country || "").toLowerCase();
+  const searchPortalUrl = `https://www.google.com/search?q=${encodeURIComponent((uniName || "University") + " PhD Clinical Pharmacy postgraduate admissions deadline procedure")}`;
+
+  if (c.includes("united kingdom") || c.includes("uk") || c.includes("england") || c.includes("scotland")) {
+    return {
+      intake_season: "🇬🇧 UK: Autumn (Oct) & Spring (Jan)",
+      deadlines: "• Funded/Scholarships: Dec 1 – Jan 15\n• General/Self-Funded: June 30 / Rolling",
+      short_deadline: "Jan 15 (Funded) / June 30",
+      procedure: "1. Prospective supervisor agreement in-principle (Current Step via Email)\n2. Submit 1,500-word Clinical Pharmacy Concept Note\n3. Online Postgraduate Admissions Portal submission",
+      candidate_action: "Once professor responds favorably, apply for University Postgraduate Research Scholarship or Commonwealth Fellowship.",
+      portal_url: searchPortalUrl,
+    };
+  }
+
+  if (c.includes("germany") || c.includes("deutschland")) {
+    return {
+      intake_season: "🇩🇪 Germany: Winter (Oct) & Summer (Apr)",
+      deadlines: "• Winter Semester: July 15\n• Summer Semester: Jan 15\n• DAAD Fellowships: Oct – Dec",
+      short_deadline: "July 15 (Winter) / Jan 15",
+      procedure: "1. Direct Supervisor Acceptance Letter ('Betreuungszusage')\n2. Formal Doctoral Registration at Dean's Office\n3. DAAD / German Research Foundation (DFG) grant application",
+      candidate_action: "German universities do not charge tuition fees! Securing supervisor agreement is the main qualification requirement.",
+      portal_url: searchPortalUrl,
+    };
+  }
+
+  if (c.includes("australia") || c.includes("new zealand")) {
+    return {
+      intake_season: "🇦🇺 Australia: Semester 1 (Feb) & Semester 2 (Jul)",
+      deadlines: "• Round 1 (RTP Full Scholarship): Aug 31 – Oct 31\n• Round 2 (Mid-Year): April 30 – May 31",
+      short_deadline: "Oct 31 (RTP) / May 31",
+      procedure: "1. Expression of Interest (EOI) & Supervisor Support Form\n2. Faculty Formal Invitation to Apply\n3. Online Admissions + Full RTP Tuition & Living Stipend (AUD $35,000/yr)",
+      candidate_action: "Australian universities prioritize clinical pharmacists with published peer-reviewed papers for RTP full fee-waivers and living stipends.",
+      portal_url: searchPortalUrl,
+    };
+  }
+
+  if (c.includes("canada")) {
+    return {
+      intake_season: "🇨🇦 Canada: Fall (September) & Winter (January)",
+      deadlines: "• Fall Intake (Funded/Awards): Dec 15 – Jan 15\n• Winter Intake: August 1",
+      short_deadline: "Jan 15 (Fall) / Aug 1",
+      procedure: "1. Supervisor confirmation of lab space/stipend\n2. School of Graduate Studies (SGS) online application\n3. Departmental Admissions Committee review",
+      candidate_action: "Canadian pharmacy departments require supervisor sponsorship before full admission can be approved.",
+      portal_url: searchPortalUrl,
+    };
+  }
+
+  if (c.includes("sweden") || c.includes("netherlands") || c.includes("denmark") || c.includes("norway") || c.includes("finland") || c.includes("switzerland")) {
+    return {
+      intake_season: "🇪🇺 Nordic / Europe: Year-Round / Vacancy-Based",
+      deadlines: "• Advertised Project Vacancies: Year-Round (Rolling)\n• Academic Cohorts: Sept 1 & Feb 1",
+      short_deadline: "Rolling / Salaried Position",
+      procedure: "1. PhDs are treated as salaried employee positions ('Doctoral Candidate')\n2. Direct interview with Professor & Research Group\n3. Formal employment contract & university matriculation",
+      candidate_action: "In Sweden and the Netherlands, PhD candidates receive full monthly salaries with zero tuition fees.",
+      portal_url: searchPortalUrl,
+    };
+  }
+
+  if (c.includes("united states") || c.includes("usa")) {
+    return {
+      intake_season: "🇺🇸 USA: Fall Semester (August / September)",
+      deadlines: "• Priority/Fellowship Deadline: Dec 1 – Dec 15\n• Final Application Deadline: Jan 15",
+      short_deadline: "Dec 15 (Priority) / Jan 15",
+      procedure: "1. Graduate School Online Application + Statement of Purpose\n2. Official WES Credential Evaluation & IELTS/TOEFL\n3. Departmental Committee Rotations & Research Matching",
+      candidate_action: "US PhD programs in Pharmaceutical Sciences typically offer full tuition waivers + $30,000-$36,000 annual Graduate Assistantships.",
+      portal_url: searchPortalUrl,
+    };
+  }
+
+  return {
+    intake_season: "🌍 International: Fall (September) & Spring (January)",
+    deadlines: "• Priority / Funded Round: Dec 15 – Jan 31\n• General Admissions: April 30 – June 30",
+    short_deadline: "Jan 31 (Funded) / June 30",
+    procedure: "1. Prospective supervisor confirmation via email (Current Step)\n2. Submit academic transcripts, MPhil thesis & proposal\n3. Online university graduate admissions registration",
+    candidate_action: "Secure supervisor interest first, then submit formal application with university postgraduate portal.",
+    portal_url: searchPortalUrl,
+  };
+}
+
 function renderProfessorsView() {
   const container = document.getElementById("professorsTableContainer");
   if (!container || !appState) return;
@@ -761,6 +841,8 @@ function renderProfessorsView() {
         ? `<div style="font-size:0.74rem;color:#f8fafc;margin-top:3px;"><strong>Agency:</strong> ${escapeHtml(fd.grant_agency)} ${fd.grant_id_or_program ? `(ID: <code>${escapeHtml(fd.grant_id_or_program)}</code>)` : ''}</div>`
         : `<div style="font-size:0.74rem;color:var(--text-muted);margin-top:3px;">University Doctoral Scholarship Track</div>`;
 
+      const adm = getUniversityAdmissionDetails(p.university_name, p.country);
+
       return `
       <tr>
         <td data-label="Professor &amp; Contact">
@@ -773,8 +855,12 @@ function renderProfessorsView() {
           <div style="font-size:0.76rem;color:var(--text-muted);">${escapeHtml(p.department)}</div>
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:4px;">
             <span class="status-pill" style="font-size:0.72rem;">🌍 ${escapeHtml(p.country)}</span>
-            <a href="${escapeHtml(paperLink)}" target="_blank" rel="noopener noreferrer" style="font-size:0.72rem;color:#38bdf8;background:rgba(56,189,248,0.12);padding:2px 7px;border-radius:4px;border:1px solid rgba(56,189,248,0.3);text-decoration:none;font-weight:600;">
-              🔗 Source Link ↗
+            <span class="status-pill" style="font-size:0.71rem;background:rgba(250,204,21,0.12);color:#fde047;border:1px solid rgba(250,204,21,0.3);">📅 ${escapeHtml(adm.short_deadline)}</span>
+            <a href="${escapeHtml(adm.portal_url)}" target="_blank" rel="noopener noreferrer" style="font-size:0.72rem;color:#38bdf8;background:rgba(56,189,248,0.12);padding:2px 7px;border-radius:4px;border:1px solid rgba(56,189,248,0.3);text-decoration:none;font-weight:600;">
+              🎓 Admissions Portal ↗
+            </a>
+            <a href="${escapeHtml(paperLink)}" target="_blank" rel="noopener noreferrer" style="font-size:0.72rem;color:#94a3b8;padding:2px 6px;text-decoration:none;">
+              🔗 Paper Link ↗
             </a>
           </div>
         </td>
@@ -1451,6 +1537,7 @@ window.openDraftModal = function (draftId) {
     const paperLink = prof.recent_paper_doi
       ? `https://doi.org/${encodeURIComponent(prof.recent_paper_doi)}`
       : (prof.profile_url || `https://scholar.google.com/scholar?q=${encodeURIComponent((prof.full_name || "") + " " + (prof.university_name || ""))}`);
+    const adm = getUniversityAdmissionDetails(prof.university_name || draft.university_name, prof.country || draft.country);
 
     provEl.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:8px;">
@@ -1482,6 +1569,34 @@ window.openDraftModal = function (draftId) {
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:4px;">
           <span class="${getFundingBadgeClass(prof.funding_status || draft.funding_status)}">Funding: ${escapeHtml(prof.funding_status || draft.funding_status || "University Track")}</span>
           ${fd.grant_agency ? `<span style="font-size:0.74rem;color:#a7f3d0;">Agency: ${escapeHtml(fd.grant_agency)} ${fd.grant_id_or_program ? `(ID: <code>${escapeHtml(fd.grant_id_or_program)}</code>)` : ''}</span>` : ''}
+        </div>
+      </div>
+
+      <!-- PhD Admission Deadlines & Procedure Roadmap -->
+      <div style="margin-top:8px;padding:10px 12px;background:rgba(30,58,138,0.22);border-radius:8px;border:1px solid rgba(96,165,250,0.3);font-size:0.79rem;line-height:1.5;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:6px;">
+          <div style="font-weight:700;color:#93c5fd;display:flex;align-items:center;gap:6px;">
+            <span>🎓 PhD Admission Deadlines &amp; Procedure:</span>
+            <span class="status-pill" style="font-size:0.71rem;background:rgba(16,185,129,0.18);color:#34d399;border:1px solid rgba(16,185,129,0.35);">
+              ${escapeHtml(adm.intake_season)}
+            </span>
+          </div>
+          <a href="${escapeHtml(adm.portal_url)}" target="_blank" rel="noopener noreferrer" style="color:#38bdf8;font-size:0.75rem;font-weight:700;text-decoration:underline;">
+            🏛️ University Admissions Portal ↗
+          </a>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px;margin-top:6px;">
+          <div style="background:rgba(15,23,42,0.6);padding:6px 9px;border-radius:6px;border:1px solid rgba(255,255,255,0.06);">
+            <div style="color:#cbd5e1;font-weight:600;font-size:0.73rem;">📅 Key Deadlines:</div>
+            <div style="color:#fde047;font-size:0.76rem;font-weight:600;white-space:pre-line;">${escapeHtml(adm.deadlines)}</div>
+          </div>
+          <div style="background:rgba(15,23,42,0.6);padding:6px 9px;border-radius:6px;border:1px solid rgba(255,255,255,0.06);">
+            <div style="color:#cbd5e1;font-weight:600;font-size:0.73rem;">📋 Official Application Procedure:</div>
+            <div style="color:#e2e8f0;font-size:0.74rem;white-space:pre-line;">${escapeHtml(adm.procedure)}</div>
+          </div>
+        </div>
+        <div style="margin-top:6px;font-size:0.73rem;color:#a5b4fc;background:rgba(99,102,241,0.1);padding:4px 8px;border-radius:4px;border:1px solid rgba(99,102,241,0.2);">
+          💡 <strong>Candidate Strategy:</strong> ${escapeHtml(adm.candidate_action)}
         </div>
       </div>
     `;
