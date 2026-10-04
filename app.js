@@ -214,8 +214,7 @@ async function loadPersistentCloudState(showNotification = false) {
     endpoints.push(`${apiBase}/api/state?t=${Date.now()}`);
     endpoints.push(`${apiBase}/api/v1/state?t=${Date.now()}`);
   }
-  endpoints.push(`/api/state?t=${Date.now()}`);
-  endpoints.push(`/api/v1/state?t=${Date.now()}`);
+  // Authoritative production database snapshot on GitHub Pages / static hosting
   endpoints.push(`./data/production_state.json?t=${Date.now()}`);
   endpoints.push(`data/production_state.json?t=${Date.now()}`);
 
@@ -2714,10 +2713,12 @@ document.addEventListener("DOMContentLoaded", () => {
   // Autonomous Discovery Scheduler: ensures client always gets fresh candidates without manual clicks
   initAutonomousDiscoveryScheduler();
 
-  // Live Multi-Device Real-Time Sync: polls every 8s so changes on mobile instantly reflect on laptop & vice-versa
+  // Live Multi-Device Real-Time Sync: Firestore handles real-time sync via WebSockets; fallback polls every 30s
   setInterval(() => {
-    loadPersistentCloudState(false);
-  }, 8000);
+    if (!firestoreDb) {
+      loadPersistentCloudState(false);
+    }
+  }, 30000);
 });
 
 /**
