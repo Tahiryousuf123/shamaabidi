@@ -403,6 +403,13 @@ function saveSessionOverlay(overlay) {
     sessionStorage.setItem("shama_crm_overlay_v7", serialized);
     localStorage.setItem("shama_crm_overlay_v7", serialized);
     broadcastStateChange();
+
+    if (firestoreDb) {
+      const cfg = getFirebaseConfig();
+      firestoreDb.collection(cfg?.collection || "shama_crm_sync").doc("overlay").set(overlay, { merge: true }).catch((err) => {
+        console.warn("Firestore sync write error:", err);
+      });
+    }
   } catch (e) {}
 }
 
@@ -1306,6 +1313,29 @@ function renderSettingsView() {
   setVal("setFollowupDays", s.followup_days || "7");
   setVal("setGmailAccount", s.gmail_account || "shamaabidiphd@gmail.com");
   setVal("setWhatsappPhone", s.whatsapp_recipient_number || "+923002460474");
+
+  // Populate Firebase Sync Fields
+  const fbCfg = getFirebaseConfig();
+  if (fbCfg) {
+    setVal("fbApiKey", fbCfg.apiKey || "");
+    setVal("fbProjectId", fbCfg.projectId || "");
+    setVal("fbAppId", fbCfg.appId || "");
+    setVal("fbCollection", fbCfg.collection || "shama_crm_sync");
+    updateFirebaseBadge(Boolean(fbCfg.apiKey && fbCfg.projectId));
+  } else {
+    updateFirebaseBadge(false);
+  }
+
+  // Populate Google OAuth Fields
+  const oauthCfg = getGoogleOAuthConfig();
+  if (oauthCfg) {
+    setVal("oauthClientId", oauthCfg.client_id || "");
+    setVal("oauthClientSecret", oauthCfg.client_secret || "");
+    setVal("oauthRefreshToken", oauthCfg.refresh_token || "");
+    updateGoogleOAuthBadge(Boolean(oauthCfg.client_id && oauthCfg.refresh_token));
+  } else {
+    updateGoogleOAuthBadge(false);
+  }
 }
 
 function renderHealthView() {
@@ -1652,36 +1682,62 @@ window.sendDraftDirectlyViaApi = async function () {
   overlay.extra_threads = [newThread, ...(overlay.extra_threads || []).filter((t) => t.draft_id !== draft.id)];
   saveSessionOverlay(overlay);
 
-  // 5. Try sending via backend API if available
-  const apiBase = getBackendApiBase();
-  const sendUrl = `${apiBase}/api/drafts/${encodeURIComponent(draft.id)}/send-now`;
-  try {
-    const resp = await fetch(sendUrl, {
-      method: "POST",
-      headers: getAuthHeaders({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ recipient_email: to, subject: sub, body_text: body }),
-    });
-    if (resp.ok) {
-      const data = await resp.json();
-      if (data.state) appState = data.state;
+  // 5. Try dispatching via Official Google OAuth 2.0 Gmail API if credentials provided
+  let dispatchedViaOfficialGmail = false;
+  const oauthCfg = getGoogleOAuthConfig();
+  if (oauthCfg && oauthCfg.client_id && oauthCfg.client_secret && oauthCfg.refresh_token) {
+    try {
+      const accessToken = await refreshGoogleOAuthToken(oauthCfg);
+      if (accessToken) {
+        const rawEmail = makeBase64UrlEmail(to, oauthCfg.sender_email || "shamaabidiphd@gmail.com", sub, body);
+        const gResp = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ raw: rawEmail }),
+        });
+        if (gResp.ok) {
+          const gData = await gResp.json();
+          newThread.gmail_thread_id = gData.threadId || newThread.gmail_thread_id;
+          newThread.gmail_message_id = gData.id;
+          dispatchedViaOfficialGmail = true;
+        }
+      }
+    } catch (gErr) {
+      console.warn("Direct Gmail API dispatch exception:", gErr);
     }
-  } catch (e) {
-    // Seamless fallback
   }
 
-  // 6. Open Gmail Compose pre-filled
-  const gmailUrl = buildGmailComposeUrl(to, sub, body);
-  window.open(gmailUrl, "_blank", "noopener,noreferrer");
+  // 6. If not sent via official OAuth API, fall back to backend or direct Gmail Compose with CV auto-download
+  if (!dispatchedViaOfficialGmail) {
+    const apiBase = getBackendApiBase();
+    const sendUrl = `${apiBase}/api/drafts/${encodeURIComponent(draft.id)}/send-now`;
+    try {
+      const resp = await fetch(sendUrl, {
+        method: "POST",
+        headers: getAuthHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ recipient_email: to, subject: sub, body_text: body }),
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data.state) appState = data.state;
+      }
+    } catch (e) {}
 
-  // 7. Auto-download Dr. Shama's CV for attachment
-  try {
-    const a = document.createElement("a");
-    a.href = "data/documents/Dr_Shama_Abidi_Academic_CV_2026.pdf";
-    a.download = "Dr_Shama_Abidi_Academic_CV_2026.pdf";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  } catch (e) {}
+    const gmailUrl = buildGmailComposeUrl(to, sub, body);
+    window.open(gmailUrl, "_blank", "noopener,noreferrer");
+
+    try {
+      const a = document.createElement("a");
+      a.href = "data/documents/Dr_Shama_Abidi_Academic_CV_2026.pdf";
+      a.download = "Dr_Shama_Abidi_Academic_CV_2026.pdf";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (e) {}
+  }
 
   document.getElementById("draftModal").classList.add("hidden");
   recalculateDashboardKpis();
@@ -2760,4 +2816,230 @@ window.handlePortalLogout = async function () {
   }
   showToast("🔒 Signed out. Session token revoked.");
 };
+
+/* ==========================================================================
+   FIREBASE FIRESTORE REAL-TIME CROSS-DEVICE SYNCHRONIZATION (Laptop ↔ Mobile)
+   ========================================================================== */
+
+function getFirebaseConfig() {
+  try {
+    return JSON.parse(localStorage.getItem("shama_firebase_config") || "null");
+  } catch {
+    return null;
+  }
+}
+
+function getGoogleOAuthConfig() {
+  try {
+    return JSON.parse(localStorage.getItem("shama_google_oauth_config") || "null");
+  } catch {
+    return null;
+  }
+}
+
+let firestoreDb = null;
+let firestoreUnsubscribe = null;
+
+function dedupeById(arr) {
+  if (!Array.isArray(arr)) return [];
+  const seen = new Set();
+  const res = [];
+  for (const item of arr) {
+    if (item && item.id && !seen.has(item.id)) {
+      seen.add(item.id);
+      res.push(item);
+    }
+  }
+  return res;
+}
+
+function updateFirebaseBadge(connected) {
+  const badge = document.getElementById("firebaseSyncStatusBadge");
+  if (badge) {
+    if (connected) {
+      badge.className = "status-pill";
+      badge.style.background = "rgba(16,185,129,0.18)";
+      badge.style.color = "#34d399";
+      badge.style.borderColor = "rgba(16,185,129,0.4)";
+      badge.textContent = "✅ Cloud Sync: Live (Connected to Firebase)";
+    } else {
+      badge.className = "status-pill";
+      badge.style.background = "rgba(245,158,11,0.15)";
+      badge.style.color = "#f59e0b";
+      badge.style.borderColor = "rgba(245,158,11,0.3)";
+      badge.textContent = "⚠️ Cloud Sync: Local Only";
+    }
+  }
+}
+
+function updateGoogleOAuthBadge(connected) {
+  const badge = document.getElementById("gmailOAuthStatusBadge");
+  if (badge) {
+    if (connected) {
+      badge.className = "status-pill";
+      badge.style.background = "rgba(16,185,129,0.18)";
+      badge.style.color = "#34d399";
+      badge.style.borderColor = "rgba(16,185,129,0.4)";
+      badge.textContent = "✅ Gmail OAuth 2.0: Connected (Direct Send Ready)";
+    } else {
+      badge.className = "status-pill";
+      badge.style.background = "rgba(245,158,11,0.15)";
+      badge.style.color = "#f59e0b";
+      badge.style.borderColor = "rgba(245,158,11,0.3)";
+      badge.textContent = "⚠️ OAuth: Not Connected";
+    }
+  }
+}
+
+function initFirebaseSync() {
+  const cfg = getFirebaseConfig();
+  if (!cfg || !cfg.apiKey || !cfg.projectId || typeof firebase === "undefined") {
+    updateFirebaseBadge(false);
+    return;
+  }
+
+  try {
+    if (!firebase.apps || !firebase.apps.length) {
+      firebase.initializeApp({
+        apiKey: cfg.apiKey,
+        projectId: cfg.projectId,
+        appId: cfg.appId || undefined,
+      });
+    }
+    firestoreDb = firebase.firestore();
+    const docRef = firestoreDb.collection(cfg.collection || "shama_crm_sync").doc("overlay");
+
+    if (firestoreUnsubscribe) firestoreUnsubscribe();
+
+    firestoreUnsubscribe = docRef.onSnapshot((docSnap) => {
+      if (docSnap && docSnap.exists) {
+        const cloudOverlay = docSnap.data();
+        if (cloudOverlay) {
+          const localRaw = localStorage.getItem("shama_crm_overlay_v7");
+          const localOverlay = localRaw ? JSON.parse(localRaw) : {};
+          const merged = {
+            ...localOverlay,
+            ...cloudOverlay,
+            sent_draft_ids: Array.from(new Set([...(localOverlay.sent_draft_ids || []), ...(cloudOverlay.sent_draft_ids || [])])),
+            extra_threads: dedupeById([...(cloudOverlay.extra_threads || []), ...(localOverlay.extra_threads || [])]),
+            extra_replies: dedupeById([...(cloudOverlay.extra_replies || []), ...(localOverlay.extra_replies || [])]),
+            extra_followups: dedupeById([...(cloudOverlay.extra_followups || []), ...(localOverlay.extra_followups || [])]),
+          };
+          const serialized = JSON.stringify(merged);
+          sessionStorage.setItem("shama_crm_overlay_v7", serialized);
+          localStorage.setItem("shama_crm_overlay_v7", serialized);
+          mergeSessionOverlayIfPresent();
+          renderAllViews();
+        }
+      }
+    }, (err) => {
+      console.warn("Firestore snapshot listener:", err);
+    });
+
+    updateFirebaseBadge(true);
+  } catch (err) {
+    console.warn("Firebase initialization error:", err);
+    updateFirebaseBadge(false);
+  }
+}
+
+window.handleSaveFirebaseConfig = function (event) {
+  event?.preventDefault();
+  const apiKey = (document.getElementById("fbApiKey")?.value || "").trim();
+  const projectId = (document.getElementById("fbProjectId")?.value || "").trim();
+  const appId = (document.getElementById("fbAppId")?.value || "").trim();
+  const collection = (document.getElementById("fbCollection")?.value || "shama_crm_sync").trim();
+
+  if (!apiKey || !projectId) {
+    showToast("⚠️ Please enter both Firebase API Key and Project ID.");
+    return;
+  }
+
+  const cfg = { apiKey, projectId, appId, collection };
+  localStorage.setItem("shama_firebase_config", JSON.stringify(cfg));
+  initFirebaseSync();
+  showToast("🔥 Firebase Cloud Sync Connected! Laptop & Mobile are now synced in real time.");
+};
+
+window.handleClearFirebaseConfig = function () {
+  localStorage.removeItem("shama_firebase_config");
+  if (firestoreUnsubscribe) firestoreUnsubscribe();
+  firestoreDb = null;
+  updateFirebaseBadge(false);
+  showToast("Cloud sync disconnected. Operating in local storage mode.");
+};
+
+window.handleSaveGoogleOAuthConfig = function (event) {
+  event?.preventDefault();
+  const client_id = (document.getElementById("oauthClientId")?.value || "").trim();
+  const client_secret = (document.getElementById("oauthClientSecret")?.value || "").trim();
+  const refresh_token = (document.getElementById("oauthRefreshToken")?.value || "").trim();
+  const sender_email = (document.getElementById("oauthSenderEmail")?.value || "shamaabidiphd@gmail.com").trim();
+
+  if (!client_id || !client_secret || !refresh_token) {
+    showToast("⚠️ Please enter Client ID, Client Secret, and Refresh Token.");
+    return;
+  }
+
+  const cfg = { client_id, client_secret, refresh_token, sender_email };
+  localStorage.setItem("shama_google_oauth_config", JSON.stringify(cfg));
+  updateGoogleOAuthBadge(true);
+  showToast("✉️ Google OAuth 2.0 Credentials Saved! Direct 1-click Gmail sending is now active.");
+};
+
+window.handleClearGoogleOAuthConfig = function () {
+  localStorage.removeItem("shama_google_oauth_config");
+  updateGoogleOAuthBadge(false);
+  showToast("Google OAuth credentials cleared.");
+};
+
+async function refreshGoogleOAuthToken(oauthConfig) {
+  if (!oauthConfig || !oauthConfig.client_id || !oauthConfig.client_secret || !oauthConfig.refresh_token) {
+    return null;
+  }
+  try {
+    const tokenResp = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id: oauthConfig.client_id,
+        client_secret: oauthConfig.client_secret,
+        refresh_token: oauthConfig.refresh_token,
+        grant_type: "refresh_token"
+      })
+    });
+    if (tokenResp.ok) {
+      const tokenData = await tokenResp.json();
+      return tokenData.access_token;
+    }
+  } catch (err) {
+    console.warn("Failed to refresh Google OAuth access token:", err);
+  }
+  return null;
+}
+
+function makeBase64UrlEmail(to, from, subject, bodyText) {
+  const emailContent = [
+    `To: ${to}`,
+    `From: ${from}`,
+    `Subject: =?utf-8?B?${btoa(unescape(encodeURIComponent(subject)))}?=`,
+    `MIME-Version: 1.0`,
+    `Content-Type: text/plain; charset="UTF-8"`,
+    `Content-Transfer-Encoding: 8bit`,
+    ``,
+    bodyText
+  ].join("\r\n");
+
+  return btoa(unescape(encodeURIComponent(emailContent)))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
+
+// Auto-initialize Firebase Sync on startup if credentials exist
+if (typeof window !== "undefined") {
+  setTimeout(() => {
+    initFirebaseSync();
+  }, 1000);
+}
 

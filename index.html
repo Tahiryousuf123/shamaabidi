@@ -14,6 +14,9 @@
   <link rel="stylesheet" href="styles.css?v=6.7.0" />
   <!-- PDF.js for client-side PDF text extraction in the Research Knowledge Base -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" defer></script>
+  <!-- Firebase SDK for Real-Time Cross-Device Synchronization (Laptop <-> Mobile) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
   <!-- Secure Authentication Gate Modal Screen -->
@@ -785,6 +788,90 @@
             </div>
 
             <button type="submit" class="btn btn-primary">💾 Save Settings to Persistent Database</button>
+          </form>
+        </div>
+
+        <!-- Real-Time Cross-Device Cloud Sync Card (Firebase Firestore) -->
+        <div class="panel-card" style="margin-top: 20px; border-color: rgba(59, 130, 246, 0.4);">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
+            <div>
+              <h3 style="color:#60a5fa; margin-bottom:4px;">🔥 Firebase Firestore — Live Cross-Device Real-Time Sync (Laptop ↔ Mobile)</h3>
+              <p class="panel-desc" style="margin-bottom:12px;">
+                Connect a free Firebase project to synchronize sent emails, professor replies, and 7-day follow-ups across your laptop and mobile in real-time (~100ms) with zero server cost.
+              </p>
+            </div>
+            <div id="firebaseSyncStatusBadge" class="status-pill" style="background:rgba(245,158,11,0.15); color:#f59e0b; border:1px solid rgba(245,158,11,0.3);">
+              ⚠️ Cloud Sync: Local Only
+            </div>
+          </div>
+
+          <form id="firebaseSyncForm" onsubmit="handleSaveFirebaseConfig(event)" style="display:flex; flex-direction:column; gap:12px;">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="fbApiKey">Firebase API Key</label>
+                <input type="text" id="fbApiKey" placeholder="AIzaSy..." />
+              </div>
+              <div class="form-group">
+                <label for="fbProjectId">Firebase Project ID</label>
+                <input type="text" id="fbProjectId" placeholder="shama-phd-crm" />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="fbAppId">Firebase App ID</label>
+                <input type="text" id="fbAppId" placeholder="1:1234567890:web:abcdef..." />
+              </div>
+              <div class="form-group">
+                <label for="fbCollection">Firestore Collection Name</label>
+                <input type="text" id="fbCollection" value="shama_crm_sync" readonly />
+              </div>
+            </div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+              <button type="submit" class="btn btn-primary" style="background:#2563eb;">🔥 Connect &amp; Enable Real-Time Cloud Sync</button>
+              <button type="button" class="btn btn-secondary" onclick="handleClearFirebaseConfig()">Disconnect Cloud Sync</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Google Cloud OAuth 2.0 Credentials Card -->
+        <div class="panel-card" style="margin-top: 20px; border-color: rgba(16, 185, 129, 0.4);">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
+            <div>
+              <h3 style="color:#34d399; margin-bottom:4px;">✉️ Google Cloud OAuth 2.0 — Direct Gmail Dispatch (shamaabidiphd@gmail.com)</h3>
+              <p class="panel-desc" style="margin-bottom:12px;">
+                Configure Google Cloud OAuth credentials to allow Shama Abidi to send emails directly in 1-click through Google's official Gmail API without opening external compose tabs.
+              </p>
+            </div>
+            <div id="gmailOAuthStatusBadge" class="status-pill" style="background:rgba(245,158,11,0.15); color:#f59e0b; border:1px solid rgba(245,158,11,0.3);">
+              ⚠️ OAuth: Not Connected
+            </div>
+          </div>
+
+          <form id="googleOAuthForm" onsubmit="handleSaveGoogleOAuthConfig(event)" style="display:flex; flex-direction:column; gap:12px;">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="oauthSenderEmail">Sender Gmail Address</label>
+                <input type="email" id="oauthSenderEmail" value="shamaabidiphd@gmail.com" readonly />
+              </div>
+              <div class="form-group">
+                <label for="oauthClientId">Google OAuth Client ID</label>
+                <input type="text" id="oauthClientId" placeholder="123456789-abc.apps.googleusercontent.com" />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="oauthClientSecret">Google OAuth Client Secret</label>
+                <input type="password" id="oauthClientSecret" placeholder="GOCSPX-..." />
+              </div>
+              <div class="form-group">
+                <label for="oauthRefreshToken">Google OAuth Refresh Token</label>
+                <input type="password" id="oauthRefreshToken" placeholder="1//04..." />
+              </div>
+            </div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+              <button type="submit" class="btn btn-primary" style="background:#059669;">💾 Save Google OAuth Credentials</button>
+              <button type="button" class="btn btn-secondary" onclick="handleClearGoogleOAuthConfig()">Clear Credentials</button>
+            </div>
           </form>
         </div>
       </section>
