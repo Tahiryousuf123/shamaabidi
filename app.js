@@ -369,11 +369,40 @@ function getSessionOverlay() {
   }
 }
 
+const crmSyncChannel = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel("shama_crm_sync_channel") : null;
+
+function broadcastStateChange() {
+  if (crmSyncChannel) {
+    try {
+      crmSyncChannel.postMessage({ type: "OVERLAY_UPDATED", timestamp: Date.now() });
+    } catch (e) {}
+  }
+}
+
+if (crmSyncChannel) {
+  crmSyncChannel.onmessage = (event) => {
+    if (event.data && event.data.type === "OVERLAY_UPDATED") {
+      mergeSessionOverlayIfPresent();
+      renderAllViews();
+    }
+  };
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", (event) => {
+    if (event.key === "shama_crm_overlay_v7") {
+      mergeSessionOverlayIfPresent();
+      renderAllViews();
+    }
+  });
+}
+
 function saveSessionOverlay(overlay) {
   try {
     const serialized = JSON.stringify(overlay);
     sessionStorage.setItem("shama_crm_overlay_v7", serialized);
     localStorage.setItem("shama_crm_overlay_v7", serialized);
+    broadcastStateChange();
   } catch (e) {}
 }
 
