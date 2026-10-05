@@ -4,6 +4,9 @@ import nodemailer from 'nodemailer';
 import { randomUUID } from 'crypto';
 import { FieldValue } from 'firebase-admin/firestore';
 
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
+
 function getTodayKey() {
   return new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 }
