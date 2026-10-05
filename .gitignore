@@ -3,6 +3,8 @@
 !.env.example
 secrets/
 credentials/
+*service_account*.json
+*firebase*.json
 *.pem
 __pycache__/
 *.pyc

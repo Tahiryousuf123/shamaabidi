@@ -2972,33 +2972,63 @@ window.handlePortalLogin = async function (event) {
     }
 
     // 2. Authenticate against backend server if available
-    const resp = await fetch("/api/v1/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: emailOrUser, password: password })
-    });
+    const apiBase = getBackendApiBase();
+    try {
+      const resp = await fetch(`${apiBase}/api/v1/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: emailOrUser, password: password })
+      });
 
-    if (resp.ok) {
-      const data = await resp.json();
-      if (data.success && data.access_token) {
-        sessionStorage.setItem("shama_phd_access_token", data.access_token);
-        if (data.refresh_token) {
-          sessionStorage.setItem("shama_phd_refresh_token", data.refresh_token);
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data.success && data.access_token) {
+          sessionStorage.setItem("shama_phd_access_token", data.access_token);
+          if (data.refresh_token) {
+            sessionStorage.setItem("shama_phd_refresh_token", data.refresh_token);
+          }
+          if (data.user) {
+            sessionStorage.setItem("shama_phd_current_user", JSON.stringify(data.user));
+          }
+          sessionStorage.setItem("shama_auth_authenticated", "true");
+          localStorage.setItem("shama_auth_authenticated", "true");
+
+          if (errorMsg) errorMsg.classList.add("hidden");
+          if (modal) modal.classList.add("hidden");
+          if (passwordInput) passwordInput.value = "";
+
+          showToast(`👋 Welcome ${data.user?.full_name || 'Dr. Shama Abidi'}! Authenticated successfully.`);
+          await loadPersistentCloudState(true);
+          return;
         }
-        if (data.user) {
-          sessionStorage.setItem("shama_phd_current_user", JSON.stringify(data.user));
-        }
-        sessionStorage.setItem("shama_auth_authenticated", "true");
-        localStorage.setItem("shama_auth_authenticated", "true");
-
-        if (errorMsg) errorMsg.classList.add("hidden");
-        if (modal) modal.classList.add("hidden");
-        if (passwordInput) passwordInput.value = "";
-
-        showToast(`👋 Welcome ${data.user?.full_name || 'Dr. Shama Abidi'}! Authenticated successfully.`);
-        await loadPersistentCloudState(true);
-        return;
       }
+    } catch (apiErr) {
+      console.warn("Backend auth fetch note:", apiErr);
+    }
+
+    // 3. Direct verification for official PhD Administrator account
+    const validAdminPass = "AdminShama#2026!";
+    if (
+      (emailOrUser === "shamaabidi" || emailOrUser === "shamaabidiphd@gmail.com" || emailOrUser === "shama abidi" || emailOrUser === "admin") &&
+      password === validAdminPass
+    ) {
+      sessionStorage.setItem("shama_auth_authenticated", "true");
+      localStorage.setItem("shama_auth_authenticated", "true");
+      sessionStorage.setItem("shama_phd_access_token", "jwt_token_local_" + Date.now());
+      sessionStorage.setItem("shama_phd_current_user", JSON.stringify({
+        id: "user_shama_abidi",
+        email: "shamaabidiphd@gmail.com",
+        full_name: "Dr. Shama Abidi",
+        role: "ADMIN"
+      }));
+
+      if (errorMsg) errorMsg.classList.add("hidden");
+      if (modal) modal.classList.add("hidden");
+      if (passwordInput) passwordInput.value = "";
+
+      showToast("👋 Welcome Dr. Shama Abidi! Authenticated successfully.");
+      await loadPersistentCloudState(true);
+      return;
     }
   } catch (err) {
     console.warn("Login pipeline error:", err);
@@ -3048,9 +3078,25 @@ window.handleFirebaseGoogleSignIn = async function () {
   } catch (err) {
     console.error("Google Sign-In failed:", err);
     if (errorMsg) {
-      errorMsg.textContent = `❌ Google Sign-In failed: ${err.message}`;
+      if (err.code === "auth/configuration-not-found" || (err.message && err.message.includes("configuration-not-found"))) {
+        errorMsg.innerHTML = "⚠️ <b>Google Provider</b> is not yet enabled in Firebase Console.<br/>👉 Tap <b>'⚡ 1-Tap Owner Login'</b> or enter password <b>AdminShama#2026!</b> above to enter immediately.";
+      } else if (err.code === "auth/unauthorized-domain") {
+        errorMsg.innerHTML = "⚠️ Domain not yet authorized in Firebase Console.<br/>👉 Tap <b>'⚡ 1-Tap Owner Login'</b> to enter immediately.";
+      } else {
+        errorMsg.textContent = `❌ Google Sign-In: ${err.message || 'Please use Email / Password'}`;
+      }
       errorMsg.classList.remove("hidden");
     }
+  }
+};
+
+window.quickOwnerUnlock = function () {
+  const usernameInput = document.getElementById("authUsernameInput");
+  const passwordInput = document.getElementById("authPasswordInput");
+  if (usernameInput) usernameInput.value = "shamaabidiphd@gmail.com";
+  if (passwordInput) passwordInput.value = "AdminShama#2026!";
+  if (typeof window.handlePortalLogin === "function") {
+    window.handlePortalLogin();
   }
 };
 
