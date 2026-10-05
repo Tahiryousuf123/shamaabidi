@@ -132,16 +132,6 @@ export async function POST(request: NextRequest) {
           createdAt: FieldValue.serverTimestamp(),
         });
 
-        // Automatically sync draft to Gmail [Gmail]/Drafts folder
-        if (verifiedEmail) {
-          try {
-            const { syncDraftToGmail } = await import('@/lib/email-service');
-            await syncDraftToGmail(verifiedEmail, emailContent.subject, fullBody);
-          } catch (syncErr) {
-            console.warn('Auto-sync draft to Gmail warning:', syncErr);
-          }
-        }
-
         await markAsSeen(
           null,
           verifiedEmail,

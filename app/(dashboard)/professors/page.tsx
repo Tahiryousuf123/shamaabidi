@@ -78,31 +78,6 @@ export default function ProfessorsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'deadline' | 'recent'>('deadline');
   const [hideExpired, setHideExpired] = useState(true);
-  const [syncingGmail, setSyncingGmail] = useState(false);
-  const [syncMessage, setSyncMessage] = useState('');
-
-  const handleSyncAllGmail = async () => {
-    setSyncingGmail(true);
-    setSyncMessage('');
-    try {
-      const res = await fetch('/api/sync-gmail-draft', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ syncAll: true }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setSyncMessage(data.message || 'Drafts synced to Gmail Drafts folder!');
-      } else {
-        setSyncMessage(data.error || 'Failed to sync to Gmail.');
-      }
-    } catch {
-      setSyncMessage('Error connecting to Gmail sync API.');
-    } finally {
-      setSyncingGmail(false);
-      setTimeout(() => setSyncMessage(''), 5000);
-    }
-  };
 
   useEffect(() => {
     if (!user) return;
@@ -203,19 +178,6 @@ export default function ProfessorsPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <button
-            onClick={handleSyncAllGmail}
-            disabled={syncingGmail}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-white text-xs sm:text-sm font-medium glass border border-white/10 hover:bg-white/10 transition-colors cursor-pointer"
-            title="Push pending drafts directly to shamaabidiphd@gmail.com Drafts folder"
-          >
-            {syncingGmail ? (
-              <Loader2 className="w-4 h-4 animate-spin text-indigo-400" />
-            ) : (
-              <Mail className="w-4 h-4 text-emerald-400" />
-            )}
-            <span>{syncingGmail ? 'Syncing to Gmail…' : 'Sync Drafts to Gmail'}</span>
-          </button>
           <Link
             href="/find"
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-xs sm:text-sm font-medium shadow-lg hover:brightness-110"
@@ -226,13 +188,6 @@ export default function ProfessorsPage() {
           </Link>
         </div>
       </div>
-
-      {syncMessage && (
-        <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl px-4 py-3 text-emerald-300 text-xs sm:text-sm flex items-center gap-2 fade-in">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-          <span>{syncMessage}</span>
-        </div>
-      )}
 
       {/* PRIMARY TABS: Funded vs Possible supervisors (no funding found) */}
       <div className="flex flex-wrap gap-2 border-b border-white/10 pb-3">

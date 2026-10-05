@@ -68,7 +68,6 @@ export default function ProfessorDetailPage() {
   const [editedBody, setEditedBody] = useState('');
   const [actionError, setActionError] = useState('');
   const [actionSuccess, setActionSuccess] = useState('');
-  const [syncingGmail, setSyncingGmail] = useState(false);
 
   const loadData = async () => {
     setLoadingPage(true);
@@ -199,30 +198,6 @@ export default function ProfessorDetailPage() {
     } catch {
       setActionError('Delete failed. Please try again.');
       setDeleting(false);
-    }
-  };
-
-  const handleSyncToGmail = async () => {
-    if (!professor?.id || !professor?.email) return;
-    setSyncingGmail(true);
-    setActionError('');
-    setActionSuccess('');
-    try {
-      const res = await fetch('/api/sync-gmail-draft', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ professorId: professor.id, emailId: emailDraft?.id }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setActionSuccess(data.message || 'Draft successfully placed into your Gmail Drafts folder!');
-      } else {
-        setActionError(data.error || 'Failed to sync to Gmail.');
-      }
-    } catch {
-      setActionError('Error connecting to Gmail sync API.');
-    } finally {
-      setSyncingGmail(false);
     }
   };
 
@@ -637,55 +612,65 @@ export default function ProfessorDetailPage() {
           </div>
 
           {/* Action buttons */}
-          <div className="flex flex-wrap gap-2.5 sm:gap-3 pt-2">
+          <div className="space-y-3 pt-2">
+            <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+              {canSend && professor.email && (
+                <button
+                  id="send-email-btn"
+                  onClick={handleSend}
+                  disabled={sending || regenerating}
+                  className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-white text-sm font-semibold disabled:opacity-50 shadow-lg shadow-emerald-500/20 hover:brightness-110 transition-all cursor-pointer"
+                  style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}
+                >
+                  {sending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
+                  <span>
+                    {sending ? 'Sending from Gmail…' : `Send Email to ${professor.name || 'Professor'}`}
+                  </span>
+                </button>
+              )}
+              {!alreadySent && (
+                <button
+                  id="regenerate-email-btn"
+                  onClick={handleRegenerate}
+                  disabled={sending || regenerating}
+                  className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-white text-xs sm:text-sm font-medium glass border border-white/10 hover:bg-white/10 disabled:opacity-50 transition-colors"
+                >
+                  {regenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                  {regenerating ? 'Regenerating…' : 'Regenerate'}
+                </button>
+              )}
+              <button
+                id="delete-professor-btn"
+                onClick={handleDelete}
+                disabled={deleting}
+                className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-red-400 text-xs sm:text-sm font-medium border border-red-500/20 hover:bg-red-500/10 disabled:opacity-50 transition-colors"
+              >
+                {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                Delete
+              </button>
+            </div>
+
             {canSend && professor.email && (
-              <button
-                id="send-email-btn"
-                onClick={handleSend}
-                disabled={sending || regenerating}
-                className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-white text-xs sm:text-sm font-medium disabled:opacity-50 shadow-md"
-                style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}
-              >
-                {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                {sending ? 'Sending…' : 'Send Email'}
-              </button>
+              <p className="text-[11px] text-slate-400 flex items-center gap-1.5">
+                <Mail className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                <span>
+                  Dispatches immediately from <strong className="text-white">shamaabidiphd@gmail.com</strong> to <strong className="text-white font-mono">{professor.email}</strong>. Status will update to &apos;Sent&apos;.
+                </span>
+              </p>
             )}
-            {professor.email && (
-              <button
-                id="sync-gmail-btn"
-                onClick={handleSyncToGmail}
-                disabled={syncingGmail || sending}
-                className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-white text-xs sm:text-sm font-medium glass border border-emerald-500/30 hover:bg-emerald-500/10 transition-colors disabled:opacity-50 cursor-pointer"
-                title="Push this draft directly into shamaabidiphd@gmail.com Drafts folder"
-              >
-                {syncingGmail ? (
-                  <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />
-                ) : (
-                  <Mail className="w-4 h-4 text-emerald-400" />
-                )}
-                <span>{syncingGmail ? 'Syncing…' : 'Sync to Gmail Drafts'}</span>
-              </button>
+
+            {alreadySent && (
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl px-4 py-2.5 text-blue-300 text-xs flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                <span>
+                  Email sent from <strong>shamaabidiphd@gmail.com</strong> to <strong className="font-mono">{professor.email}</strong>. 7-Day Follow-Up tracking is active.
+                </span>
+              </div>
             )}
-            {!alreadySent && (
-              <button
-                id="regenerate-email-btn"
-                onClick={handleRegenerate}
-                disabled={sending || regenerating}
-                className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-white text-xs sm:text-sm font-medium glass border border-white/10 hover:bg-white/10 disabled:opacity-50"
-              >
-                {regenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                {regenerating ? 'Regenerating…' : 'Regenerate'}
-              </button>
-            )}
-            <button
-              id="delete-professor-btn"
-              onClick={handleDelete}
-              disabled={deleting}
-              className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-red-400 text-xs sm:text-sm font-medium border border-red-500/20 hover:bg-red-500/10 disabled:opacity-50"
-            >
-              {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-              Delete
-            </button>
           </div>
         </div>
       ) : (

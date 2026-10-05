@@ -76,24 +76,11 @@ export async function POST(request: NextRequest) {
     const newStatus = type === 'followup' ? 'followup_draft' : 'draft';
     await profRef.update({ status: newStatus });
 
-    // Sync draft directly to Gmail [Gmail]/Drafts folder so it appears in Shama's Gmail app/browser
-    let gmailSynced = false;
-    if (prof.email) {
-      try {
-        const { syncDraftToGmail } = await import('@/lib/email-service');
-        const syncRes = await syncDraftToGmail(prof.email, emailContent.subject, fullBody);
-        gmailSynced = syncRes.success;
-      } catch (syncErr) {
-        console.warn('Gmail draft sync non-fatal warning:', syncErr);
-      }
-    }
-
     return NextResponse.json({
       success: true,
       emailId,
       subject: emailContent.subject,
       body: fullBody,
-      gmailSynced,
     });
   } catch (err) {
     console.error('generate-email error:', err);
