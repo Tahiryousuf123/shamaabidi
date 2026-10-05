@@ -16,7 +16,7 @@ if str(ROOT_DIR) not in sys.path:
 
 from backend.app.config import BACKUP_DIR, DATA_DIR
 from backend.app.db_session import SessionLocal, init_orm_schema
-from backend.app.enums import FundingVerificationEnum, VerificationStatusEnum
+from backend.app.enums import FundingVerificationEnum, RoleEnum, VerificationStatusEnum
 from backend.app.models import (
     Application,
     Department,
@@ -67,13 +67,30 @@ def run_migration() -> dict:
         raw_state = json.loads(state_json.read_text(encoding="utf-8"))
 
     # Step 3: Migrate Shama Abidi's 5 Verified Publications
+    admin_user = db.query(User).filter(User.role == RoleEnum.ADMIN.value).first()
+    if not admin_user:
+        import secrets
+        from backend.app.security import hash_password
+        admin_user = User(
+            id="user_admin_shama_phd",
+            email="shamaabidiphd@gmail.com",
+            full_name="Dr. Shama Abidi",
+            password_hash=hash_password(secrets.token_urlsafe(32) + "A1!"),
+            role=RoleEnum.ADMIN.value,
+            is_active=True,
+            degree_title="PharmD, MPhil in Pharmacy Practice",
+            institution="Liaquat National Hospital & University of Karachi",
+        )
+        db.add(admin_user)
+        db.commit()
+
     shama_docs = raw_state.get("research_documents", [])
     migrated_shama_pubs = 0
     for doc in shama_docs:
         _, created = upsert_publication(
             db,
             title=doc.get("title", "Clinical Pharmacy Publication"),
-            user_id="user_admin_shama",
+            user_id=admin_user.id,
             doi=doc.get("doi", ""),
             journal=doc.get("journal_or_venue", ""),
             publication_year=int(doc.get("publication_year") or 2024),

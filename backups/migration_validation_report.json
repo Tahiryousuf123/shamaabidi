@@ -1,19 +1,19 @@
 {
-  "migration_timestamp": "2026-10-03T14:23:35.887674+00:00",
+  "migration_timestamp": "2026-10-04T23:58:29.859656+00:00",
   "backups_created": [
-    "C:\\Users\\Lenovo\\Desktop\\demo p\\backups\\production_state_backup_20261003_142226.json",
-    "C:\\Users\\Lenovo\\Desktop\\demo p\\backups\\shama_production_backup_20261003_142226.db"
+    "C:\\Users\\Lenovo\\Desktop\\Shamaabidi\\backups\\production_state_backup_20261004_235818.json",
+    "C:\\Users\\Lenovo\\Desktop\\Shamaabidi\\backups\\shama_production_backup_20261004_235818.db"
   ],
   "entity_counts": {
-    "users": 5,
-    "universities": 214,
-    "departments": 231,
-    "professors_total": 258,
-    "professors_verified": 258,
-    "professors_unverified": 0,
-    "publications": 213,
-    "funding_opportunities": 96,
-    "funding_evidence": 96,
+    "users": 4,
+    "universities": 469,
+    "departments": 561,
+    "professors_total": 622,
+    "professors_verified": 620,
+    "professors_unverified": 2,
+    "publications": 551,
+    "funding_opportunities": 241,
+    "funding_evidence": 241,
     "emails_in_draft_state": 12
   },
   "relationship_integrity_checks": {

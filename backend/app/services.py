@@ -61,7 +61,10 @@ from backend.app.models import (
     User,
     VerificationRecord,
 )
-from backend.app.security import hash_password, sanitize_text_against_xss
+from backend.app.security import hash_password, sanitize_text_against_xss, validate_password_policy
+import logging
+
+logger = logging.getLogger("phd_services")
 
 
 def normalize_key(text: str) -> str:
