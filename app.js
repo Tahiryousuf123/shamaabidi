@@ -1973,7 +1973,6 @@ window.sendDraftDirectlyViaApi = async function () {
       a.click();
       document.body.removeChild(a);
     } catch (e) {}
-  }
 
   document.getElementById("draftModal").classList.add("hidden");
   recalculateDashboardKpis();
