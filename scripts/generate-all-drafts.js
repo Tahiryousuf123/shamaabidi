@@ -1,8 +1,37 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import Groq from 'groq-sdk';
-import { UserProfile, DEFAULT_PROFILE } from './types';
+const fs = require('fs');
+const path = require('path');
+const admin = require('firebase-admin');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+const Groq = require('groq-sdk');
 
-export const SHAMA_PROFILE_CONTEXT = `
+// Load .env.local
+const envContent = fs.readFileSync(path.join(__dirname, '../.env.local'), 'utf8');
+for (const line of envContent.split('\n')) {
+  const trimmed = line.trim();
+  if (!trimmed || trimmed.startsWith('#')) continue;
+  const eqIdx = trimmed.indexOf('=');
+  if (eqIdx > 0) {
+    const key = trimmed.slice(0, eqIdx).trim();
+    let val = trimmed.slice(eqIdx + 1).trim();
+    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+      val = val.slice(1, -1);
+    }
+    if (!process.env[key]) process.env[key] = val;
+  }
+}
+
+const key = (process.env.FIREBASE_PRIVATE_KEY || '').trim().replace(/\\n/g, '\n');
+admin.initializeApp({
+  credential: admin.credential.cert({
+    projectId: (process.env.FIREBASE_PROJECT_ID || 'shamaabidi-3ddf8').trim(),
+    clientEmail: (process.env.FIREBASE_CLIENT_EMAIL || '').trim(),
+    privateKey: key,
+  })
+});
+
+const db = admin.firestore();
+
+const SHAMA_PROFILE_CONTEXT = `
 Candidate Name: Dr. Shama Abidi
 Current Role: Senior Clinical Pharmacist at Liaquat National Hospital & Medical College, Karachi, Pakistan (since August 2007)
 Leadership: Vice President, Pakistan Pharmacist Association (PPA), Sindh Cabinet (Appointed 2023)
@@ -29,39 +58,24 @@ PhD Objective:
 Seeking a fully-funded international PhD position aligned with clinical pharmacy, antimicrobial stewardship, medication safety, pharmacy practice implementation science, or digital/AI health in hospital pharmacy.
 `;
 
-export async function generatePersonalizedEmail(
-  profName: string,
-  university: string,
-  researchArea: string,
-  recentPaper: string,
-  profile: Partial<UserProfile> = {},
-  type: 'first' | 'followup' = 'first'
-): Promise<{ subject: string; body: string }> {
-  const senderName = profile.name || DEFAULT_PROFILE.name;
-  const background = profile.background || DEFAULT_PROFILE.background;
-  const researchInterests = profile.researchInterests || DEFAULT_PROFILE.researchInterests;
-  const publications = profile.publications || DEFAULT_PROFILE.publications;
+async function generateEmailForProfessor(prof) {
+  const profName = prof.name || 'Professor';
+  const university = prof.university || 'University';
+  const researchArea = prof.researchArea || 'clinical pharmacy';
+  const recentPaper = prof.recentPaper || 'recent research';
 
-  const systemPrompt =
-    type === 'first'
-      ? `You are an assistant helping Dr. Shama Abidi, an experienced clinical pharmacist and MPhil researcher from Pakistan, write a highly tailored, authentic, and concise inquiry email to an academic professor regarding fully-funded PhD opportunities in their research group.
+  const systemPrompt = `You are an assistant helping Dr. Shama Abidi, an experienced clinical pharmacist and MPhil researcher from Pakistan, write a highly tailored, authentic, intellectual, and concise inquiry email to an academic professor regarding fully-funded PhD opportunities in their research group.
 
 Guidelines:
 - Maximum 130-160 words for the body.
-- Be concise, direct, and intellectually grounded.
+- Be concise, direct, respectful, and intellectually grounded.
 - Mention the professor's recent paper: "${recentPaper}" and specifically connect it to Shama's clinical research experience (e.g. her hospital antimicrobial stewardship trials, cardiovascular observational study, or medication safety work).
-- Clearly state she holds an MPhil in Pharmacy Practice and 17 years tertiary hospital experience, seeking a fully-funded PhD opening.
+- State clearly that she holds an MPhil in Pharmacy Practice and 17 years tertiary hospital experience, seeking a fully-funded PhD opening.
 - Inquire respectfully about whether they are accepting funded PhD students for upcoming intakes.
 - NEVER use generic flattery clichés (e.g. "I hope this email finds you well", "I was blown away by your illustrious work", "world-renowned expert").
 - Do NOT include greeting (salutation) or sign-off/signature in the BODY, as the system appends them automatically. Return only the core body paragraphs.
 - Return format:
 SUBJECT: [compelling, specific subject line]
-BODY:
-[body paragraphs]`
-      : `You are helping Dr. Shama Abidi write a polite, concise follow-up email (max 80-100 words body) regarding a previous PhD inquiry to Professor ${profName} at ${university}.
-Acknowledge professors are exceptionally busy, briefly reaffirm strong interest in PhD opportunities in ${researchArea}, and ask if they had an opportunity to review her profile. No clichés, no salutation, no sign-off.
-Return format:
-SUBJECT: Re: PhD Research Inquiry – ${university}
 BODY:
 [body paragraphs]`;
 
@@ -72,16 +86,13 @@ Recent Paper: "${recentPaper}"
 
 Candidate Profile:
 ${SHAMA_PROFILE_CONTEXT}
-Additional Background: ${background}
-Research Interests: ${researchInterests}
-Selected Publications: ${publications}
 
 Write the email subject and body.`;
 
-  // 1. Try Groq first for ultra-fast generation (< 500ms)
-  try {
-    const groqKey = process.env.GROQ_API_KEY;
-    if (groqKey) {
+  // Try Groq first for ultra-fast generation
+  const groqKey = process.env.GROQ_API_KEY;
+  if (groqKey) {
+    try {
       const groq = new Groq({ apiKey: groqKey });
       const completion = await groq.chat.completions.create({
         messages: [
@@ -96,12 +107,10 @@ Write the email subject and body.`;
       if (text && text.trim().length > 20) {
         return parseEmailOutput(text, university, profName);
       }
-    }
-  } catch (err) {
-    console.warn('Groq email generation failed, trying Gemini:', err);
+    } catch (err) {}
   }
 
-  // 2. Fallback to Gemini
+  // Fallback to Gemini
   const geminiApiKey = process.env.GEMINI_API_KEY;
   if (geminiApiKey) {
     const candidateModels = [
@@ -109,7 +118,7 @@ Write the email subject and body.`;
       'gemini-flash-latest',
       'gemini-2.5-flash-lite',
       'gemini-3.8-flash',
-    ].filter(Boolean) as string[];
+    ].filter(Boolean);
 
     const genAI = new GoogleGenerativeAI(geminiApiKey);
 
@@ -122,54 +131,32 @@ Write the email subject and body.`;
           return parseEmailOutput(text, university, profName);
         }
       } catch (err) {
-        console.warn(`Gemini model ${m} failed:`, err);
+        // try next
       }
     }
   }
 
-  // Safe template fallback if both APIs fail
-  if (type === 'followup') {
-    return {
-      subject: `Following up: PhD Research Inquiry – ${researchArea || university}`,
-      body: `I hope this email finds you well. I am writing to gently follow up on my previous message regarding prospective fully-funded PhD opportunities in your research group at ${university}.\n\nGiven my 17+ years of experience as a Senior Clinical Pharmacist and my active research in ${researchArea}, I remain very interested in the possibility of doctoral study under your supervision.\n\nI understand you receive many inquiries and have a very full schedule, but I would be deeply grateful to know if you might have upcoming doctoral openings. I have attached my CV for your convenience.`,
-    };
-  }
-
+  // Clean fallback
   return {
-    subject: `PhD Research Inquiry – ${researchArea || university}`,
+    subject: `PhD Research Inquiry: ${researchArea || 'Clinical Pharmacy'} – ${university}`,
     body: `I am writing to respectfully inquire about fully-funded PhD opportunities within your research group at ${university}. I have been following your scholarly work, particularly your publication "${recentPaper}", which strongly connects with my research experience in ${researchArea}.\n\nI hold an MPhil in Pharmacy Practice from the University of Karachi and have served as a Senior Clinical Pharmacist at Liaquat National Hospital for over 17 years, leading antimicrobial stewardship and medication safety initiatives with multiple peer-reviewed publications.\n\nCould you please let me know if you are currently considering prospective PhD candidates for upcoming fully-funded openings? I would be honored to discuss how my research background aligns with your ongoing projects.`,
   };
 }
 
-function parseEmailOutput(
-  text: string,
-  university: string,
-  profName: string
-): { subject: string; body: string } {
+function parseEmailOutput(text, university, profName) {
   const subjectMatch = text.match(/SUBJECT:\s*(.+)/i);
   const bodyMatch = text.match(/BODY:\s*([\s\S]+)/i);
 
-  const subject =
-    subjectMatch?.[1]?.trim() ??
-    `PhD Inquiry: Clinical Pharmacy & Practice – ${university}`;
-
+  const subject = subjectMatch?.[1]?.trim() ?? `PhD Inquiry: Clinical Pharmacy & Practice – ${university}`;
   let body = bodyMatch?.[1]?.trim() ?? text.replace(/SUBJECT:.+/i, '').replace(/BODY:/i, '').trim();
 
-  // Strip accidental salutations or signatures from the AI body
   body = body.replace(/^(Dear|Hello|Hi)\s+[^,\n]+,\s*/i, '');
-  body = body.replace(/^(Professor|Prof\.|Dr\.)\s+[^,\n]+,?\s*/i, '');
   body = body.replace(/\n\s*(Sincerely|Best regards|Kind regards|Warm regards|Regards)[\s\S]*$/i, '').trim();
 
   return { subject, body };
 }
 
-export function constructFullEmailMessage(
-  bodyContent: string,
-  profName: string,
-  profile: Partial<UserProfile> = {}
-): string {
-  const senderName = profile.name || DEFAULT_PROFILE.name;
-  const senderEmail = profile.email || DEFAULT_PROFILE.email;
+function constructFullEmailMessage(bodyContent, profName) {
   const cleanName = profName.replace(/^Dr\.\s*|^Prof\.\s*/i, '').trim();
   const lastName = cleanName.split(' ').slice(-1)[0];
 
@@ -178,59 +165,71 @@ export function constructFullEmailMessage(
 ${bodyContent}
 
 Kind regards,
-${senderName}
+Dr. Shama Abidi
 Clinical Pharmacist | MPhil Pharmacy Practice
 Liaquat National Hospital, Karachi, Pakistan
-Email: ${senderEmail}
+Email: shamaabidiphd@gmail.com
 ORCID: 0009-0008-3714-1675`;
 }
 
-/**
- * Appends a personalized PhD inquiry draft directly into Shama's Gmail [Gmail]/Drafts folder via IMAP.
- * This guarantees the draft is immediately visible in her actual Gmail inbox drafts as well as in the CRM.
- */
-export async function syncDraftToGmail(
-  toEmail: string,
-  subject: string,
-  body: string
-): Promise<{ success: boolean; uid?: number; error?: string }> {
-  const user = process.env.GMAIL_USER;
-  const pass = process.env.GMAIL_APP_PASSWORD;
+async function run() {
+  console.log('🚀 Starting Batch Draft Generation for All Professors with Email Addresses...');
 
-  if (!user || !pass) {
-    return { success: false, error: 'Gmail credentials not configured' };
-  }
+  const profsSnap = await db.collection('professors').get();
+  const eligibleProfs = [];
+  profsSnap.forEach(d => {
+    const data = d.data();
+    if (data.email && data.email.includes('@')) {
+      eligibleProfs.push({ id: d.id, ...data });
+    }
+  });
 
-  try {
-    const { ImapFlow } = await import('imapflow');
-    const client = new ImapFlow({
-      host: 'imap.gmail.com',
-      port: 993,
-      secure: true,
-      auth: { user, pass },
-      logger: false,
+  console.log(`Found ${eligibleProfs.length} professors with valid email addresses.`);
+
+  let createdCount = 0;
+  let existingCount = 0;
+
+  for (let i = 0; i < eligibleProfs.length; i++) {
+    const prof = eligibleProfs[i];
+    const emailsSnap = await db.collection('emails')
+      .where('professorId', '==', prof.id)
+      .where('status', '==', 'draft')
+      .limit(1)
+      .get();
+
+    if (!emailsSnap.empty) {
+      existingCount++;
+      // Make sure professor status is at least 'draft'
+      if (prof.status !== 'sent' && prof.status !== 'followup_sent' && prof.status !== 'draft') {
+        await db.collection('professors').doc(prof.id).update({ status: 'draft' });
+      }
+      continue;
+    }
+
+    console.log(`[${i + 1}/${eligibleProfs.length}] Generating draft for: ${prof.name} (${prof.university})...`);
+    const emailRes = await generateEmailForProfessor(prof);
+    const fullBody = constructFullEmailMessage(emailRes.body, prof.name);
+
+    await db.collection('emails').add({
+      professorId: prof.id,
+      type: 'first',
+      subject: emailRes.subject,
+      body: fullBody,
+      status: 'draft',
+      sentAt: null,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    await client.connect();
+    if (prof.status !== 'sent' && prof.status !== 'followup_sent') {
+      await db.collection('professors').doc(prof.id).update({ status: 'draft' });
+    }
 
-    const cleanSubject = subject.replace(/[\r\n]+/g, ' ').trim();
-    const rawEmail = `From: "Dr. Shama Abidi" <${user}>
-To: ${toEmail}
-Subject: ${cleanSubject}
-Date: ${new Date().toUTCString()}
-Message-ID: <phd-reach-draft-${Date.now()}@gmail.com>
-X-Mailer: PhDReach/2.0
-Content-Type: text/plain; charset=utf-8
-
-${body}`;
-
-    const res = await client.append('[Gmail]/Drafts', Buffer.from(rawEmail, 'utf-8'), ['\\Draft', '\\Seen']);
-    await client.logout();
-    const uid = res && typeof res === 'object' && 'uid' in res ? (res as any).uid : undefined;
-    return { success: Boolean(res), uid };
-  } catch (err: any) {
-    console.warn('Failed to append draft to Gmail:', err);
-    return { success: false, error: err?.message || 'Failed to sync draft to Gmail' };
+    createdCount++;
+    // Brief 500ms pacing between LLM calls
+    await new Promise(r => setTimeout(r, 500));
   }
+
+  console.log(`\n🎉 Done! Created ${createdCount} new drafts. Existing drafts: ${existingCount}. Total ready: ${createdCount + existingCount}`);
 }
 
+run().catch(console.error);

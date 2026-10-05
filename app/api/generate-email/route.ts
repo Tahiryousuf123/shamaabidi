@@ -9,9 +9,75 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
-    const { professorId } = await request.json();
+    const body = await request.json();
+    const { professorId, generateAll } = body;
+
+    // Load profile
+    const profileSnap = await adminDb.collection('profile').doc('main').get();
+    const profile: UserProfile = profileSnap.exists
+      ? ({ ...DEFAULT_PROFILE, ...profileSnap.data() } as UserProfile)
+      : DEFAULT_PROFILE;
+
+    // CASE 1: Batch generation for all professors with email who need a draft
+    if (generateAll) {
+      const profsSnap = await adminDb.collection('professors').get();
+      const eligible = profsSnap.docs
+        .filter((d) => {
+          const data = d.data();
+          return data.email && typeof data.email === 'string' && data.email.includes('@');
+        })
+        .map((d) => ({ id: d.id, ...d.data() } as any));
+
+      let generatedCount = 0;
+      const emailsRef = adminDb.collection('emails');
+
+      for (const prof of eligible) {
+        // Check if draft already exists
+        const existingQ = await emailsRef
+          .where('professorId', '==', prof.id)
+          .where('status', '==', 'draft')
+          .limit(1)
+          .get();
+
+        if (existingQ.empty) {
+          const emailContent = await generatePersonalizedEmail(
+            prof.name || 'Professor',
+            prof.university || 'University',
+            prof.researchArea || 'clinical pharmacy',
+            prof.recentPaper || 'recent research',
+            profile,
+            'first'
+          );
+          const fullBody = constructFullEmailMessage(emailContent.body, prof.name || 'Professor', profile);
+
+          await emailsRef.add({
+            professorId: prof.id,
+            type: 'first',
+            subject: emailContent.subject,
+            body: fullBody,
+            status: 'draft',
+            sentAt: null,
+            createdAt: FieldValue.serverTimestamp(),
+          });
+
+          if (prof.status !== 'sent' && prof.status !== 'followup_sent') {
+            await adminDb.collection('professors').doc(prof.id).update({ status: 'draft' });
+          }
+
+          generatedCount++;
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: `Draft generation complete. Generated ${generatedCount} drafts.`,
+        generatedCount,
+        totalEligible: eligible.length,
+      });
+    }
+
     if (!professorId) {
-      return NextResponse.json({ error: 'professorId is required' }, { status: 400 });
+      return NextResponse.json({ error: 'professorId is required (or specify generateAll: true)' }, { status: 400 });
     }
 
     // Load professor
@@ -21,12 +87,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Professor not found' }, { status: 404 });
     }
     const prof = profSnap.data()!;
-
-    // Load profile
-    const profileSnap = await adminDb.collection('profile').doc('main').get();
-    const profile: UserProfile = profileSnap.exists
-      ? ({ ...DEFAULT_PROFILE, ...profileSnap.data() } as UserProfile)
-      : DEFAULT_PROFILE;
 
     const type: 'first' | 'followup' =
       prof.status === 'followup_draft' || prof.status === 'sent' ? 'followup' : 'first';

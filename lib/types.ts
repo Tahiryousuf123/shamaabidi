@@ -62,6 +62,8 @@ export interface Email {
   status: 'draft' | 'sent';
   sentAt?: Date | null;
   messageId?: string;
+  createdAt?: Date | null;
+  updatedAt?: Date | null;
 }
 
 export interface UserProfile {

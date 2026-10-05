@@ -102,6 +102,31 @@ export default function ProfessorDetailPage() {
         setEmailDraft(emailData);
         setEditedSubject(emailData.subject);
         setEditedBody(emailData.body);
+      } else if (profData.email && profData.status !== 'sent' && profData.status !== 'followup_sent') {
+        // Auto-generate draft on load so Shama can review it immediately
+        try {
+          const genRes = await fetch('/api/generate-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ professorId: id }),
+          });
+          if (genRes.ok) {
+            const genData = await genRes.json();
+            setEditedSubject(genData.subject || '');
+            setEditedBody(genData.body || '');
+            setEmailDraft({
+              id: genData.emailId,
+              professorId: id,
+              type: 'first',
+              subject: genData.subject,
+              body: genData.body,
+              status: 'draft',
+              createdAt: new Date(),
+            });
+          }
+        } catch (e) {
+          console.warn('Auto-draft generation on view failed:', e);
+        }
       }
     } catch (err) {
       console.error(err);
@@ -116,9 +141,8 @@ export default function ProfessorDetailPage() {
   }, [id]);
 
   const handleSend = async () => {
-    if (!emailDraft || !professor?.email) return;
-    if (professor.verificationLevel !== 'verified') {
-      setActionError('Only verified professors on official university domains can receive emails.');
+    if (!professor?.email) {
+      setActionError('This professor does not have an email address.');
       return;
     }
 
@@ -127,18 +151,20 @@ export default function ProfessorDetailPage() {
     setActionSuccess('');
 
     try {
-      // Save changes to email draft first
-      await updateDoc(doc(db, 'emails', emailDraft.id!), {
-        subject: editedSubject,
-        body: editedBody,
-      });
+      if (emailDraft?.id) {
+        // Save changes to email draft first
+        await updateDoc(doc(db, 'emails', emailDraft.id), {
+          subject: editedSubject,
+          body: editedBody,
+        });
+      }
 
       const res = await fetch('/api/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           professorId: id,
-          emailId: emailDraft.id,
+          emailId: emailDraft?.id,
         }),
       });
 
@@ -147,7 +173,7 @@ export default function ProfessorDetailPage() {
         throw new Error(data.error ?? 'Send failed');
       }
 
-      setActionSuccess('Email sent successfully! Follow-up will be scheduled if no reply in 7 days.');
+      setActionSuccess('Email sent directly from shamaabidiphd@gmail.com! Follow-up scheduled in 7 days.');
       await loadData();
     } catch (err) {
       setActionError(err instanceof Error ? err.message : 'Failed to send email.');

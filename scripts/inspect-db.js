@@ -1,51 +1,69 @@
 const fs = require('fs');
 const path = require('path');
-
-const envFile = fs.readFileSync(path.join(__dirname, '..', '.env.local'), 'utf8');
-envFile.split(/\r?\n/).forEach(line => {
-  const idx = line.indexOf('=');
-  if (idx > 0 && !line.startsWith('#')) {
-    const k = line.slice(0, idx).trim();
-    let v = line.slice(idx + 1).trim();
-    if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
-      v = v.slice(1, -1);
-    }
-    v = v.replace(/\\n/g, '\n');
-    process.env[k] = v;
-  }
-});
-
 const admin = require('firebase-admin');
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY,
-    })
-  });
+
+const envContent = fs.readFileSync(path.join(__dirname, '../.env.local'), 'utf8');
+for (const line of envContent.split('\n')) {
+  const trimmed = line.trim();
+  if (!trimmed || trimmed.startsWith('#')) continue;
+  const eqIdx = trimmed.indexOf('=');
+  if (eqIdx > 0) {
+    const key = trimmed.slice(0, eqIdx).trim();
+    let val = trimmed.slice(eqIdx + 1).trim();
+    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+      val = val.slice(1, -1);
+    }
+    if (!process.env[key]) process.env[key] = val;
+  }
 }
+
+let key = (process.env.FIREBASE_PRIVATE_KEY || '').trim().replace(/\\n/g, '\n');
+admin.initializeApp({
+  credential: admin.credential.cert({
+    projectId: (process.env.FIREBASE_PROJECT_ID || 'shamaabidi-3ddf8').trim(),
+    clientEmail: (process.env.FIREBASE_CLIENT_EMAIL || '').trim(),
+    privateKey: key,
+  })
+});
 
 const db = admin.firestore();
 
-async function inspect() {
+async function run() {
   const snap = await db.collection('professors').get();
-  console.log(`Total professors in Firestore: ${snap.size}`);
-  const statusCounts = {};
-  snap.docs.forEach((doc, idx) => {
-    const d = doc.data();
-    statusCounts[d.status] = (statusCounts[d.status] || 0) + 1;
-    if (idx < 10) {
-      console.log(`[${idx + 1}] ${d.name} (${d.university}) | Score: ${d.relevanceScore}% | Deadline: ${d.deadline} | Status: ${d.status} | Email: ${d.email}`);
+  console.log('Total professors in Firestore:', snap.size);
+  let withEmail = 0;
+  const statuses = {};
+  const sample = [];
+  snap.forEach(d => {
+    const data = d.data();
+    statuses[data.status] = (statuses[data.status] || 0) + 1;
+    if (data.email && data.email.includes('@')) {
+      withEmail++;
+      if (sample.length < 5) {
+        sample.push({
+          id: d.id,
+          name: data.name,
+          uni: data.university,
+          email: data.email,
+          status: data.status,
+          hasFundingAd: data.hasFundingAd,
+          paper: data.recentPaper
+        });
+      }
     }
   });
-  console.log('Status counts:', JSON.stringify(statusCounts, null, 2));
+  console.log('Professors with email:', withEmail);
+  console.log('Statuses count:', statuses);
+  console.log('Sample professors with email:', JSON.stringify(sample, null, 2));
 
-  const emailSnap = await db.collection('emails').get();
-  console.log(`Total email drafts/records in Firestore: ${emailSnap.size}`);
-
-  const profileSnap = await db.collection('profile').doc('main').get();
-  console.log('Profile daily target:', profileSnap.data()?.dailyFindTarget, 'daily send limit:', profileSnap.data()?.dailySendLimit);
+  const emailsSnap = await db.collection('emails').get();
+  console.log('Total email docs in Firestore:', emailsSnap.size);
+  const emailStatuses = {};
+  emailsSnap.forEach(d => {
+    const data = d.data();
+    emailStatuses[data.status] = (emailStatuses[data.status] || 0) + 1;
+  });
+  console.log('Email statuses:', emailStatuses);
 }
 
-inspect().then(() => process.exit(0)).catch(e => { console.error(e); process.exit(1); });
+run().catch(console.error);
