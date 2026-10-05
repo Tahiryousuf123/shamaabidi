@@ -17,7 +17,7 @@ from backend.draft_validator import (
     extract_synergy_paragraph,
 )
 from backend.main import app
-from backend.database import get_connection, make_id, utc_now_iso
+from backend.database import get_connection, init_database, make_id, utc_now_iso
 
 
 # ==============================================================================
@@ -171,6 +171,7 @@ def test_draft_approval_and_quarantine_enforcement():
     headers = {"Authorization": f"Bearer {token}"}
 
     # 2. Insert test professors and drafts into SQLite database
+    init_database()
     conn = get_connection()
     now = utc_now_iso()
 

@@ -830,7 +830,13 @@ def get_top_matched_professors(
                 "research_summary": p.why_matches,
                 "match_score": p.relevance_score,
                 "verification_status": p.verification_status,
-                "funding_status": getattr(p, "funding_status", "UNKNOWN") or "UNKNOWN",
+                "funding_status": (
+                    (getattr(p, "funding_status", "") or "UNKNOWN")
+                    if (getattr(p, "funding_status", "") or "UNKNOWN") in (
+                        "OPEN_FUNDED_POSITION", "FUNDING_SCHEME_AVAILABLE", "UNKNOWN", "VERIFIED", "PARTIALLY VERIFIED"
+                    )
+                    else "UNKNOWN"
+                ),
                 "funding_source_url": getattr(p, "funding_source_url", "") or "",
                 "grant_id": getattr(p, "grant_id", "") or "",
                 "funding_last_verified": getattr(p, "funding_last_verified", None).isoformat() if getattr(p, "funding_last_verified", None) else None,
