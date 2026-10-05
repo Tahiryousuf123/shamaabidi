@@ -1,0 +1,19 @@
+# Python backend and tests (managed locally / in CI, not needed for Vercel static & Node serverless)
+backend/
+alembic/
+scripts/
+tests/
+storage/
+backups/
+n8n/
+.pytest_cache/
+*.py
+*.pyc
+__pycache__/
+alembic.ini
+docker-compose.yml
+
+# Database files
+data/*.db
+data/*.db-*
+data/*.sqlite*

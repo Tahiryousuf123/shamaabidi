@@ -33,3 +33,6 @@ data/suppression_list.json
 data/send_throttle.json
 data/followup_tracking.json
 
+
+.vercel
+.env*
