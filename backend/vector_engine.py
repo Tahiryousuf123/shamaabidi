@@ -9,13 +9,14 @@ Provides:
   3. Cosine similarity + evidence overlap scoring between Shama Abidi's research
      documents/facts and candidate professor publications.
 """
+from __future__ import annotations
 
 import hashlib
 import json
 import math
 import os
 import re
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 import urllib.request
 
 
