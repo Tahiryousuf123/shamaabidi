@@ -32,7 +32,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
-type MainViewTab = 'all' | 'with_email' | 'funded' | 'draft' | 'sent';
+type MainViewTab = 'all' | 'ready_to_send' | 'sent' | 'funded' | 'with_email';
 
 function renderDeadlineBadge(deadline: string | undefined, deadlineDate?: string | null) {
   const info = getFundingTimeline(deadline, deadlineDate);
@@ -129,10 +129,10 @@ export default function ProfessorsPage() {
   // Choose dataset by active tab
   let currentDataset: Professor[] = [];
   if (activeTab === 'all') currentDataset = professors;
-  else if (activeTab === 'with_email') currentDataset = professorsWithEmail;
-  else if (activeTab === 'funded') currentDataset = fundedProfessors;
-  else if (activeTab === 'draft') currentDataset = draftReadyProfessors;
+  else if (activeTab === 'ready_to_send') currentDataset = eligibleToEmail;
   else if (activeTab === 'sent') currentDataset = sentProfessors;
+  else if (activeTab === 'funded') currentDataset = fundedProfessors;
+  else if (activeTab === 'with_email') currentDataset = professorsWithEmail;
 
   const countries = Array.from(new Set(currentDataset.map((p) => p.country).filter(Boolean))).sort();
 
@@ -347,17 +347,32 @@ export default function ProfessorsPage() {
         </button>
 
         <button
-          onClick={() => setActiveTab('with_email')}
+          onClick={() => setActiveTab('ready_to_send')}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
-            activeTab === 'with_email'
+            activeTab === 'ready_to_send'
               ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-500/20 ring-1 ring-emerald-400/30'
               : 'glass text-slate-300 hover:text-white hover:bg-white/10'
           }`}
         >
           <Mail className="w-4 h-4 text-emerald-300" />
-          <span>With Email Address</span>
+          <span>⚡ Ready to Send (Unsent)</span>
           <span className="bg-emerald-950/60 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full text-xs font-mono font-bold">
-            {professorsWithEmail.length}
+            {eligibleToEmail.length}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('sent')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
+            activeTab === 'sent'
+              ? 'bg-blue-600 text-white ring-1 ring-blue-400/30 shadow-lg shadow-blue-500/20'
+              : 'glass text-slate-300 hover:text-white hover:bg-white/10'
+          }`}
+        >
+          <CheckCircle2 className="w-4 h-4 text-blue-300" />
+          <span>✅ Already Sent</span>
+          <span className="bg-blue-950/60 text-blue-300 border border-blue-500/30 px-2 py-0.5 rounded-full text-xs font-mono font-bold">
+            {sentProfessors.length}
           </span>
         </button>
 
@@ -377,32 +392,17 @@ export default function ProfessorsPage() {
         </button>
 
         <button
-          onClick={() => setActiveTab('draft')}
+          onClick={() => setActiveTab('with_email')}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all cursor-pointer ${
-            activeTab === 'draft'
-              ? 'bg-amber-600 text-white ring-1 ring-amber-400/30'
+            activeTab === 'with_email'
+              ? 'bg-purple-600 text-white ring-1 ring-purple-400/30'
               : 'glass text-slate-300 hover:text-white hover:bg-white/10'
           }`}
         >
-          <FileText className="w-4 h-4 text-amber-300" />
-          <span>Draft Ready</span>
+          <Mail className="w-4 h-4 text-purple-300" />
+          <span>All With Email</span>
           <span className="bg-white/10 px-2 py-0.5 rounded-full text-xs font-mono">
-            {draftReadyProfessors.length}
-          </span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('sent')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all cursor-pointer ${
-            activeTab === 'sent'
-              ? 'bg-blue-600 text-white ring-1 ring-blue-400/30'
-              : 'glass text-slate-300 hover:text-white hover:bg-white/10'
-          }`}
-        >
-          <CheckCircle2 className="w-4 h-4 text-blue-300" />
-          <span>Already Sent</span>
-          <span className="bg-white/10 px-2 py-0.5 rounded-full text-xs font-mono">
-            {sentProfessors.length}
+            {professorsWithEmail.length}
           </span>
         </button>
       </div>

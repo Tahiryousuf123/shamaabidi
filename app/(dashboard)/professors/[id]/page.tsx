@@ -64,6 +64,7 @@ export default function ProfessorDetailPage() {
   const [sending, setSending] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const [editedSubject, setEditedSubject] = useState('');
   const [editedBody, setEditedBody] = useState('');
   const [actionError, setActionError] = useState('');
@@ -224,6 +225,36 @@ export default function ProfessorDetailPage() {
     } catch {
       setActionError('Delete failed. Please try again.');
       setDeleting(false);
+    }
+  };
+
+  const handleResetStatus = async () => {
+    if (
+      !confirm(
+        'Reset this professor’s status back to Draft? This will allow re-sending the email and move them back to the Ready to Send list.'
+      )
+    ) {
+      return;
+    }
+    setResetting(true);
+    setActionError('');
+    setActionSuccess('');
+    try {
+      const res = await fetch('/api/reset-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ professorId: id }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Reset failed');
+      }
+      setActionSuccess('Status reset to Draft! You can now edit and re-send the email.');
+      await loadData();
+    } catch (err: any) {
+      setActionError(err.message || 'Failed to reset status.');
+    } finally {
+      setResetting(false);
     }
   };
 
@@ -669,6 +700,17 @@ export default function ProfessorDetailPage() {
                 >
                   {regenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
                   {regenerating ? 'Regenerating…' : 'Regenerate'}
+                </button>
+              )}
+              {alreadySent && (
+                <button
+                  id="reset-status-btn"
+                  onClick={handleResetStatus}
+                  disabled={resetting}
+                  className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-amber-300 text-xs sm:text-sm font-medium glass border border-amber-500/30 hover:bg-amber-500/10 disabled:opacity-50 transition-colors cursor-pointer"
+                >
+                  {resetting ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                  <span>Reset to Draft (Allow Re-sending)</span>
                 </button>
               )}
               <button
