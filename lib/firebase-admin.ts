@@ -7,8 +7,8 @@ let _db: Firestore | null = null;
 let _auth: Auth | null = null;
 
 export function getAdminApp(): App {
-  const existing = getApps().find((a) => a.name === '[DEFAULT]') || getApps()[0];
-  if (existing) return existing;
+  const defaultApp = getApps().find((a) => a.name === '[DEFAULT]');
+  if (defaultApp) return defaultApp;
   if (_app) return _app;
 
   const privateKey = process.env.FIREBASE_PRIVATE_KEY;
@@ -28,14 +28,33 @@ export function getAdminApp(): App {
     }
   }
 
-  _app = initializeApp({
-    credential: cert({
-      projectId: process.env.FIREBASE_PROJECT_ID || 'shamaabidi-3ddf8',
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL || '',
-      privateKey: privateKey.replace(/\\n/g, '\n'),
-    }),
-  });
-  return _app;
+  let formattedKey = privateKey.trim();
+  // Strip surrounding quotes if present
+  if (
+    (formattedKey.startsWith('"') && formattedKey.endsWith('"')) ||
+    (formattedKey.startsWith("'") && formattedKey.endsWith("'"))
+  ) {
+    formattedKey = formattedKey.slice(1, -1);
+  }
+  formattedKey = formattedKey.replace(/\\n/g, '\n');
+
+  try {
+    _app = initializeApp({
+      credential: cert({
+        projectId: process.env.FIREBASE_PROJECT_ID || 'shamaabidi-3ddf8',
+        clientEmail:
+          process.env.FIREBASE_CLIENT_EMAIL ||
+          'firebase-adminsdk-fbsvc@shamaabidi-3ddf8.iam.gserviceaccount.com',
+        privateKey: formattedKey,
+      }),
+    });
+    return _app;
+  } catch (err) {
+    console.error('Firebase Admin cert init failed:', err);
+    const existing = getApps()[0];
+    if (existing) return existing;
+    throw err;
+  }
 }
 
 export function getAdminDb(): Firestore {
