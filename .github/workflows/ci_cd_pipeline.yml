@@ -41,4 +41,14 @@ jobs:
 
       - name: Run full automated unit, integration, E2E & security test suite
         run: |
-          python -m pytest tests/ -v
+          python -m pytest tests/ -v --tb=short -ra > test_results.log 2>&1 || (cat test_results.log && exit 1)
+
+      - name: Capture Failure Log
+        if: failure()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -B debug-ci-failure
+          git add -f test_results.log
+          git commit -m "ci: capture test results log"
+          git push -f origin debug-ci-failure
