@@ -39,4 +39,4 @@ jobs:
 
       - name: Run full automated unit, integration, E2E & security test suite
         run: |
-          python -m pytest tests/ -v
+          python -m pytest tests/ -v --tb=short -ra
