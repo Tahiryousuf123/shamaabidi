@@ -1,54 +1,9 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Helper function to verify user is authenticated
-    function isAuthenticated() {
-      return request.auth != null;
-    }
-    
-    // Helper function to verify user is the authorized owner
-    function isOwner() {
-      return isAuthenticated() && (
-        request.auth.token.email in [
-          "shamaabidiphd@gmail.com",
-          "shama.abidi80@gmail.com"
-        ] ||
-        request.auth.uid in [
-          "owner_shama_abidi_uid",
-          "bO47T7g46YShamaAbidiOwner"
-        ]
-      );
-    }
-    
-    // Helper to check user owns their own document space
-    function isUser(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
-    }
-
-    // 1. Cross-Device CRM Sync Overlay (Sent emails, follow-ups, reply state)
-    // Strictly restricted to authorized owner UID / email
-    match /shama_crm_sync/{docId} {
-      allow read, write: if isOwner();
-    }
-
-    // 2. Sensitive CRM Private Records (Candidate CV details, sent drafts, notes, email replies)
-    match /shama_crm_private/{docId} {
-      allow read, write: if isOwner();
-    }
-    
-    match /shama_crm_private/{docId}/{subcollection=**} {
-      allow read, write: if isOwner();
-    }
-
-    // 3. User profiles / settings
-    match /users/{userId} {
-      allow read, write: if isUser(userId) || isOwner();
-    }
-
-    // 4. Default Deny: All other paths are strictly blocked from unauthenticated or foreign access
+    // Only authenticated users can read/write any document
     match /{document=**} {
-      allow read, write: if false;
+      allow read, write: if request.auth != null;
     }
   }
 }
