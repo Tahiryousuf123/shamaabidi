@@ -238,8 +238,8 @@ export default function ProfessorDetailPage() {
   if (!professor) return null;
 
   const isVerified = professor.verificationLevel === 'verified';
-  const canSend = (professor.status === 'draft' || professor.status === 'followup_draft') && isVerified;
   const alreadySent = professor.status === 'sent' || professor.status === 'followup_sent' || professor.status === 'replied';
+  const canSend = !alreadySent && Boolean(professor.email && professor.email.includes('@'));
 
   const matchScore = calculateProfessorMatchScore(professor);
   const timelineInfo = getFundingTimeline(professor.deadline, professor.deadlineDate);
@@ -585,16 +585,18 @@ export default function ProfessorDetailPage() {
         </div>
       )}
 
-      {/* Verification Level Warning for Partial / Unverified */}
-      {!isVerified && (
-        <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 text-amber-300 text-xs sm:text-sm space-y-1">
-          <p className="font-semibold flex items-center gap-1.5">
-            <AlertTriangle className="w-4 h-4 text-amber-400" />
-            Verification Level: {VERIFICATION_LABELS[professor.verificationLevel || 'unverified']}
-          </p>
-          <p className="text-amber-200/80 text-xs">
-            According to outreach rules, automated 1-click emails are reserved exclusively for professors with verified email addresses on official university domains. Review the source links above before sending.
-          </p>
+      {/* Recipient Email & Evidence Banner */}
+      {professor.email && (
+        <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4 text-xs sm:text-sm flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <Mail className="w-4 h-4 text-emerald-400" />
+            <span className="text-slate-300">
+              Recipient Email: <strong className="font-mono text-emerald-300">{professor.email}</strong>
+            </span>
+          </div>
+          <span className={`text-[10px] font-medium px-2 py-0.5 rounded ${VERIFICATION_COLORS[professor.verificationLevel || 'unverified']}`}>
+            {VERIFICATION_LABELS[professor.verificationLevel || 'unverified']}
+          </span>
         </div>
       )}
 
@@ -654,7 +656,7 @@ export default function ProfessorDetailPage() {
                     <Send className="w-4 h-4" />
                   )}
                   <span>
-                    {sending ? 'Sending from Gmail…' : `Send Email to ${professor.name || 'Professor'}`}
+                    {sending ? 'Sending via Gmail…' : `✉️ Send via Gmail (${professor.email})`}
                   </span>
                 </button>
               )}
@@ -706,7 +708,7 @@ export default function ProfessorDetailPage() {
               ? 'No verified email address found on official university domain for this candidate.'
               : 'No email draft generated yet.'}
           </p>
-          {professor.email && isVerified && (
+          {professor.email && (
             <button
               onClick={handleRegenerate}
               disabled={regenerating}

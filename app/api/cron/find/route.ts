@@ -47,6 +47,7 @@ async function handleAutoFind(request: NextRequest) {
   }
 
   const batchIndex = parseInt(request.nextUrl.searchParams.get('batch') || '1', 10);
+  const force = request.nextUrl.searchParams.get('force') === 'true';
 
   try {
     // 2. Load User Profile / Auto-find settings
@@ -61,7 +62,7 @@ async function handleAutoFind(request: NextRequest) {
 
     // 3. Check today's progress towards target
     const todayFound = await getTodayFoundCount();
-    if (todayFound >= dailyTarget) {
+    if (todayFound >= dailyTarget && !force) {
       await adminDb.collection('cron_logs').add({
         type: 'auto_find',
         message: `Daily find target already achieved (${todayFound}/${dailyTarget}). Auto-find completed for today.`,
