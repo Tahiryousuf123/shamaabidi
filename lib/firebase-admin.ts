@@ -38,13 +38,17 @@ export function getAdminApp(): App {
   }
   formattedKey = formattedKey.replace(/\\n/g, '\n');
 
+  const projectId = (process.env.FIREBASE_PROJECT_ID || 'shamaabidi-3ddf8').trim();
+  const clientEmail = (
+    process.env.FIREBASE_CLIENT_EMAIL ||
+    'firebase-adminsdk-fbsvc@shamaabidi-3ddf8.iam.gserviceaccount.com'
+  ).trim();
+
   try {
     _app = initializeApp({
       credential: cert({
-        projectId: process.env.FIREBASE_PROJECT_ID || 'shamaabidi-3ddf8',
-        clientEmail:
-          process.env.FIREBASE_CLIENT_EMAIL ||
-          'firebase-adminsdk-fbsvc@shamaabidi-3ddf8.iam.gserviceaccount.com',
+        projectId,
+        clientEmail,
         privateKey: formattedKey,
       }),
     });
