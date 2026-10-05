@@ -12,6 +12,9 @@ n8n/
 __pycache__/
 alembic.ini
 docker-compose.yml
+frontend/
+netlify/
+deploy_to_vercel.bat
 
 # Database files
 data/*.db
