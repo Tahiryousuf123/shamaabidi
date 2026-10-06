@@ -177,12 +177,15 @@ export function constructFullEmailMessage(
 
 ${bodyContent}
 
+I have attached my academic CV for your kind consideration.
+
 Kind regards,
 ${senderName}
-Clinical Pharmacist | MPhil Pharmacy Practice
+Senior Clinical Pharmacist | MPhil Pharmacy Practice
 Liaquat National Hospital, Karachi, Pakistan
 Email: ${senderEmail}
-ORCID: 0009-0008-3714-1675`;
+ORCID: 0009-0008-3714-1675
+LinkedIn: https://www.linkedin.com/in/shama-abidi-5a41a0304/`;
 }
 
 /**
@@ -214,17 +217,24 @@ export async function syncDraftToGmail(
     await client.connect();
 
     const cleanSubject = subject.replace(/[\r\n]+/g, ' ').trim();
-    const rawEmail = `From: "Dr. Shama Abidi" <${user}>
-To: ${toEmail}
-Subject: ${cleanSubject}
-Date: ${new Date().toUTCString()}
-Message-ID: <phd-reach-draft-${Date.now()}@gmail.com>
-X-Mailer: PhDReach/2.0
-Content-Type: text/plain; charset=utf-8
 
-${body}`;
+    // Compile complete MIME message including CV attachment
+    const { getCvAttachment } = await import('@/lib/cv-asset');
+    const nodemailer = (await import('nodemailer')).default || (await import('nodemailer'));
+    const cvAttachment = getCvAttachment();
 
-    const res = await client.append('[Gmail]/Drafts', Buffer.from(rawEmail, 'utf-8'), ['\\Draft', '\\Seen']);
+    const compiler = nodemailer.createTransport({ streamTransport: true, buffer: true });
+    const info: any = await compiler.sendMail({
+      from: `"Dr. Shama Abidi" <${user}>`,
+      to: toEmail,
+      subject: cleanSubject,
+      text: body,
+      attachments: [cvAttachment],
+    });
+
+    const compiledBuffer: Buffer = info.message;
+
+    const res = await client.append('[Gmail]/Drafts', compiledBuffer, ['\\Draft', '\\Seen']);
     await client.logout();
     const uid = res && typeof res === 'object' && 'uid' in res ? (res as any).uid : undefined;
     return { success: Boolean(res), uid };

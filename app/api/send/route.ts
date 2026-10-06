@@ -5,6 +5,7 @@ import { randomUUID } from 'crypto';
 import { FieldValue } from 'firebase-admin/firestore';
 import { UserProfile, DEFAULT_PROFILE } from '@/lib/types';
 import { generatePersonalizedEmail, constructFullEmailMessage } from '@/lib/email-service';
+import { getCvAttachment } from '@/lib/cv-asset';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -132,16 +133,9 @@ export async function POST(request: NextRequest) {
         },
       };
 
-      // Attach CV if configured
-      if (profile.cvBase64 && profile.cvFileName) {
-        mailOptions.attachments = [
-          {
-            filename: profile.cvFileName,
-            content: Buffer.from(profile.cvBase64, 'base64'),
-            contentType: 'application/pdf',
-          },
-        ];
-      }
+      // Attach Dr. Shama's CV automatically (uses profile upload or bundled official Academic CV PDF)
+      const cvAttachment = getCvAttachment(profile.cvBase64, profile.cvFileName);
+      mailOptions.attachments = [cvAttachment];
 
       // Send via Gmail SMTP
       await transporter.sendMail(mailOptions);
