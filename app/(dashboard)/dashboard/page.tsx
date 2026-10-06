@@ -271,14 +271,39 @@ export default function DashboardPage() {
     nextCombination: null,
     recentLogs: [],
   });
+  const [isSyncingGmail, setIsSyncingGmail] = useState(false);
+  const [syncNotice, setSyncNotice] = useState<string | null>(null);
   const [tavilyUsage, setTavilyUsage] = useState<{
     usage: number;
     limit: number | null;
     plan: string;
   } | null>(null);
 
+  const handleSyncGmailReplies = async () => {
+    setIsSyncingGmail(true);
+    setSyncNotice(null);
+    try {
+      const res = await fetch('/api/sync-replies', { method: 'POST' });
+      const data = await res.json();
+      if (data.repliesDetected > 0) {
+        setSyncNotice(`🎉 ${data.repliesDetected} professor reply detected and synced from Gmail!`);
+      } else {
+        setSyncNotice('✅ Gmail sync complete. Checked inbox, no new replies.');
+      }
+      setTimeout(() => setSyncNotice(null), 6000);
+    } catch (e: any) {
+      setSyncNotice('❌ Gmail sync failed: ' + (e?.message || 'Check connection'));
+      setTimeout(() => setSyncNotice(null), 6000);
+    } finally {
+      setIsSyncingGmail(false);
+    }
+  };
+
   useEffect(() => {
     if (!user) return;
+
+    // Background auto-sync Gmail replies on mount
+    fetch('/api/sync-replies').catch(() => {});
 
     // Load profile for daily target
     getDoc(doc(db, 'profile', 'main'))
@@ -325,11 +350,13 @@ export default function DashboardPage() {
         const raw = doc.data();
         const createdDate = raw.createdAt?.toDate ? raw.createdAt.toDate() : raw.createdAt ? new Date(raw.createdAt) : new Date();
         const sentDate = raw.sentAt?.toDate ? raw.sentAt.toDate() : raw.sentAt ? new Date(raw.sentAt) : null;
+        const repliedDate = raw.repliedAt?.toDate ? raw.repliedAt.toDate() : raw.repliedAt ? new Date(raw.repliedAt) : null;
         return {
           id: doc.id,
           ...raw,
           createdAt: createdDate,
           sentAt: sentDate,
+          repliedAt: repliedDate,
         };
       }) as Professor[];
       setProfessors(data);
@@ -429,6 +456,15 @@ export default function DashboardPage() {
         </div>
         <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-3">
           <button
+            onClick={handleSyncGmailReplies}
+            disabled={isSyncingGmail}
+            id="sync-gmail-btn"
+            className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-3.5 sm:px-4 py-2.5 rounded-xl text-teal-300 text-xs sm:text-sm font-medium glass border border-teal-500/30 hover:bg-teal-500/10 transition-colors cursor-pointer"
+          >
+            <RotateCw className={`w-4 h-4 text-teal-400 ${isSyncingGmail ? 'animate-spin' : ''}`} />
+            <span>{isSyncingGmail ? 'Checking Gmail…' : 'Sync Gmail Replies'}</span>
+          </button>
+          <button
             onClick={() => setShowAddModal(true)}
             id="add-professor-btn"
             className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-3.5 sm:px-4 py-2.5 rounded-xl text-white text-xs sm:text-sm font-medium glass border border-white/10 hover:bg-white/10 transition-colors"
@@ -446,6 +482,19 @@ export default function DashboardPage() {
           </Link>
         </div>
       </div>
+
+      {/* Sync Notice Alert */}
+      {syncNotice && (
+        <div className="bg-teal-500/10 border border-teal-500/30 text-teal-200 text-xs sm:text-sm px-4 py-3 rounded-xl flex items-center justify-between animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <MessageSquare className="w-4 h-4 text-teal-400 flex-shrink-0" />
+            <span>{syncNotice}</span>
+          </div>
+          <button onClick={() => setSyncNotice(null)} className="text-teal-400 hover:text-white cursor-pointer">
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* METRIC CARDS */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
@@ -545,13 +594,17 @@ export default function DashboardPage() {
           </button>
           <button
             onClick={() => setFilterStatus('replied')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               filterStatus === 'replied'
-                ? 'bg-teal-600 text-white'
-                : 'glass text-slate-400 hover:text-white'
+                ? 'bg-teal-600 text-white shadow-md shadow-teal-500/20'
+                : 'glass text-teal-300 hover:text-white hover:bg-teal-500/10'
             }`}
           >
-            Replied ({fundedProfessors.filter((p) => p.status === 'replied').length})
+            <MessageSquare className="w-3.5 h-3.5 text-teal-400" />
+            <span>Replied</span>
+            <span className="bg-teal-950/80 text-teal-300 border border-teal-500/30 px-1.5 py-0.5 rounded text-[10px] font-bold">
+              {professors.filter((p) => p.status === 'replied').length}
+            </span>
           </button>
           <button
             onClick={() => setFilterStatus('unfunded')}
@@ -702,6 +755,19 @@ export default function DashboardPage() {
                           <p className="text-indigo-300/80 text-[11px] line-clamp-2 leading-tight">
                             🎯 {prof.matchReason}
                           </p>
+                        )}
+                        {prof.status === 'replied' && (
+                          <div className="mt-2 p-2 rounded-xl bg-teal-500/15 border border-teal-500/30 text-teal-200 text-xs">
+                            <div className="flex items-center gap-1.5 font-bold text-teal-300 text-[11px]">
+                              <MessageSquare className="w-3 h-3 flex-shrink-0" />
+                              <span>{prof.replyType === 'auto_reply' ? 'Auto-Reply / Out of Office' : 'Professor Replied'}</span>
+                            </div>
+                            {prof.replySnippet && (
+                              <p className="mt-1 text-[11px] text-slate-200 line-clamp-2 italic font-mono leading-tight">
+                                &ldquo;{prof.replySnippet}&rdquo;
+                              </p>
+                            )}
+                          </div>
                         )}
                       </div>
                     </td>

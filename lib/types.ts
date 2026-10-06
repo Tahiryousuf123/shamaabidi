@@ -50,6 +50,13 @@ export interface Professor {
     | 'email_not_found'
     | 'unfunded_candidate';
   sentAt?: Date | null;
+  repliedAt?: Date | null;
+  replySubject?: string | null;
+  replyFrom?: string | null;
+  replyFromName?: string | null;
+  replySnippet?: string | null;
+  replyType?: 'auto_reply' | 'direct_reply' | null;
+  bounceReason?: string | null;
   createdAt: Date;
 }
 

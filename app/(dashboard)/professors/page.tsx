@@ -29,10 +29,12 @@ import {
   Send,
   X,
   FileText,
+  MessageSquare,
+  RotateCw,
 } from 'lucide-react';
 import Link from 'next/link';
 
-type MainViewTab = 'all' | 'ready_to_send' | 'sent' | 'funded' | 'with_email';
+type MainViewTab = 'all' | 'ready_to_send' | 'sent' | 'replied' | 'funded' | 'with_email';
 
 function renderDeadlineBadge(deadline: string | undefined, deadlineDate?: string | null) {
   const info = getFundingTimeline(deadline, deadlineDate);
@@ -84,10 +86,15 @@ export default function ProfessorsPage() {
     completed?: boolean;
     error?: string;
   } | null>(null);
+  const [isSyncingGmail, setIsSyncingGmail] = useState(false);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
+
+    // Background auto-sync Gmail replies on mount
+    fetch('/api/sync-replies').catch(() => {});
+
     const q = query(collection(db, 'professors'), orderBy('createdAt', 'desc'));
     const unsub = onSnapshot(q, (snap) => {
       const data = snap.docs.map((doc) => {
@@ -97,6 +104,7 @@ export default function ProfessorsPage() {
           ...raw,
           createdAt: raw.createdAt?.toDate ? raw.createdAt.toDate() : new Date(),
           sentAt: raw.sentAt?.toDate ? raw.sentAt.toDate() : null,
+          repliedAt: raw.repliedAt?.toDate ? raw.repliedAt.toDate() : null,
         };
       }) as Professor[];
       setProfessors(data);
@@ -113,7 +121,7 @@ export default function ProfessorsPage() {
   );
 
   const eligibleToEmail = professorsWithEmail.filter(
-    (p) => p.status !== 'sent' && p.status !== 'followup_sent'
+    (p) => p.status !== 'sent' && p.status !== 'followup_sent' && p.status !== 'replied'
   );
 
   const fundedProfessors = professors.filter(
@@ -124,13 +132,16 @@ export default function ProfessorsPage() {
     (p) => p.status === 'sent' || p.status === 'followup_sent'
   );
 
-  const draftReadyProfessors = professors.filter((p) => p.status === 'draft');
+  const repliedProfessors = professors.filter(
+    (p) => p.status === 'replied'
+  );
 
   // Choose dataset by active tab
   let currentDataset: Professor[] = [];
   if (activeTab === 'all') currentDataset = professors;
   else if (activeTab === 'ready_to_send') currentDataset = eligibleToEmail;
   else if (activeTab === 'sent') currentDataset = sentProfessors;
+  else if (activeTab === 'replied') currentDataset = repliedProfessors;
   else if (activeTab === 'funded') currentDataset = fundedProfessors;
   else if (activeTab === 'with_email') currentDataset = professorsWithEmail;
 
@@ -261,6 +272,25 @@ export default function ProfessorsPage() {
     }
   };
 
+  const handleSyncGmailReplies = async () => {
+    setIsSyncingGmail(true);
+    setActionNotice(null);
+    try {
+      const res = await fetch('/api/sync-replies', { method: 'POST' });
+      const data = await res.json();
+      if (data.repliesDetected > 0) {
+        setActionNotice(`🎉 ${data.repliesDetected} professor reply detected and synced from Gmail!`);
+      } else {
+        setActionNotice('✅ Gmail sync complete. Checked inbox, no new replies.');
+      }
+      setTimeout(() => setActionNotice(null), 6000);
+    } catch (e: any) {
+      alert('Gmail sync error: ' + (e?.message || 'Check connection'));
+    } finally {
+      setIsSyncingGmail(false);
+    }
+  };
+
   return (
     <div className="space-y-6 pb-12">
       {/* Top Header */}
@@ -279,6 +309,16 @@ export default function ProfessorsPage() {
 
         {/* Action Buttons */}
         <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            onClick={handleSyncGmailReplies}
+            disabled={isSyncingGmail}
+            id="sync-gmail-btn"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium glass text-teal-300 hover:text-white hover:bg-teal-500/10 border border-teal-500/30 transition-all disabled:opacity-50 cursor-pointer"
+          >
+            <RotateCw className={`w-4 h-4 text-teal-400 ${isSyncingGmail ? 'animate-spin' : ''}`} />
+            <span>{isSyncingGmail ? 'Checking Gmail…' : 'Sync Gmail Replies'}</span>
+          </button>
+
           <button
             onClick={handleGenerateAllDrafts}
             disabled={isGeneratingAll}
@@ -373,6 +413,21 @@ export default function ProfessorsPage() {
           <span>✅ Already Sent</span>
           <span className="bg-blue-950/60 text-blue-300 border border-blue-500/30 px-2 py-0.5 rounded-full text-xs font-mono font-bold">
             {sentProfessors.length}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('replied')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
+            activeTab === 'replied'
+              ? 'bg-teal-600 text-white ring-1 ring-teal-400/30 shadow-lg shadow-teal-500/20'
+              : 'glass text-teal-300 hover:text-white hover:bg-teal-500/10'
+          }`}
+        >
+          <MessageSquare className="w-4 h-4 text-teal-400" />
+          <span>💬 Replied</span>
+          <span className="bg-teal-950/80 text-teal-300 border border-teal-500/30 px-2 py-0.5 rounded-full text-xs font-mono font-bold">
+            {repliedProfessors.length}
           </span>
         </button>
 
@@ -537,6 +592,20 @@ export default function ProfessorsPage() {
                               Supervisor: <strong className="text-white">{prof.name}</strong>
                             </div>
                           )}
+
+                          {prof.status === 'replied' && (
+                            <div className="mt-1.5 p-2 rounded-xl bg-teal-500/15 border border-teal-500/30 text-teal-200 text-xs">
+                              <div className="flex items-center gap-1.5 font-bold text-teal-300 text-[11px]">
+                                <MessageSquare className="w-3 h-3 flex-shrink-0" />
+                                <span>{prof.replyType === 'auto_reply' ? 'Auto-Reply / Out of Office' : 'Professor Replied'}</span>
+                              </div>
+                              {prof.replySnippet && (
+                                <p className="mt-1 text-[11px] text-slate-200 line-clamp-2 italic font-mono leading-tight">
+                                  &ldquo;{prof.replySnippet}&rdquo;
+                                </p>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </td>
 
@@ -622,7 +691,12 @@ export default function ProfessorsPage() {
                       {/* Column 6: 1-Click Send Action */}
                       <td className="px-5 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-2">
-                          {isSent ? (
+                          {prof.status === 'replied' ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-teal-500/10 text-teal-300 border border-teal-500/30">
+                              <MessageSquare className="w-3.5 h-3.5" />
+                              Replied
+                            </span>
+                          ) : isSent ? (
                             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                               <CheckCircle2 className="w-3.5 h-3.5" />
                               Sent

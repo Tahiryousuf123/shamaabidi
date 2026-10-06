@@ -5,6 +5,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { differenceInDays } from 'date-fns';
 import { generatePersonalizedEmail, constructFullEmailMessage } from '@/lib/email-service';
 import { DEFAULT_PROFILE, UserProfile } from '@/lib/types';
+import { syncGmailRepliesAndBounces } from '@/lib/gmail-sync';
 
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
@@ -154,48 +155,12 @@ async function handleCron(request: NextRequest) {
       }
     }
 
-    // 2. Check for replies and delivery failure bounces via IMAP
-    const { repliedProfIds, bouncedProfIds } = await checkRepliesAndBounces(emailToProfIds);
-
-    // Update bounced professors
-    for (const profId of bouncedProfIds) {
-      try {
-        await adminDb.collection('professors').doc(profId).update({
-          status: 'bounced',
-          bouncedAt: FieldValue.serverTimestamp(),
-        });
-        results.bouncesDetected++;
-
-        await adminDb.collection('cron_logs').add({
-          type: 'bounce_detected',
-          message: `Delivery failure detected for professor ${profId}. Status marked as bounced.`,
-          details: { professorId: profId },
-          createdAt: FieldValue.serverTimestamp(),
-        });
-      } catch (err) {
-        results.errors.push(`Failed to mark ${profId} as bounced: ${err}`);
-      }
-    }
-
-    // Update replied professors (skip if bounced)
-    for (const profId of repliedProfIds) {
-      if (bouncedProfIds.has(profId)) continue;
-      try {
-        await adminDb.collection('professors').doc(profId).update({
-          status: 'replied',
-          repliedAt: FieldValue.serverTimestamp(),
-        });
-        results.repliesDetected++;
-
-        await adminDb.collection('cron_logs').add({
-          type: 'reply_check',
-          message: `Reply received from professor ${profId}. Status marked as replied.`,
-          details: { professorId: profId },
-          createdAt: FieldValue.serverTimestamp(),
-        });
-      } catch (err) {
-        results.errors.push(`Failed to mark ${profId} as replied: ${err}`);
-      }
+    // 2. Check for replies and delivery failure bounces via smart IMAP engine
+    const syncRes = await syncGmailRepliesAndBounces();
+    results.repliesDetected = syncRes.repliesDetected;
+    results.bouncesDetected = syncRes.bouncesDetected;
+    if (syncRes.errors?.length) {
+      results.errors.push(...syncRes.errors);
     }
 
     // 3. Load profile for follow-up generation
@@ -207,8 +172,10 @@ async function handleCron(request: NextRequest) {
     // 4. Check for professors that need follow-up (sent >= followupDays ago, no reply, not bounced)
     const now = new Date();
     const followupDays = typeof profile.followupDays === 'number' ? profile.followupDays : 7;
+    const newlyRepliedSet = new Set(syncRes.matchedProfessors.map((p) => p.profId));
+
     for (const profDoc of sentSnap.docs) {
-      if (repliedProfIds.has(profDoc.id) || bouncedProfIds.has(profDoc.id)) continue;
+      if (newlyRepliedSet.has(profDoc.id)) continue;
 
       const data = profDoc.data();
       if (data.status !== 'sent') continue; // Only first-time sent, not followup_sent

@@ -43,6 +43,7 @@ import {
   ShieldCheck,
   AlertTriangle,
   Quote,
+  MessageSquare,
   DollarSign,
   Calendar,
   Sparkles,
@@ -78,14 +79,18 @@ export default function ProfessorDetailPage() {
         router.push('/dashboard');
         return;
       }
+      const rawData = profDoc.data() || {};
       const profData = {
         id: profDoc.id,
-        ...profDoc.data(),
-        createdAt: profDoc.data()?.createdAt?.toDate
-          ? profDoc.data().createdAt.toDate()
+        ...rawData,
+        createdAt: rawData.createdAt?.toDate
+          ? rawData.createdAt.toDate()
           : new Date(),
-        sentAt: profDoc.data()?.sentAt?.toDate
-          ? profDoc.data().sentAt.toDate()
+        sentAt: rawData.sentAt?.toDate
+          ? rawData.sentAt.toDate()
+          : null,
+        repliedAt: rawData.repliedAt?.toDate
+          ? rawData.repliedAt.toDate()
           : null,
       } as Professor;
       setProfessor(profData);
@@ -628,6 +633,58 @@ export default function ProfessorDetailPage() {
           <span className={`text-[10px] font-medium px-2 py-0.5 rounded ${VERIFICATION_COLORS[professor.verificationLevel || 'unverified']}`}>
             {VERIFICATION_LABELS[professor.verificationLevel || 'unverified']}
           </span>
+        </div>
+      )}
+
+      {/* Received Reply Box */}
+      {(professor.status === 'replied' || professor.replySnippet) && (
+        <div className="bg-teal-500/10 border border-teal-500/30 rounded-2xl p-5 space-y-3 animate-in fade-in">
+          <div className="flex items-center justify-between gap-3 flex-wrap border-b border-teal-500/20 pb-3">
+            <div className="flex items-center gap-2">
+              <MessageSquare className="w-5 h-5 text-teal-400 flex-shrink-0" />
+              <h3 className="text-base font-semibold text-white">
+                {professor.replyType === 'auto_reply' ? 'Automatic Response Received' : 'Professor Reply Received'}
+              </h3>
+            </div>
+            <span className="text-xs px-2.5 py-0.5 rounded-full font-medium bg-teal-500/20 text-teal-300 border border-teal-500/30">
+              {professor.replyType === 'auto_reply' ? 'Out of Office / Auto-Reply' : 'Active Reply'}
+            </span>
+          </div>
+
+          {professor.replySubject && (
+            <p className="text-xs text-slate-300">
+              <strong className="text-slate-400">Subject:</strong> {professor.replySubject}
+            </p>
+          )}
+
+          {professor.replyFrom && (
+            <p className="text-xs text-slate-300">
+              <strong className="text-slate-400">From:</strong>{' '}
+              <span className="font-mono text-teal-300">
+                {professor.replyFromName ? `${professor.replyFromName} <${professor.replyFrom}>` : professor.replyFrom}
+              </span>
+            </p>
+          )}
+
+          {professor.repliedAt && (
+            <p className="text-xs text-slate-400">
+              <strong className="text-slate-400">Received:</strong>{' '}
+              {professor.repliedAt instanceof Date
+                ? `${professor.repliedAt.toLocaleDateString()} at ${professor.repliedAt.toLocaleTimeString()}`
+                : String(professor.repliedAt)}
+            </p>
+          )}
+
+          {professor.replySnippet && (
+            <div className="p-3.5 rounded-xl bg-black/40 border border-teal-500/20 text-xs sm:text-sm text-slate-100 font-mono italic leading-relaxed">
+              &ldquo;{professor.replySnippet}&rdquo;
+            </div>
+          )}
+
+          <div className="flex items-center gap-2 pt-1 text-[11px] text-teal-300/80">
+            <CheckCircle2 className="w-3.5 h-3.5 text-teal-400 flex-shrink-0" />
+            <span>Automatically synchronized with Gmail inbox (<strong>shamaabidiphd@gmail.com</strong>).</span>
+          </div>
         </div>
       )}
 
