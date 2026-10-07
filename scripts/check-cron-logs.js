@@ -49,6 +49,18 @@ async function run() {
     const time = data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : data.createdAt;
     console.log(`[${time}] Name: ${data.name} | Uni: ${data.university} | Status: ${data.status} | Source: ${data.discoverySource}`);
   });
+
+  console.log('\n=== TESTING WRITE QUOTA ===');
+  const testDoc = await db.collection('test_ping').add({ ping: Date.now() });
+  console.log('✅ Write succeeded with ID:', testDoc.id);
+  await testDoc.delete();
+  console.log('✅ Delete succeeded!');
+
+  const combosSnap = await db.collection('search_combinations').get();
+  console.log('search_combinations count:', combosSnap.size);
+
+  const profileSnap = await db.collection('profile').doc('main').get();
+  console.log('profile exists:', profileSnap.exists, 'topics count:', profileSnap.data()?.topics?.length, 'countries count:', profileSnap.data()?.countries?.length);
 }
 
 run().catch(console.error);

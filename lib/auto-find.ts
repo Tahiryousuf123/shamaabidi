@@ -609,7 +609,9 @@ export async function findEvidenceViaTavily(
   };
 }
 
-// ─── Search Combination Rotation using lastUsed ───────────────────────────────
+// ─── Search Combinations Cache (Saves 50,000+ Firestore reads) ────────────────
+let _cachedCombos: Map<string, any> | null = null;
+let _lastCacheTime = 0;
 
 export async function getNextCombination(
   topics: string[],
@@ -625,49 +627,39 @@ export async function getNextCombination(
     }
   }
 
-  const snap = await adminDb.collection('search_combinations').get();
-  const existingMap = new Map<string, any>();
-  for (const doc of snap.docs) {
-    existingMap.set(doc.id, { id: doc.id, ...doc.data() });
-  }
-
-  const batch = adminDb.batch();
-  let createdCount = 0;
-  for (const combo of expectedCombos) {
-    if (!existingMap.has(combo.id)) {
-      const ref = adminDb.collection('search_combinations').doc(combo.id);
-      batch.set(ref, {
-        topic: combo.topic,
-        country: combo.country,
-        lastUsed: null,
-        timesUsed: 0,
-        lastFoundCount: 0,
-      });
-      existingMap.set(combo.id, {
-        id: combo.id,
-        topic: combo.topic,
-        country: combo.country,
-        lastUsed: null,
-        timesUsed: 0,
-        lastFoundCount: 0,
-      });
-      createdCount++;
+  // Cache combinations in memory for 10 minutes to avoid reading hundreds of documents per loop iteration
+  const now = Date.now();
+  if (!_cachedCombos || now - _lastCacheTime > 10 * 60 * 1000) {
+    try {
+      const snap = await adminDb.collection('search_combinations').get();
+      _cachedCombos = new Map<string, any>();
+      for (const doc of snap.docs) {
+        _cachedCombos.set(doc.id, { id: doc.id, ...doc.data() });
+      }
+      _lastCacheTime = now;
+    } catch (err) {
+      console.warn('Could not read search_combinations from Firestore, using in-memory state:', err);
+      if (!_cachedCombos) {
+        _cachedCombos = new Map<string, any>();
+      }
     }
   }
-  if (createdCount > 0) {
-    await batch.commit().catch((e) => console.error('Error seeding combinations:', e));
-  }
 
-  const validActiveCombos = expectedCombos.map((ec) => existingMap.get(ec.id)).filter(Boolean);
+  const existingMap = _cachedCombos;
+  const validActiveCombos = expectedCombos.map((ec) => existingMap.get(ec.id) || { id: ec.id, topic: ec.topic, country: ec.country, lastUsed: null });
 
   validActiveCombos.sort((a, b) => {
-    const aTime = a.lastUsed?.toMillis ? a.lastUsed.toMillis() : a.lastUsed instanceof Date ? a.lastUsed.getTime() : 0;
-    const bTime = b.lastUsed?.toMillis ? b.lastUsed.toMillis() : b.lastUsed instanceof Date ? b.lastUsed.getTime() : 0;
+    const aTime = a.lastUsed?.toMillis ? a.lastUsed.toMillis() : a.lastUsed instanceof Date ? a.lastUsed.getTime() : typeof a.lastUsed === 'number' ? a.lastUsed : 0;
+    const bTime = b.lastUsed?.toMillis ? b.lastUsed.toMillis() : b.lastUsed instanceof Date ? b.lastUsed.getTime() : typeof b.lastUsed === 'number' ? b.lastUsed : 0;
     return aTime - bTime;
   });
 
   const chosen = validActiveCombos[0];
   if (!chosen) return null;
+
+  // Immediately advance in memory so consecutive searches in the same batch rotate properly
+  chosen.lastUsed = Date.now();
+  existingMap.set(chosen.id, chosen);
 
   return {
     topic: chosen.topic,
@@ -687,7 +679,7 @@ export async function markCombinationUsed(docId: string, foundCount: number): Pr
       { merge: true }
     );
   } catch (err) {
-    console.error(`Failed to mark combination ${docId} as used:`, err);
+    console.warn(`Failed to mark combination ${docId} as used:`, err);
   }
 }
 
@@ -697,12 +689,25 @@ export async function getTodayFoundCount(): Promise<number> {
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
 
-  const snap = await adminDb
-    .collection('professors')
-    .where('createdAt', '>=', startOfToday)
-    .get();
+  try {
+    const snap = await adminDb
+      .collection('professors')
+      .where('createdAt', '>=', startOfToday)
+      .count()
+      .get();
 
-  return snap.size;
+    return snap.data().count;
+  } catch {
+    try {
+      const snap = await adminDb
+        .collection('professors')
+        .where('createdAt', '>=', startOfToday)
+        .get();
+      return snap.size;
+    } catch {
+      return 0;
+    }
+  }
 }
 
 export async function getTotalStats(): Promise<{
@@ -718,55 +723,70 @@ export async function getTotalStats(): Promise<{
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
 
-  const profileDoc = await adminDb.collection('profile').doc('main').get();
-  const profileData = profileDoc.data() || {};
-  const dailyTarget = profileData.dailyFindTarget || DEFAULT_PROFILE.dailyFindTarget || 30;
-
-  const allProfsSnap = await adminDb.collection('professors').get();
   let todayFound = 0;
+  let totalFound = 0;
   let totalWithEmail = 0;
   let totalVerified = 0;
   let totalNeedsReview = 0;
+  let dailyTarget = DEFAULT_PROFILE.dailyFindTarget || 30;
+  let tavilyStatus: 'active' | 'quota_exceeded' | 'unknown' = 'active';
 
-  for (const doc of allProfsSnap.docs) {
-    const data = doc.data();
-    const created = data.createdAt?.toDate ? data.createdAt.toDate() : data.createdAt ? new Date(data.createdAt) : null;
-    if (created && created >= startOfToday) {
-      todayFound++;
-    }
-    if (data.email && data.status !== 'email_not_found') {
-      totalWithEmail++;
-    }
-    if (data.verificationLevel === 'verified') {
-      totalVerified++;
-    }
-    if (data.status === 'needs_review') {
-      totalNeedsReview++;
-    }
+  try {
+    const profileDoc = await adminDb.collection('profile').doc('main').get();
+    const profileData = profileDoc.data() || {};
+    dailyTarget = profileData.dailyFindTarget || DEFAULT_PROFILE.dailyFindTarget || 30;
+  } catch (err) {
+    console.warn('Could not read profile in getTotalStats:', err);
   }
 
-  // Check last quota error log in memory
-  const recentLogsSnap = await adminDb
-    .collection('cron_logs')
-    .orderBy('createdAt', 'desc')
-    .limit(10)
-    .get();
+  try {
+    const allProfsSnap = await adminDb.collection('professors').get();
+    totalFound = allProfsSnap.size;
 
-  let tavilyStatus: 'active' | 'quota_exceeded' | 'unknown' = 'active';
-  const lastErrorDoc = recentLogsSnap.docs.find((d) => d.data().type === 'quota_error');
-  if (lastErrorDoc) {
-    const lastError = lastErrorDoc.data();
-    const errorDate = lastError.createdAt?.toDate ? lastError.createdAt.toDate() : new Date(lastError.createdAt);
-    if (Date.now() - errorDate.getTime() < 24 * 60 * 60 * 1000) {
-      tavilyStatus = 'quota_exceeded';
+    for (const doc of allProfsSnap.docs) {
+      const data = doc.data();
+      const created = data.createdAt?.toDate ? data.createdAt.toDate() : data.createdAt ? new Date(data.createdAt) : null;
+      if (created && created >= startOfToday) {
+        todayFound++;
+      }
+      if (data.email && data.status !== 'email_not_found') {
+        totalWithEmail++;
+      }
+      if (data.verificationLevel === 'verified') {
+        totalVerified++;
+      }
+      if (data.status === 'needs_review') {
+        totalNeedsReview++;
+      }
     }
+  } catch (err) {
+    console.warn('Could not read professors in getTotalStats:', err);
+  }
+
+  try {
+    const recentLogsSnap = await adminDb
+      .collection('cron_logs')
+      .orderBy('createdAt', 'desc')
+      .limit(10)
+      .get();
+
+    const lastErrorDoc = recentLogsSnap.docs.find((d) => d.data().type === 'quota_error');
+    if (lastErrorDoc) {
+      const lastError = lastErrorDoc.data();
+      const errorDate = lastError.createdAt?.toDate ? lastError.createdAt.toDate() : new Date(lastError.createdAt);
+      if (Date.now() - errorDate.getTime() < 24 * 60 * 60 * 1000) {
+        tavilyStatus = 'quota_exceeded';
+      }
+    }
+  } catch (err) {
+    console.warn('Could not read cron_logs in getTotalStats:', err);
   }
 
   const remainingQuota = Math.max(0, dailyTarget - todayFound);
 
   return {
     todayFound,
-    totalFound: allProfsSnap.size,
+    totalFound,
     totalWithEmail,
     totalVerified,
     totalNeedsReview,
