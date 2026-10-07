@@ -356,11 +356,18 @@ async function handleAutoFind(request: NextRequest) {
       dailyTarget,
       chained: canChain,
     });
-  } catch (err) {
+  } catch (err: any) {
     console.error('Auto-find cron failed:', err);
+    const isQuota = err?.message?.includes('RESOURCE_EXHAUSTED') || err?.code === 8;
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Unknown auto-find error', batchIndex },
-      { status: 500 }
+      {
+        error: isQuota
+          ? 'Firebase Firestore daily free quota (50,000 reads) exceeded for today. To unblock immediately, upgrade to Firebase Blaze (Pay-as-you-go, retains free 50k reads/day at $0 cost) or wait for quota reset at 12:00 PM PKT.'
+          : err instanceof Error ? err.message : 'Unknown auto-find error',
+        quotaExhausted: isQuota,
+        batchIndex,
+      },
+      { status: isQuota ? 429 : 500 }
     );
   }
 }

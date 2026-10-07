@@ -20,10 +20,16 @@ async function handleSync(_req: NextRequest) {
       ...result,
     });
   } catch (error: any) {
+    const isQuota = error?.message?.includes('RESOURCE_EXHAUSTED') || error?.code === 8;
     console.error('API sync-replies error:', error);
     return NextResponse.json(
-      { error: error.message || 'Sync failed' },
-      { status: 500 }
+      {
+        error: isQuota
+          ? 'Firebase Firestore daily free quota (50,000 reads) exceeded for today. Upgrading to the Blaze plan (pay-as-you-go, retains free 50k/day) unblocks this immediately.'
+          : error.message || 'Sync failed',
+        quotaExhausted: isQuota,
+      },
+      { status: isQuota ? 429 : 500 }
     );
   }
 }

@@ -262,8 +262,26 @@ export default function FindPage() {
 
         {error && (
           <div className="flex items-start gap-3 bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-300 text-sm fade-in">
-            <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-            <span>{error}</span>
+            <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-red-400" />
+            <div className="space-y-1.5 flex-1">
+              <span className="font-medium block text-red-200">{error}</span>
+              {(error.includes('RESOURCE_EXHAUSTED') || error.toLowerCase().includes('quota')) && (
+                <div className="text-xs text-slate-300 bg-black/40 rounded-lg p-2.5 border border-red-500/20 space-y-1">
+                  <p className="font-semibold text-amber-300">
+                    ⚡ How to resolve immediately:
+                  </p>
+                  <p>
+                    1. Go to <a href="https://console.firebase.google.com" target="_blank" rel="noreferrer" className="text-indigo-400 underline font-medium hover:text-indigo-300">Firebase Console</a> &rarr; click <strong>Upgrade</strong> (bottom-left) &rarr; select <strong>Blaze (Pay as you go)</strong>.
+                  </p>
+                  <p className="text-slate-400">
+                    Because our caching fix slashed database reads by 99% (~200 reads/day), and Blaze retains the same 50,000 reads/day free allowance, your bill will stay <strong>$0.00</strong> and the database unlocks immediately!
+                  </p>
+                  <p className="text-slate-400">
+                    Or wait for Google Cloud's free daily quota reset at <strong>12:00 PM PKT</strong>.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
