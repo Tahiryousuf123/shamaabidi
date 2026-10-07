@@ -29,15 +29,10 @@ admin.initializeApp({
 const db = admin.firestore();
 
 async function run() {
-  const prof = await db.collection('professors').doc('JDLAdDFb1g5nZI3bguHV').get();
-  console.log('--- Professor Doc ---');
-  console.log(JSON.stringify(prof.data(), null, 2));
-
-  console.log('--- Email Docs for this Professor ---');
-  const emailsSnap = await db.collection('emails').where('professorId', '==', 'JDLAdDFb1g5nZI3bguHV').get();
-  emailsSnap.forEach(d => {
-    console.log(d.id, '=>', JSON.stringify(d.data(), null, 2));
+  await db.collection('professors').doc('JDLAdDFb1g5nZI3bguHV').update({
+    replySnippet: 'Thank you for your email. I am currently away and will reply on my return.'
   });
+  console.log('✅ Clean snippet set for Alessandro Gerada!');
 }
 
 run().catch(console.error);

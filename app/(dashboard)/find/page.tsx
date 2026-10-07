@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   Search,
   Loader2,
@@ -50,6 +51,7 @@ interface FindResult {
 }
 
 export default function FindPage() {
+  const { user } = useAuth();
   const [topic, setTopic] = useState('antimicrobial stewardship and resistance');
   const [country, setCountry] = useState('United Kingdom');
   const [loading, setLoading] = useState(false);
@@ -97,11 +99,25 @@ export default function FindPage() {
     setProgress('Running next rotated auto-find batch (5 funded PhD positions)…');
 
     try {
+      let idToken = '';
+      if (user) {
+        try {
+          idToken = await user.getIdToken();
+        } catch (e) {
+          console.warn('Could not retrieve Firebase token:', e);
+        }
+      }
+
+      const headers: Record<string, string> = {};
+      if (idToken) {
+        headers['Authorization'] = `Bearer ${idToken}`;
+      } else if (process.env.NEXT_PUBLIC_CRON_SECRET) {
+        headers['Authorization'] = `Bearer ${process.env.NEXT_PUBLIC_CRON_SECRET}`;
+        headers['x-cron-secret'] = process.env.NEXT_PUBLIC_CRON_SECRET;
+      }
+
       const res = await fetch('/api/cron/find?batch=1', {
-        headers: {
-          'x-cron-secret': process.env.NEXT_PUBLIC_CRON_SECRET || 'dev_secret',
-          Authorization: `Bearer ${process.env.NEXT_PUBLIC_CRON_SECRET || 'dev_secret'}`,
-        },
+        headers,
       });
 
       const data = await res.json();

@@ -1093,27 +1093,27 @@ export function evaluateFundedAd(ad: ExtractedAdDetails): {
     textLower.includes('cardiovascular');
 
   if (amr) {
-    score += 45;
+    score += 65;
     matchedPaper = 'Ali et al. (2022) hospital carbapenem antimicrobial stewardship prospective trial';
   }
   if (safety) {
-    score += 45;
+    score += 65;
     if (!matchedPaper) matchedPaper = 'Baig et al. (2025) high-alert medications and medication safety assessment';
   }
   if (clinPharm) {
-    score += 35;
+    score += 65;
     if (!matchedPaper) matchedPaper = 'Abidi (2026) evidence-based clinical pharmacy practice implementation';
   }
   if (aiHealth) {
-    score += 35;
+    score += 60;
     if (!matchedPaper) matchedPaper = 'Baig et al. (2025) clinical pharmacist interventions vs artificial intelligence';
   }
   if (implSci) {
-    score += 30;
+    score += 60;
     if (!matchedPaper) matchedPaper = 'Abidi (2026) implementation science in hospital pharmacy';
   }
   if (cardio) {
-    score += 40;
+    score += 60;
     if (!matchedPaper) matchedPaper = 'Abidi et al. (2024) calcium channel blockers vs beta blockers in angina';
   }
 
@@ -1121,7 +1121,9 @@ export function evaluateFundedAd(ad: ExtractedAdDetails): {
     textLower.includes('hospital') ||
     textLower.includes('patient') ||
     textLower.includes('clinical trial') ||
-    textLower.includes('healthcare')
+    textLower.includes('healthcare') ||
+    textLower.includes('health') ||
+    textLower.includes('medical')
   ) {
     score += 15;
   }

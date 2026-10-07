@@ -236,12 +236,26 @@ export default function SettingsPage() {
         { merge: true }
       );
 
-      // Trigger cron/find with secret (from environment or via internal trigger)
+      // Trigger cron/find with user token or secret
+      let idToken = '';
+      if (user) {
+        try {
+          idToken = await user.getIdToken();
+        } catch (e) {
+          console.warn('Could not retrieve Firebase token:', e);
+        }
+      }
+
+      const headers: Record<string, string> = {};
+      if (idToken) {
+        headers['Authorization'] = `Bearer ${idToken}`;
+      } else if (process.env.NEXT_PUBLIC_CRON_SECRET) {
+        headers['Authorization'] = `Bearer ${process.env.NEXT_PUBLIC_CRON_SECRET}`;
+        headers['x-cron-secret'] = process.env.NEXT_PUBLIC_CRON_SECRET;
+      }
+
       const res = await fetch('/api/cron/find?batch=1', {
-        headers: {
-          'x-cron-secret': process.env.NEXT_PUBLIC_CRON_SECRET || 'dev_secret',
-          Authorization: `Bearer ${process.env.NEXT_PUBLIC_CRON_SECRET || 'dev_secret'}`,
-        },
+        headers,
       });
       const data = await res.json();
       if (!res.ok) {

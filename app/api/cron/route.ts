@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { adminDb } from '@/lib/firebase-admin';
+import { adminDb, adminAuth } from '@/lib/firebase-admin';
 import { ImapFlow } from 'imapflow';
 import { FieldValue } from 'firebase-admin/firestore';
 import { differenceInDays } from 'date-fns';
@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
 }
 
 async function handleCron(request: NextRequest) {
-  // Verify cron secret
+  // Verify cron secret or user session
   const authHeader = request.headers.get('authorization');
   const xCronSecret = request.headers.get('x-cron-secret');
   const secretParam = request.nextUrl.searchParams.get('secret');
@@ -125,7 +125,19 @@ async function handleCron(request: NextRequest) {
     ? authHeader.substring(7)
     : xCronSecret || secretParam;
 
-  if (token !== process.env.CRON_SECRET) {
+  let isAuthed = Boolean(process.env.CRON_SECRET && token === process.env.CRON_SECRET);
+  if (!isAuthed) {
+    const sessionCookie = request.cookies.get('__session')?.value;
+    const candidateToken = token && token !== 'dev_secret' ? token : sessionCookie;
+    if (candidateToken) {
+      try {
+        const decoded = await adminAuth.verifyIdToken(candidateToken);
+        if (decoded?.uid) isAuthed = true;
+      } catch {}
+    }
+  }
+
+  if (!isAuthed) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

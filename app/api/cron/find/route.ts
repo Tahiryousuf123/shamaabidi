@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { adminDb } from '@/lib/firebase-admin';
+import { adminDb, adminAuth } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { DEFAULT_PROFILE, UserProfile } from '@/lib/types';
 import {
@@ -17,10 +17,8 @@ import { generatePersonalizedEmail, constructFullEmailMessage } from '@/lib/emai
 export const maxDuration = 60; // Max allowed serverless duration on Vercel
 export const dynamic = 'force-dynamic';
 
-function verifyAuth(request: NextRequest): boolean {
+async function verifyAuth(request: NextRequest): Promise<boolean> {
   const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret) return false;
-
   const authHeader = request.headers.get('authorization');
   const xCronSecret = request.headers.get('x-cron-secret');
   const secretParam = request.nextUrl.searchParams.get('secret');
@@ -29,7 +27,27 @@ function verifyAuth(request: NextRequest): boolean {
     ? authHeader.substring(7)
     : xCronSecret || secretParam;
 
-  return token === cronSecret;
+  // 1. Verify CRON_SECRET authorization (used by Vercel automated cron or CLI scripts)
+  if (cronSecret && token === cronSecret) {
+    return true;
+  }
+
+  // 2. Verify Firebase Auth (used when Shama triggers a batch from dashboard)
+  const sessionCookie = request.cookies.get('__session')?.value;
+  const candidateToken = token && token !== 'dev_secret' ? token : sessionCookie;
+
+  if (candidateToken) {
+    try {
+      const decoded = await adminAuth.verifyIdToken(candidateToken);
+      if (decoded && decoded.uid) {
+        return true;
+      }
+    } catch {
+      // not a valid id token
+    }
+  }
+
+  return false;
 }
 
 export async function GET(request: NextRequest) {
@@ -41,9 +59,10 @@ export async function POST(request: NextRequest) {
 }
 
 async function handleAutoFind(request: NextRequest) {
-  // 1. Verify CRON_SECRET authorization
-  if (!verifyAuth(request)) {
-    return NextResponse.json({ error: 'Unauthorized: Invalid CRON_SECRET' }, { status: 401 });
+  // 1. Verify CRON_SECRET or authenticated user session
+  const isAuthorized = await verifyAuth(request);
+  if (!isAuthorized) {
+    return NextResponse.json({ error: 'Unauthorized: Invalid CRON_SECRET or unauthenticated session' }, { status: 401 });
   }
 
   const batchIndex = parseInt(request.nextUrl.searchParams.get('batch') || '1', 10);
@@ -320,6 +339,11 @@ async function handleAutoFind(request: NextRequest) {
       triggerNextBatch(request, batchIndex + 1);
     }
 
+    // On batch 1, also trigger follow-up and replies check in background
+    if (batchIndex === 1) {
+      triggerFollowupCron(request);
+    }
+
     return NextResponse.json({
       success: true,
       batchIndex,
@@ -354,5 +378,21 @@ function triggerNextBatch(request: NextRequest, nextBatch: number): void {
     },
   }).catch((err) => {
     console.warn(`Failed to chain auto-find batch #${nextBatch}:`, err);
+  });
+}
+
+function triggerFollowupCron(request: NextRequest): void {
+  const cronSecret = process.env.CRON_SECRET || '';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;
+  const targetUrl = `${appUrl}/api/cron/followup`;
+
+  fetch(targetUrl, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${cronSecret}`,
+      'x-cron-secret': cronSecret,
+    },
+  }).catch((err) => {
+    console.warn('Failed to trigger daily followup cron:', err);
   });
 }
