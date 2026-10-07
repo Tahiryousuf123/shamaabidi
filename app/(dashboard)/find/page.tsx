@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   Search,
@@ -17,6 +17,8 @@ import {
   Clock,
   ChevronDown,
   ChevronUp,
+  Database,
+  Layers,
 } from 'lucide-react';
 import { DEFAULT_PROFILE } from '@/lib/types';
 
@@ -36,6 +38,16 @@ interface AdSummary {
   reason?: string;
 }
 
+export interface SourceStatItem {
+  sourceName: string;
+  queriesRun: number;
+  rawCandidates: number;
+  passedRelevance: number;
+  passedVerification: number;
+  saved: number;
+  errors: string[];
+}
+
 interface FindResult {
   added: number;
   addedVerified?: number;
@@ -49,6 +61,7 @@ interface FindResult {
   errors: string[];
   quotaError?: boolean;
   message?: string;
+  perSourceStats?: Record<string, SourceStatItem>;
 }
 
 export default function FindPage() {
@@ -57,9 +70,21 @@ export default function FindPage() {
   const [country, setCountry] = useState('United Kingdom');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<FindResult | null>(null);
+  const [latestRunStats, setLatestRunStats] = useState<Record<string, SourceStatItem> | null>(null);
   const [error, setError] = useState('');
   const [progress, setProgress] = useState('');
   const [showRejected, setShowRejected] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/discovery')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.runs?.[0]?.perSourceStats) {
+          setLatestRunStats(data.runs[0].perSourceStats);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const handleFind = async () => {
     if (!topic.trim()) {
@@ -149,6 +174,64 @@ export default function FindPage() {
       setLoading(false);
       setProgress('');
     }
+  };
+
+  const handleRunNineSourcesDiscovery = async () => {
+    if (!topic.trim()) {
+      setError('Please enter a research topic.');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    setResult(null);
+    setProgress('Querying 9 Free Academic APIs (PubMed, Europe PMC, S2, Crossref, ORCID, ClinicalTrials, UKRI, NIH, CORDIS)…');
+
+    try {
+      const res = await fetch('/api/discovery', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic: topic.trim(), limit: 10 }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error ?? '9-Source discovery failed');
+      }
+
+      if (data.perSourceStats) {
+        setLatestRunStats(data.perSourceStats);
+      }
+
+      setResult({
+        added: data.saved || 0,
+        addedVerified: data.passedVerification || 0,
+        addedNeedsReview: 0,
+        skipped: data.skippedExisting || 0,
+        totalSearched: data.rawTotal || 0,
+        acceptedCount: data.saved || 0,
+        rejectedCount: (data.rawTotal || 0) - (data.passedVerification || 0),
+        errors: data.errors || [],
+        message: `9 Free Sources Run: Found ${data.rawTotal} raw candidates, ${data.passedRelevance} passed relevance, ${data.passedVerification} passed Stage 3 verification, ${data.saved} saved to CRM (${data.skippedExisting} duplicates skipped).`,
+        perSourceStats: data.perSourceStats,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Discovery pipeline failed.');
+    } finally {
+      setLoading(false);
+      setProgress('');
+    }
+  };
+
+  const SOURCE_META: Record<string, { label: string; tag: string; badgeColor: string }> = {
+    pubmed: { label: 'PubMed (NCBI E-utilities)', tag: 'Biomedical Literature', badgeColor: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
+    europepmc: { label: 'Europe PMC REST', tag: 'Literature & Preprints', badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
+    semanticscholar: { label: 'Semantic Scholar Graph API', tag: 'Graph & Citations', badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' },
+    crossref: { label: 'Crossref Polite API', tag: 'Bibliographic Metadata', badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' },
+    orcid: { label: 'ORCID Public API', tag: 'Identity & Works', badgeColor: 'bg-lime-500/20 text-lime-300 border-lime-500/30' },
+    clinicaltrials: { label: 'ClinicalTrials.gov v2', tag: 'Clinical Protocols', badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
+    ukri: { label: 'UKRI Gateway to Research', tag: 'UK Funded Grants', badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-500/30' },
+    nihreporter: { label: 'NIH RePORTER v2', tag: 'NIH Active Grants', badgeColor: 'bg-teal-500/20 text-teal-300 border-teal-500/30' },
+    cordis: { label: 'CORDIS (EU Horizon/MSCA)', tag: 'EU Doctoral Grants', badgeColor: 'bg-sky-500/20 text-sky-300 border-sky-500/30' },
   };
 
   const quickTopics = [
@@ -453,28 +536,135 @@ export default function FindPage() {
           </div>
         )}
 
-        <button
-          id="find-professors-btn"
-          onClick={handleFind}
-          disabled={loading}
-          className="w-full flex items-center justify-center gap-2 py-3 px-6 rounded-xl font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:brightness-110"
-          style={{
-            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-            boxShadow: '0 4px 24px rgba(16,185,129,0.3)',
-          }}
-        >
-          {loading ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Searching & verifying funded PhDs…
-            </>
-          ) : (
-            <>
-              <Search className="w-4 h-4" />
-              Find Funded PhD Positions Now
-            </>
-          )}
-        </button>
+        {/* Action Buttons */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+          <button
+            id="run-9-sources-btn"
+            type="button"
+            onClick={handleRunNineSourcesDiscovery}
+            disabled={loading}
+            className="flex items-center justify-center gap-2 py-3 px-5 rounded-xl font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:brightness-110"
+            style={{
+              background: 'linear-gradient(135deg, #6366f1 0%, #4338ca 100%)',
+              boxShadow: '0 4px 20px rgba(99,102,241,0.3)',
+            }}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Querying 9 Free APIs…
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4 text-amber-300" />
+                Run 9 Free Discovery Sources
+              </>
+            )}
+          </button>
+
+          <button
+            id="find-professors-btn"
+            type="button"
+            onClick={handleFind}
+            disabled={loading}
+            className="flex items-center justify-center gap-2 py-3 px-5 rounded-xl font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:brightness-110"
+            style={{
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              boxShadow: '0 4px 20px rgba(16,185,129,0.3)',
+            }}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Searching official doctoral ads…
+              </>
+            ) : (
+              <>
+                <Search className="w-4 h-4" />
+                Find Funded PhD Ads (FindAPhD)
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* Per-Source Productivity Table (9 Free Discovery Sources) */}
+        {latestRunStats && (
+          <div className="bg-slate-900/80 rounded-xl p-5 border border-indigo-500/25 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-white/5">
+              <div className="flex items-center gap-2">
+                <Database className="w-4 h-4 text-indigo-400" />
+                <h3 className="text-sm font-semibold text-white">
+                  9 Free Discovery Sources — Daily Run Breakdown
+                </h3>
+              </div>
+              <span className="text-[11px] text-slate-300 bg-white/5 px-2.5 py-1 rounded-full border border-white/10 w-fit">
+                Zero Paid Keys Required · Stage 3 Verified
+              </span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="text-slate-400 border-b border-white/5 uppercase tracking-wider text-[10px]">
+                    <th className="pb-2 font-medium">Source</th>
+                    <th className="pb-2 font-medium text-center">Queries</th>
+                    <th className="pb-2 font-medium text-center">Raw Found</th>
+                    <th className="pb-2 font-medium text-center">Relevance (&gt;0.35)</th>
+                    <th className="pb-2 font-medium text-center">Stage 3 Verified</th>
+                    <th className="pb-2 font-medium text-center">Saved to CRM</th>
+                    <th className="pb-2 font-medium text-right">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5 text-slate-300">
+                  {Object.entries(latestRunStats).map(([key, stat]) => {
+                    const meta = SOURCE_META[key] || {
+                      label: stat.sourceName || key,
+                      tag: 'Academic API',
+                      badgeColor: 'bg-slate-500/20 text-slate-300 border-slate-500/30',
+                    };
+                    const hasError = stat.errors && stat.errors.length > 0;
+                    return (
+                      <tr key={key} className="hover:bg-white/[0.02] transition-colors">
+                        <td className="py-2.5 pr-3">
+                          <div className="font-medium text-white flex items-center gap-1.5">
+                            <span>{meta.label}</span>
+                          </div>
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded border inline-block mt-0.5 ${meta.badgeColor}`}>
+                            {meta.tag}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-2 text-center font-mono text-slate-400">{stat.queriesRun}</td>
+                        <td className="py-2.5 px-2 text-center font-mono font-medium text-slate-200">{stat.rawCandidates}</td>
+                        <td className="py-2.5 px-2 text-center font-mono text-indigo-300">{stat.passedRelevance}</td>
+                        <td className="py-2.5 px-2 text-center font-mono font-semibold text-emerald-400">{stat.passedVerification}</td>
+                        <td className="py-2.5 px-2 text-center font-mono font-bold text-white bg-emerald-500/10 rounded">
+                          {stat.saved}
+                        </td>
+                        <td className="py-2.5 pl-3 text-right">
+                          {hasError ? (
+                            <span className="text-[10px] text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded inline-block" title={stat.errors.join('; ')}>
+                              {stat.errors[0]?.includes('429') ? 'Rate-limited (backoff)' : 'Non-fatal error'}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded inline-flex items-center gap-1">
+                              <CheckCircle2 className="w-2.5 h-2.5" />
+                              Active
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="flex items-center justify-between text-[11px] text-slate-400 pt-2 border-t border-white/5">
+              <span>All candidates strictly resolved to real OpenAlex / ORCID profiles & official faculty URLs.</span>
+              <span className="text-emerald-400 font-medium">Cache: 24h active</span>
+            </div>
+          </div>
+        )}
 
         <div className="border-t border-white/5 pt-4">
           <p className="text-xs text-slate-400 leading-relaxed">

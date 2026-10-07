@@ -28,6 +28,9 @@ export interface Professor {
   adUrl?: string | null; // direct source URL of the funded PhD advertisement
   hasFundingAd?: boolean; // true if found from an active funded ad, false if from OpenAlex only
   discoverySource?: 'funding_ad' | 'openalex_only' | 'manual';
+  discoveryConfidence?: 'high' | 'medium' | 'low';
+  sources?: string[];
+  sourceCount?: number;
   deadline: string | 'rolling' | 'not_stated';
   deadlineDate?: string | null; // ISO YYYY-MM-DD for sorting & 30-day highlight
   deadlineSourceUrl: string | null;

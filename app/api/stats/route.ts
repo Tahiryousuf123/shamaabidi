@@ -34,6 +34,19 @@ export async function GET(request: NextRequest) {
 
     const nextCombo = !combosSnap.empty ? combosSnap.docs[0].data() : null;
 
+    // Get latest daily run log with per-source stats
+    let latestRun: any = null;
+    try {
+      const runsSnap = await adminDb
+        .collection('runs')
+        .orderBy('timestamp', 'desc')
+        .limit(1)
+        .get();
+      if (!runsSnap.empty) {
+        latestRun = { id: runsSnap.docs[0].id, ...runsSnap.docs[0].data() };
+      }
+    } catch {}
+
     return NextResponse.json({
       success: true,
       stats,
@@ -41,6 +54,7 @@ export async function GET(request: NextRequest) {
         ? { topic: nextCombo.topic, country: nextCombo.country }
         : null,
       recentLogs,
+      latestRun,
     });
   } catch (err) {
     console.error('Stats fetch error:', err);

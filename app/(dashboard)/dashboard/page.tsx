@@ -751,6 +751,24 @@ export default function DashboardPage() {
                         <p className="text-slate-300 text-xs truncate">
                           {prof.university} · <span className="text-slate-400">{prof.country}</span>
                         </p>
+                        {prof.sources && prof.sources.length > 0 && (
+                          <div className="flex flex-wrap items-center gap-1 mt-1">
+                            {prof.sources.map((s) => (
+                              <span key={s} className="text-[9px] px-1.5 py-0.5 rounded bg-indigo-500/15 text-indigo-300 border border-indigo-500/25 uppercase font-medium">
+                                {s}
+                              </span>
+                            ))}
+                            {prof.discoveryConfidence && (
+                              <span className={`text-[9px] px-1.5 py-0.5 rounded font-semibold uppercase ${
+                                prof.discoveryConfidence === 'high' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
+                                prof.discoveryConfidence === 'medium' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' :
+                                'bg-slate-500/20 text-slate-400 border border-slate-500/30'
+                              }`}>
+                                {prof.discoveryConfidence}
+                              </span>
+                            )}
+                          </div>
+                        )}
                         {prof.matchReason && (
                           <p className="text-indigo-300/80 text-[11px] line-clamp-2 leading-tight">
                             🎯 {prof.matchReason}

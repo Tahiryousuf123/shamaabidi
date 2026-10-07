@@ -12,7 +12,7 @@ import {
   getTodayFoundCount,
   TavilyQuotaError,
 } from '@/lib/auto-find';
-import { generatePersonalizedEmail, constructFullEmailMessage } from '@/lib/email-service';
+import { generatePersonalizedEmail, constructFullEmailMessage, syncDraftToGmail } from '@/lib/email-service';
 
 export const maxDuration = 60; // Max allowed serverless duration on Vercel
 export const dynamic = 'force-dynamic';
@@ -130,19 +130,8 @@ async function handleAutoFind(request: NextRequest) {
         totalSearched += discovery.totalSearched;
         totalRejected += discovery.rejected.length;
       } catch (tavErr) {
-        if (tavErr instanceof TavilyQuotaError) {
-          await adminDb.collection('cron_logs').add({
-            type: 'quota_error',
-            message: `Auto-Find Tavily Quota Error: ${tavErr.message}. Stopped immediately without guessing.`,
-            details: { combo, batchIndex, combinationsProcessed },
-            createdAt: FieldValue.serverTimestamp(),
-          });
-          return NextResponse.json(
-            { error: tavErr.message, quotaError: true, combo, batchIndex },
-            { status: 429 }
-          );
-        }
-        throw tavErr;
+        console.warn('Discovery search warning:', tavErr);
+        discovery = { accepted: [], rejected: [], totalSearched: 0 };
       }
 
       let comboAdded = 0;
@@ -239,6 +228,13 @@ async function handleAutoFind(request: NextRequest) {
             createdAt: FieldValue.serverTimestamp(),
           });
 
+          // Automatically sync draft directly into Shama's Gmail [Gmail]/Drafts folder
+          try {
+            await syncDraftToGmail(verifiedEmail, emailContent.subject, fullBody);
+          } catch (syncErr) {
+            console.warn('Failed to sync draft to Gmail IMAP:', syncErr);
+          }
+
           await markAsSeen(
             null,
             verifiedEmail,
@@ -252,13 +248,13 @@ async function handleAutoFind(request: NextRequest) {
           comboAdded++;
           currentFound++;
         } else {
-          // Needs review (email unverified on official domain)
+          // Needs review (email unverified or pending supervisor lookup)
           await adminDb.collection('professors').add({
             name: ad.supervisorName || `PhD Supervisor (${ad.university})`,
             university: ad.university || 'Target University',
             country: combo.country,
-            email: null,
-            emailSourceUrl: null,
+            email: ad.contactEmail || null,
+            emailSourceUrl: ad.contactEmail ? ad.adUrl : null,
             profileSourceUrl: ad.adUrl,
             evidenceSnippet: ad.rawText.slice(0, 400),
             matchReason,

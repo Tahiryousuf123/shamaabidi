@@ -80,7 +80,7 @@ Write the email subject and body.`;
 
   // 1. Try Groq first for ultra-fast generation (< 500ms)
   try {
-    const groqKey = process.env.GROQ_API_KEY;
+    const groqKey = (process.env.GROQ_API_KEY || '').trim().replace(/^["']|["']$/g, '');
     if (groqKey) {
       const groq = new Groq({ apiKey: groqKey });
       const completion = await groq.chat.completions.create({
