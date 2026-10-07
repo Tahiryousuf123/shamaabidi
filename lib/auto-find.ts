@@ -1011,21 +1011,7 @@ export function evaluateFundedAd(ad: ExtractedAdDetails): {
     };
   }
 
-  // 2. Funding Verification: Explicitly stated AND NOT self-funded
-  if (
-    ad.isSelfFunded ||
-    textLower.includes('self-funded phd students only') ||
-    textLower.includes('self-funded only') ||
-    textLower.includes('this is a self-funded phd opportunity')
-  ) {
-    return {
-      accepted: false,
-      rejectionReason: 'Rejected: Position is self-funded only (no institutional or grant stipend provided)',
-      score: 0,
-      matchReason: 'N/A',
-    };
-  }
-
+  // 2. Funding Check: Both verified funding AND unverified/potential funding are accepted
   const hasExplicitFunding =
     ad.isExplicitlyFunded ||
     textLower.includes('fully funded') ||
@@ -1035,39 +1021,31 @@ export function evaluateFundedAd(ad: ExtractedAdDetails): {
     textLower.includes('studentship funded by') ||
     textLower.includes('funded phd') ||
     textLower.includes('scholarship') ||
-    textLower.includes('stipend of');
+    textLower.includes('stipend of') ||
+    textLower.includes('stipend');
 
-  if (!hasExplicitFunding) {
-    return {
-      accepted: false,
-      rejectionReason: 'Rejected: No explicit funding stated (fully funded / studentship / scholarship / stipend missing)',
-      score: 0,
-      matchReason: 'N/A',
-    };
-  }
-
-  // 3. Eligibility Verification: International students must NOT be excluded
-  const isExcluded =
-    !ad.internationalAllowed ||
+  // 3. Eligibility Verification: Explicit UK-only restriction check
+  const isHomeOnlyExplicit =
     textLower.includes('uk students only') ||
     textLower.includes('home students only') ||
     textLower.includes('uk/eu only') ||
     textLower.includes('not open to international students') ||
     textLower.includes('home fee status only');
 
-  if (isExcluded) {
+  if (isHomeOnlyExplicit) {
     return {
       accepted: false,
-      rejectionReason: 'Rejected: Restricted to Home/UK applicants only; international students excluded',
+      rejectionReason: 'Rejected: Position is strictly restricted to UK/Home domestic students only',
       score: 0,
       matchReason: 'N/A',
     };
   }
 
-  // 4. Relevance Scoring against Shama's 5 Papers and Themes (0 - 100)
+  // 4. Relevance Scoring against Shama Abidi's 5 Publications & Academic Themes
   let score = 0;
   let matchedPaper = '';
 
+  // Publication 2 & 5: Antimicrobial Stewardship, AMR & Infectious Diseases (Ali et al., 2022 & Khadim et al., 2020)
   const amr =
     textLower.includes('antimicrobial') ||
     textLower.includes('antibiotic') ||
@@ -1076,8 +1054,15 @@ export function evaluateFundedAd(ad: ExtractedAdDetails): {
     textLower.includes('escherichia') ||
     textLower.includes('pathogen') ||
     textLower.includes('infection') ||
-    textLower.includes('carbapenem');
+    textLower.includes('infectious') ||
+    textLower.includes('carbapenem') ||
+    textLower.includes('typhoid') ||
+    textLower.includes('sepsis') ||
+    textLower.includes('bacteria') ||
+    textLower.includes('microbiology') ||
+    textLower.includes('biofilm');
 
+  // Publication 4: High-Alert Medications, Medication Safety & Pharmacovigilance (Baig et al., 2025)
   const safety =
     textLower.includes('medication safety') ||
     textLower.includes('pharmacovigilance') ||
@@ -1085,75 +1070,95 @@ export function evaluateFundedAd(ad: ExtractedAdDetails): {
     textLower.includes('high-alert') ||
     textLower.includes('prescribing') ||
     textLower.includes('medicines safety') ||
-    textLower.includes('deprescribing');
+    textLower.includes('deprescribing') ||
+    textLower.includes('drug safety') ||
+    textLower.includes('patient safety') ||
+    textLower.includes('pharmacology');
 
+  // Publication 6: Clinical Pharmacy Practice, Hospital Pharmacy & Therapeutics (Abidi, 2024 & 2026)
   const clinPharm =
     textLower.includes('clinical pharmacy') ||
     textLower.includes('pharmacy practice') ||
     textLower.includes('pharmacist') ||
+    textLower.includes('pharmacy') ||
     textLower.includes('hospital pharmacy') ||
-    textLower.includes('therapeutics');
+    textLower.includes('therapeutics') ||
+    textLower.includes('pharmaceutical');
 
+  // Publication 3: AI meets human expertise & Clinical Decision Support (Baig et al., 2025)
   const aiHealth =
     textLower.includes('artificial intelligence') ||
     textLower.includes('clinical decision support') ||
     textLower.includes('machine learning') ||
     textLower.includes('digital health') ||
+    textLower.includes('health informatics') ||
     textLower.includes('simulation tools');
 
-  const implSci =
-    textLower.includes('implementation science') ||
-    textLower.includes('health services') ||
-    textLower.includes('evidence-based');
-
+  // Publication 1: Calcium Channel Blockers vs Beta Blockers & Cardiovascular Care (Abidi et al., 2024)
   const cardio =
     textLower.includes('angina') ||
     textLower.includes('calcium channel') ||
     textLower.includes('beta blocker') ||
-    textLower.includes('cardiovascular');
+    textLower.includes('cardiovascular') ||
+    textLower.includes('cardiology') ||
+    textLower.includes('hypertension') ||
+    textLower.includes('heart failure') ||
+    textLower.includes('cardiac');
 
-  if (amr) {
-    score += 65;
-    matchedPaper = 'Ali et al. (2022) hospital carbapenem antimicrobial stewardship prospective trial';
-  }
-  if (safety) {
-    score += 65;
-    if (!matchedPaper) matchedPaper = 'Baig et al. (2025) high-alert medications and medication safety assessment';
-  }
-  if (clinPharm) {
-    score += 65;
-    if (!matchedPaper) matchedPaper = 'Abidi (2026) evidence-based clinical pharmacy practice implementation';
-  }
-  if (aiHealth) {
-    score += 60;
-    if (!matchedPaper) matchedPaper = 'Baig et al. (2025) clinical pharmacist interventions vs artificial intelligence';
-  }
-  if (implSci) {
-    score += 60;
-    if (!matchedPaper) matchedPaper = 'Abidi (2026) implementation science in hospital pharmacy';
-  }
-  if (cardio) {
-    score += 60;
-    if (!matchedPaper) matchedPaper = 'Abidi et al. (2024) calcium channel blockers vs beta blockers in angina';
-  }
+  // Publication 5 & MPhil: Implementation Science, Evidence-Based Healthcare & Health Services (Abidi, 2021 & 2026)
+  const implSci =
+    textLower.includes('implementation science') ||
+    textLower.includes('health services') ||
+    textLower.includes('evidence-based') ||
+    textLower.includes('clinical audit') ||
+    textLower.includes('public health') ||
+    textLower.includes('epidemiology');
 
-  if (
+  // Broader Clinical / Hospital Healthcare Context
+  const generalHealthcare =
     textLower.includes('hospital') ||
     textLower.includes('patient') ||
     textLower.includes('clinical trial') ||
     textLower.includes('healthcare') ||
     textLower.includes('health') ||
-    textLower.includes('medical')
-  ) {
-    score += 15;
+    textLower.includes('medical') ||
+    textLower.includes('biomedical');
+
+  if (amr) {
+    score += 50;
+    matchedPaper = 'Ali et al. (2022) hospital carbapenem antimicrobial stewardship prospective trial';
+  }
+  if (safety) {
+    score += 50;
+    if (!matchedPaper) matchedPaper = 'Baig et al. (2025) high-alert medications and medication safety assessment';
+  }
+  if (clinPharm) {
+    score += 45;
+    if (!matchedPaper) matchedPaper = 'Abidi (2026) evidence-based clinical pharmacy practice implementation';
+  }
+  if (cardio) {
+    score += 45;
+    if (!matchedPaper) matchedPaper = 'Abidi et al. (2024) calcium channel blockers vs beta blockers in angina';
+  }
+  if (aiHealth) {
+    score += 40;
+    if (!matchedPaper) matchedPaper = 'Baig et al. (2025) clinical pharmacist interventions vs artificial intelligence';
+  }
+  if (implSci) {
+    score += 35;
+    if (!matchedPaper) matchedPaper = 'Abidi (2026) implementation science in hospital pharmacy';
+  }
+  if (generalHealthcare) {
+    score += 20;
   }
 
   score = Math.min(100, score);
 
-  if (score < 60) {
+  // Any position with relevance to Shama Abidi's publications is accepted (score >= 15)
+  if (score < 15) {
     return {
       accepted: false,
-      rejectionReason: `Rejected: Relevance score ${score}/100 is below the 60 threshold (lacks direct clinical pharmacy/AMR/medication safety focus)`,
+      rejectionReason: 'Rejected: No research relevance to Shama Abidi\'s publications (AMR, medication safety, clinical pharmacy, cardiovascular, or digital health)',
       score,
       matchReason: 'N/A',
     };
@@ -1169,8 +1174,10 @@ export function evaluateFundedAd(ad: ExtractedAdDetails): {
     matchReason = `Directly builds upon your published hospital trial comparing clinical pharmacist interventions with artificial intelligence decision support (Baig et al., 2025).`;
   } else if (matchedPaper.includes('calcium channel')) {
     matchReason = `Directly matches your published observational study comparing calcium channel blockers to beta blockers in angina patients (Abidi et al., 2024).`;
+  } else if (matchedPaper.includes('implementation science')) {
+    matchReason = `Strongly aligns with your MPhil research on evidence-based pharmacy practice and health services implementation (Abidi, 2024 & 2026).`;
   } else {
-    matchReason = `Strongly aligns with your MPhil research and FIP Montreal presentation on evidence-based pharmacy practice and health services implementation (Abidi, 2024 & 2026).`;
+    matchReason = `Aligns with your 17+ years of hospital clinical pharmacy, pharmacotherapy, and patient safety experience (LNH Karachi).`;
   }
 
   return {
@@ -1265,10 +1272,11 @@ export async function discoverFundedPhDPositions(
     throw new Error('TAVILY_API_KEY is not configured');
   }
 
+  const cleanTopic = topic.trim();
   const queries = [
-    `site:findaphd.com/phds/project ("funded" OR "studentship") "${topic}" ${country ? `"${country}"` : ''}`,
-    `site:jobs.ac.uk/job "PhD Studentship" "${topic}" ${country ? `"${country}"` : ''}`,
-    `("PhD studentship" OR "fully funded PhD") "${topic}" ${country ? `"${country}"` : ''}`,
+    `site:findaphd.com/phds/project ("funded" OR "studentship") ${cleanTopic} ${country ? `"${country}"` : ''}`,
+    `site:jobs.ac.uk/job ("PhD Studentship" OR "fully funded") ${cleanTopic} ${country ? `"${country}"` : ''}`,
+    `("PhD studentship" OR "fully funded PhD") ${cleanTopic} ${country ? `"${country}"` : ''}`,
   ];
 
   const searchResults: Array<{ title: string; url: string; content: string }> = [];

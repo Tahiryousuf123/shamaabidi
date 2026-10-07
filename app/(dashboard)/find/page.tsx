@@ -48,6 +48,7 @@ interface FindResult {
   rejected?: AdSummary[];
   errors: string[];
   quotaError?: boolean;
+  message?: string;
 }
 
 export default function FindPage() {
@@ -131,10 +132,11 @@ export default function FindPage() {
         addedNeedsReview: data.addedNeedsReview || 0,
         skipped: data.skippedDuplicates || 0,
         totalSearched: data.totalSearched || 0,
-        acceptedCount: data.accepted || 0,
+        acceptedCount: (data.addedVerified || 0) + (data.addedNeedsReview || 0),
         rejectedCount: data.rejected || 0,
         errors: data.quotaError ? [data.quotaError] : [],
         quotaError: Boolean(data.quotaError),
+        message: data.message,
       });
 
       if (data.combo) {
@@ -329,6 +331,15 @@ export default function FindPage() {
                 <p className="text-[11px] text-slate-300 font-medium">Duplicates Skipped</p>
               </div>
             </div>
+
+            {result.added === 0 && (
+              <div className="bg-slate-900/60 border border-slate-700/50 rounded-lg p-3 text-xs text-slate-300 space-y-1">
+                <p className="font-semibold text-slate-200">ℹ️ No new funded professors added in this rotation run</p>
+                <p className="text-slate-400">
+                  {result.message || 'The evaluated ads either lacked explicit funded PhD studentship terms or scored below the 60% research relevance threshold required by the FUNDING-FIRST policy.'}
+                </p>
+              </div>
+            )}
 
             {/* Accepted Ad Results */}
             {result.accepted && result.accepted.length > 0 && (

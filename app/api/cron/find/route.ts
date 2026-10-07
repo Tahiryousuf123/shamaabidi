@@ -105,6 +105,8 @@ async function handleAutoFind(request: NextRequest) {
     let addedNeedsReview = 0;
     let skippedDuplicates = 0;
     let combinationsProcessed = 0;
+    let totalSearched = 0;
+    let totalRejected = 0;
     let currentFound = todayFound;
     let lastCombo: any = null;
 
@@ -124,6 +126,8 @@ async function handleAutoFind(request: NextRequest) {
       let discovery;
       try {
         discovery = await discoverFundedPhDPositions(combo.topic, combo.country, searchLimit);
+        totalSearched += discovery.totalSearched;
+        totalRejected += discovery.rejected.length;
       } catch (tavErr) {
         if (tavErr instanceof TavilyQuotaError) {
           await adminDb.collection('cron_logs').add({
@@ -349,9 +353,12 @@ async function handleAutoFind(request: NextRequest) {
       batchIndex,
       combinationsProcessed,
       lastCombo,
+      combo: lastCombo,
       addedVerified,
       addedNeedsReview,
       skippedDuplicates,
+      totalSearched,
+      rejected: totalRejected,
       todayFound: currentFound,
       dailyTarget,
       chained: canChain,
