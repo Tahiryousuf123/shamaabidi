@@ -1,0 +1,129 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.15, pytest-9.1.1, pluggy-1.6.0 -- /opt/hostedtoolcache/Python/3.12.15/x64/bin/python
+cachedir: .pytest_cache
+rootdir: /home/runner/work/shamaabidi/shamaabidi
+plugins: anyio-4.15.1
+collecting ... collected 74 items
+
+tests/test_draft_quality.py::test_candidate_profile_authoritative_values PASSED [  1%]
+tests/test_draft_quality.py::test_verified_publications_exact_count_and_details PASSED [  2%]
+tests/test_draft_quality.py::test_verified_publication_matcher_by_topic PASSED [  4%]
+tests/test_draft_quality.py::test_validator_rejects_missing_candidate_name PASSED [  5%]
+tests/test_draft_quality.py::test_validator_rejects_missing_degree_credentials PASSED [  6%]
+tests/test_draft_quality.py::test_validator_rejects_hallucinated_candidate_publications PASSED [  8%]
+tests/test_draft_quality.py::test_validator_rejects_mismatched_professor_paper PASSED [  9%]
+tests/test_draft_quality.py::test_validator_accepts_valid_academic_draft_with_high_quality_score PASSED [ 10%]
+tests/test_draft_quality.py::test_draft_approval_and_quarantine_enforcement PASSED [ 12%]
+tests/test_email_safety.py::test_hard_safety_lock_blocks_unapproved_sending PASSED [ 13%]
+tests/test_email_safety.py::test_reply_to_header_configured_to_real_inbox PASSED [ 14%]
+tests/test_email_safety.py::test_opt_out_footer_appended_to_outreach PASSED [ 16%]
+tests/test_email_safety.py::test_global_sending_paused_switch PASSED     [ 17%]
+tests/test_email_safety.py::test_daily_send_cap_enforcement PASSED       [ 18%]
+tests/test_email_safety.py::test_suppression_list_blocks_outreach PASSED [ 20%]
+tests/test_email_safety.py::test_maximum_one_followup_limit PASSED       [ 21%]
+tests/test_email_safety.py::test_no_followup_if_replied_or_bounced PASSED [ 22%]
+tests/test_email_safety.py::test_smtp_bounce_handling_and_auto_suppression PASSED [ 24%]
+tests/test_firestore_rules.py::test_firestore_rules_file_exists PASSED   [ 25%]
+tests/test_firestore_rules.py::test_firestore_no_wildcard_allow_all PASSED [ 27%]
+tests/test_firestore_rules.py::test_firestore_rules_enforce_owner_authentication FAILED [ 28%]
+tests/test_firestore_rules.py::test_firestore_default_deny_present FAILED [ 29%]
+tests/test_firestore_rules.py::test_security_rules_logic_simulation PASSED [ 31%]
+tests/test_firestore_rules.py::test_firestore_unauthenticated_professors_and_cross_user_drafts_denied FAILED [ 32%]
+tests/test_global_phd_search.py::test_all_7_regions_and_country_resolution PASSED [ 33%]
+tests/test_global_phd_search.py::test_pakistan_exclusion_enforcement PASSED [ 35%]
+tests/test_global_phd_search.py::test_funding_classification_integrity PASSED [ 36%]
+tests/test_global_phd_search.py::test_academic_matching_shama_profile PASSED [ 37%]
+tests/test_global_phd_search.py::test_api_countries_and_region_toggle PASSED [ 39%]
+tests/test_global_phd_search.py::test_api_phd_opportunity_creation_and_search PASSED [ 40%]
+tests/test_global_phd_search.py::test_api_phd_opportunity_pakistan_rejection PASSED [ 41%]
+tests/test_hardened_security_and_auth.py::test_valid_login_with_email_and_username_alias PASSED [ 43%]
+tests/test_hardened_security_and_auth.py::test_invalid_login_credentials PASSED [ 44%]
+tests/test_hardened_security_and_auth.py::test_missing_and_invalid_bearer_token PASSED [ 45%]
+tests/test_hardened_security_and_auth.py::test_expired_jwt_token_rejection PASSED [ 47%]
+tests/test_hardened_security_and_auth.py::test_logout_token_revocation PASSED [ 48%]
+tests/test_hardened_security_and_auth.py::test_rbac_restrictions_on_admin_routes PASSED [ 50%]
+tests/test_hardened_security_and_auth.py::test_protected_prototype_endpoints_require_authentication PASSED [ 51%]
+tests/test_hardened_security_and_auth.py::test_database_files_cannot_be_publicly_served PASSED [ 52%]
+tests/test_hardened_security_and_auth.py::test_safe_academic_document_serving_and_path_traversal_blocking PASSED [ 54%]
+tests/test_hardened_security_and_auth.py::test_cors_explicit_trusted_origins PASSED [ 55%]
+tests/test_hardened_security_and_auth.py::test_public_health_endpoint_does_not_leak_secrets PASSED [ 56%]
+tests/test_hardened_security_and_auth.py::test_bootstrap_admin_utility PASSED [ 58%]
+tests/test_infrastructure_honesty.py::test_gmail_oauth_status_marks_pending_oauth_when_unconfigured PASSED [ 59%]
+tests/test_infrastructure_honesty.py::test_whatsapp_status_marks_unconfigured_when_no_credentials PASSED [ 60%]
+tests/test_infrastructure_honesty.py::test_system_health_audit_all_services_honesty PASSED [ 62%]
+tests/test_production_system.py::test_unit_normalization_and_xss_sanitization PASSED [ 63%]
+tests/test_production_system.py::test_unit_password_policy_and_argon2id PASSED [ 64%]
+tests/test_production_system.py::test_unit_totp_rfc6238 PASSED           [ 66%]
+tests/test_production_system.py::test_health_readiness_metrics_and_security_headers PASSED [ 67%]
+tests/test_production_system.py::test_auth_login_refresh_and_logout_revocation PASSED [ 68%]
+tests/test_production_system.py::test_auth_account_lockout_on_repeated_failures PASSED [ 70%]
+tests/test_production_system.py::test_rbac_role_permissions_enforcement PASSED [ 71%]
+tests/test_production_system.py::test_duplicate_detection_and_pakistan_exclusion PASSED [ 72%]
+tests/test_production_system.py::test_critical_11_step_end_to_end_workflow PASSED [ 74%]
+tests/test_production_system.py::test_background_job_idempotency PASSED  [ 75%]
+tests/test_production_system.py::test_security_unauthorized_and_forged_jwt PASSED [ 77%]
+tests/test_production_system.py::test_security_sql_injection_and_xss_defense PASSED [ 78%]
+tests/test_production_system.py::test_security_malicious_file_upload_rejection PASSED [ 79%]
+tests/test_production_system.py::test_security_rate_limiting_middleware PASSED [ 81%]
+tests/test_professor_matching.py::test_funding_status_enum_values PASSED [ 82%]
+tests/test_professor_matching.py::test_professor_defaults_funding_to_unknown_without_evidence PASSED [ 83%]
+tests/test_professor_matching.py::test_programme_eligibility_defaults_to_unknown PASSED [ 85%]
+tests/test_professor_matching.py::test_shama_core_topics_coverage PASSED [ 86%]
+tests/test_professor_matching.py::test_topic_scoring_high_for_clinical_pharmacy PASSED [ 87%]
+tests/test_professor_matching.py::test_topic_scoring_low_for_unrelated_research PASSED [ 89%]
+tests/test_professor_matching.py::test_recency_check_rewards_recent_publications PASSED [ 90%]
+tests/test_professor_matching.py::test_no_artificial_score_clamping PASSED [ 91%]
+tests/test_professor_matching.py::test_institutional_email_verification PASSED [ 93%]
+tests/test_professor_matching.py::test_top_matches_endpoint PASSED       [ 94%]
+tests/test_secret_scanning.py::test_no_hardcoded_leaked_credentials_in_tracked_code PASSED [ 95%]
+tests/test_secret_scanning.py::test_no_smtp_credentials_in_frontend FAILED [ 97%]
+tests/test_secret_scanning.py::test_sensitive_files_not_tracked_by_git FAILED [ 98%]
+tests/test_secret_scanning.py::test_gitignore_contains_critical_entries FAILED [100%]
+
+=================================== FAILURES ===================================
+______________ test_firestore_rules_enforce_owner_authentication _______________
+tests/test_firestore_rules.py:47: in test_firestore_rules_enforce_owner_authentication
+    assert "function isAuthenticated()" in content
+E   assert 'function isAuthenticated()' in "rules_version = '2';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    // Only authenticated users can read/write any document\n    match /{document=**} {\n      allow read, write: if request.auth != null;\n    }\n  }\n}\n"
+_____________________ test_firestore_default_deny_present ______________________
+tests/test_firestore_rules.py:63: in test_firestore_default_deny_present
+    assert "match /{document=**} { allow read, write: if false; }" in clean or (
+E   AssertionError: Default deny rule must be present for all unmatched documents.
+E   assert ('match /{document=**} { allow read, write: if false; }' in "rules_version = '2'; service cloud.firestore { match /databases/{database}/documents { // Only authenticated users can read/write any document match /{document=**} { allow read, write: if request.auth != null; } } } " or ('match /{document=**}' in "rules_version = '2'; service cloud.firestore { match /databases/{database}/documents { // Only authenticated users can read/write any document match /{document=**} { allow read, write: if request.auth != null; } } } " and 'allow read, write: if false;' in "rules_version = '2'; service cloud.firestore { match /databases/{database}/documents { // Only authenticated users can read/write any document match /{document=**} { allow read, write: if request.auth != null; } } } "))
+____ test_firestore_unauthenticated_professors_and_cross_user_drafts_denied ____
+tests/test_firestore_rules.py:125: in test_firestore_unauthenticated_professors_and_cross_user_drafts_denied
+    assert "match /{document=**}" in rules_text and "allow read, write: if false;" in rules_text
+E   assert ('match /{document=**}' in "rules_version = '2';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    // Only authenticated users can read/write any document\n    match /{document=**} {\n      allow read, write: if request.auth != null;\n    }\n  }\n}\n" and 'allow read, write: if false;' in "rules_version = '2';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    // Only authenticated users can read/write any document\n    match /{document=**} {\n      allow read, write: if request.auth != null;\n    }\n  }\n}\n")
+_____________________ test_no_smtp_credentials_in_frontend _____________________
+tests/test_secret_scanning.py:72: in test_no_smtp_credentials_in_frontend
+    assert app_js.is_file()
+E   AssertionError: assert False
+E    +  where False = is_file()
+E    +    where is_file = PosixPath('/home/runner/work/shamaabidi/shamaabidi/app.js').is_file
+___________________ test_sensitive_files_not_tracked_by_git ____________________
+tests/test_secret_scanning.py:91: in test_sensitive_files_not_tracked_by_git
+    assert not cv_files, f"Personal CV PDFs must not be tracked in Git: {cv_files}"
+E   AssertionError: Personal CV PDFs must not be tracked in Git: ['public/cv/Dr_Shama_Abidi_Academic_CV.pdf']
+E   assert not ['public/cv/Dr_Shama_Abidi_Academic_CV.pdf']
+___________________ test_gitignore_contains_critical_entries ___________________
+tests/test_secret_scanning.py:100: in test_gitignore_contains_critical_entries
+    assert ".env" in lines
+E   AssertionError: assert '.env' in ['# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.', '', '# dependencies', '/node_modules', '/.pnp', '.pnp.*', ...]
+=============================== warnings summary ===============================
+../../../../../opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/fastapi/testclient.py:1
+  /opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_firestore_rules.py::test_firestore_rules_enforce_owner_authentication - assert 'function isAuthenticated()' in "rules_version = '2';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    // Only authenticated users can read/write any document\n    match /{document=**} {\n      allow read, write: if request.auth != null;\n    }\n  }\n}\n"
+FAILED tests/test_firestore_rules.py::test_firestore_default_deny_present - AssertionError: Default deny rule must be present for all unmatched documents.
+assert ('match /{document=**} { allow read, write: if false; }' in "rules_version = '2'; service cloud.firestore { match /databases/{database}/documents { // Only authenticated users can read/write any document match /{document=**} { allow read, write: if request.auth != null; } } } " or ('match /{document=**}' in "rules_version = '2'; service cloud.firestore { match /databases/{database}/documents { // Only authenticated users can read/write any document match /{document=**} { allow read, write: if request.auth != null; } } } " and 'allow read, write: if false;' in "rules_version = '2'; service cloud.firestore { match /databases/{database}/documents { // Only authenticated users can read/write any document match /{document=**} { allow read, write: if request.auth != null; } } } "))
+FAILED tests/test_firestore_rules.py::test_firestore_unauthenticated_professors_and_cross_user_drafts_denied - assert ('match /{document=**}' in "rules_version = '2';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    // Only authenticated users can read/write any document\n    match /{document=**} {\n      allow read, write: if request.auth != null;\n    }\n  }\n}\n" and 'allow read, write: if false;' in "rules_version = '2';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    // Only authenticated users can read/write any document\n    match /{document=**} {\n      allow read, write: if request.auth != null;\n    }\n  }\n}\n")
+FAILED tests/test_secret_scanning.py::test_no_smtp_credentials_in_frontend - AssertionError: assert False
+ +  where False = is_file()
+ +    where is_file = PosixPath('/home/runner/work/shamaabidi/shamaabidi/app.js').is_file
+FAILED tests/test_secret_scanning.py::test_sensitive_files_not_tracked_by_git - AssertionError: Personal CV PDFs must not be tracked in Git: ['public/cv/Dr_Shama_Abidi_Academic_CV.pdf']
+assert not ['public/cv/Dr_Shama_Abidi_Academic_CV.pdf']
+FAILED tests/test_secret_scanning.py::test_gitignore_contains_critical_entries - AssertionError: assert '.env' in ['# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.', '', '# dependencies', '/node_modules', '/.pnp', '.pnp.*', ...]
+=================== 6 failed, 68 passed, 1 warning in 4.58s ====================
