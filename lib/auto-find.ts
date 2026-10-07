@@ -1267,17 +1267,25 @@ export async function discoverFundedPhDPositions(
   rejected: EvaluatedAdResult[];
   totalSearched: number;
 }> {
-  const apiKey = process.env.TAVILY_API_KEY;
+  const apiKey = (process.env.TAVILY_API_KEY || '').trim().replace(/^["']|["']$/g, '');
   if (!apiKey) {
     throw new Error('TAVILY_API_KEY is not configured');
   }
 
   const cleanTopic = topic.trim();
-  const queries = [
-    `site:findaphd.com/phds/project ("funded" OR "studentship") ${cleanTopic} ${country ? `"${country}"` : ''}`,
-    `site:jobs.ac.uk/job ("PhD Studentship" OR "fully funded") ${cleanTopic} ${country ? `"${country}"` : ''}`,
-    `("PhD studentship" OR "fully funded PhD") ${cleanTopic} ${country ? `"${country}"` : ''}`,
-  ];
+  const isUK = !country || /^(united kingdom|uk|england|scotland|wales|great britain)$/i.test(country.trim());
+
+  const queries = isUK
+    ? [
+        `site:findaphd.com/phds/project ("funded" OR "studentship") ${cleanTopic}`,
+        `site:jobs.ac.uk/job ("PhD Studentship" OR "fully funded") ${cleanTopic}`,
+        `("PhD studentship" OR "fully funded PhD" OR "PhD scholarship") ${cleanTopic} "United Kingdom"`,
+      ]
+    : [
+        `("funded PhD" OR "PhD scholarship" OR "PhD studentship" OR "doctoral scholarship") ${cleanTopic} "${country}"`,
+        `site:findaphd.com/phds/project ("funded" OR "studentship") ${cleanTopic}`,
+        `("PhD position" OR "doctoral studentship" OR "fully funded PhD") ${cleanTopic} "${country}"`,
+      ];
 
   const searchResults: Array<{ title: string; url: string; content: string }> = [];
   const seenUrls = new Set<string>();
@@ -1291,8 +1299,6 @@ export async function discoverFundedPhDPositions(
         body: JSON.stringify({
           api_key: apiKey,
           query: q,
-          include_domains: FUNDED_PHD_DOMAINS,
-          search_depth: 'advanced',
           max_results: Math.min(8, limit),
         }),
       });
@@ -1313,6 +1319,9 @@ export async function discoverFundedPhDPositions(
             });
           }
         }
+      } else {
+        const errBody = await res.text().catch(() => '');
+        console.warn(`Tavily search returned HTTP ${res.status} for "${q}":`, errBody.slice(0, 200));
       }
     } catch (err) {
       if (err instanceof TavilyQuotaError) throw err;

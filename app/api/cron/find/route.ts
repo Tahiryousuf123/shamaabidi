@@ -113,6 +113,7 @@ async function handleAutoFind(request: NextRequest) {
     const todayIso = new Date().toISOString().slice(0, 10);
 
     while (currentFound < dailyTarget && Date.now() - startTime < MAX_RUN_TIME_MS) {
+      if (combinationsProcessed >= 6) break;
       // Select next rotated topic x country combination using lastUsed
       const combo = await getNextCombination(topics, countries);
       if (!combo) break;
