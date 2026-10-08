@@ -362,12 +362,13 @@ async function main() {
     const funnel = await recordAndPrintFunnel(runData, options);
 
     // ── SHORTFALL HANDLING (Requirement 5) ──
-    if (runData.drafted < DAILY_MIN && (options.stage === 'all' || options.stage === 'draft')) {
+    const effectiveDailyMin = Math.min(DAILY_MIN, options.limit);
+    if (runData.drafted < effectiveDailyMin && (options.stage === 'all' || options.stage === 'draft')) {
       const elapsedMin = ((Date.now() - startTime) / 60000).toFixed(1);
       const emailRate = runData.email_attempted > 0 ? ((runData.email_found / runData.email_attempted) * 100).toFixed(1) : '0.0';
 
       console.log(`\n================================================================`);
-      console.log(`🚨 SHORTFALL ALERT: Drafted ${runData.drafted} < Minimum Daily Target (${DAILY_MIN})`);
+      console.log(`🚨 SHORTFALL ALERT: Drafted ${runData.drafted} < Minimum Daily Target (${effectiveDailyMin})`);
       console.log(`================================================================`);
       console.log(`📊 Stage Breakdown:`);
       console.log(`   - Stage 1 Discovery:  ${runData.discovered_new} candidates found ${runData.discovered_new < 30 ? '(LOW DISCOVERY)' : ''}`);
