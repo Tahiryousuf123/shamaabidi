@@ -1,0 +1,77 @@
+name: Autonomous PhD Professor Outreach Pipeline
+
+on:
+  schedule:
+    # 12:00 AM Pakistan Standard Time (PKT, UTC+5) is 19:00 UTC
+    - cron: '0 19 * * *'
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: 'Pipeline stage to execute'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - discover
+          - email
+          - verify
+          - draft
+          - bounce
+      daily_target:
+        description: 'Daily target (1-50)'
+        required: false
+        default: '25'
+        type: string
+      dry_run:
+        description: 'Dry run mode (skips Firestore writes and IMAP append)'
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: daily-professors
+  cancel-in-progress: false
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Adaptive Outreach Pipeline
+        env:
+          DAILY_TARGET: ${{ inputs.daily_target || vars.DAILY_TARGET || '25' }}
+          STAGE: ${{ inputs.stage || 'all' }}
+          DRY_RUN: ${{ inputs.dry_run && 'true' || 'false' }}
+          GLOBAL_BUDGET_MIN: ${{ vars.GLOBAL_BUDGET_MIN || '50' }}
+          CONTACT_EMAIL: ${{ vars.CONTACT_EMAIL }}
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
+          FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          CORE_API_KEY: ${{ secrets.CORE_API_KEY }}
+          NCBI_API_KEY: ${{ secrets.NCBI_API_KEY }}
+          ZEROBOUNCE_API_KEY: ${{ secrets.ZEROBOUNCE_API_KEY }}
+        run: |
+          DRY_FLAG=""
+          if [ "$DRY_RUN" = "true" ]; then
+            DRY_FLAG="--dry-run"
+          fi
+          node scripts/run-pipeline.js --stage="${STAGE}" --limit="${DAILY_TARGET}" $DRY_FLAG

@@ -353,34 +353,126 @@ const UNIVERSITY_TLDS = [
   '.ac.ie',
 ];
 
-export function isAcceptableProfessorEmail(email: string): boolean {
-  if (!email || typeof email !== 'string' || !email.includes('@')) return false;
-  const lower = email.toLowerCase().trim().replace(/[.,;:\s>)]+$/, '');
+const BLOCKED_LOCAL_PREFIXES = [
+  'noreply',
+  'no-reply',
+  'donotreply',
+  'support',
+  'info',
+  'admin',
+  'help',
+  'privacy',
+  'contact',
+  'sales',
+  'billing',
+  'webmaster',
+  'postmaster',
+  'mailer-daemon',
+  'editor',
+  'office',
+  'dept',
+  'department',
+  'enquir',
+  'inquir',
+  'hr',
+  'journal',
+  'permissions',
+  'library',
+  'secretary',
+  'research',
+  'admissions',
+  'press',
+  'media',
+  'team',
+  'service',
+  'news',
+  'reception',
+  'registrar',
+];
 
-  // Reject images and asset urls
-  if (
-    lower.endsWith('.png') ||
-    lower.endsWith('.jpg') ||
-    lower.endsWith('.jpeg') ||
-    lower.endsWith('.svg') ||
-    lower.endsWith('.gif') ||
-    lower.endsWith('.webp')
-  ) {
-    return false;
+const DISPOSABLE_EMAIL_DOMAINS = new Set([
+  'mailinator.com',
+  'tempmail.com',
+  '10minutemail.com',
+  'guerrillamail.com',
+  'temp-mail.org',
+  'yopmail.com',
+  'throwawaymail.com',
+  'trashmail.com',
+]);
+
+const PERSONAL_EMAIL_DOMAINS = new Set([
+  'gmail.com',
+  'googlemail.com',
+  'yahoo.com',
+  'outlook.com',
+  'hotmail.com',
+  'icloud.com',
+]);
+
+export function classifyEmail(
+  email: string,
+  authorName = ''
+): 'institutional' | 'personal-name-match' | null {
+  if (!email || typeof email !== 'string') return null;
+
+  const clean = email.toLowerCase().trim().replace(/[.,;:\s>)]+$/, '');
+
+  // Reject image extensions
+  if (/\.(png|jpg|jpeg|svg|gif|webp)$/i.test(clean)) return null;
+
+  const parts = clean.split('@');
+  if (parts.length !== 2) return null;
+  const [localPart, domain] = parts;
+  if (!localPart || !domain || !domain.includes('.')) return null;
+
+  // Reject disposable domains
+  if (DISPOSABLE_EMAIL_DOMAINS.has(domain)) return null;
+
+  // Reject local-part prefixes
+  for (const prefix of BLOCKED_LOCAL_PREFIXES) {
+    if (localPart.startsWith(prefix)) return null;
   }
 
-  // Reject generic, robot, and support mailboxes
-  const genericPrefixes = [
-    'noreply@', 'no-reply@', 'donotreply@', 'support@', 'info@', 'admin@',
-    'help@', 'feedback@', 'privacy@', 'contact@', 'webmaster@', 'postmaster@',
-    'sales@', 'billing@', 'press@', 'media@', 'admissions@', 'recruitment@',
-    'enquiries@', 'inquiries@', 'editor@', 'editorial@', 'mailer-daemon@',
-    'general@', 'office@', 'service@', 'services@'
-  ];
-  if (genericPrefixes.some((p) => lower.startsWith(p))) return false;
+  // Personal domains check
+  if (PERSONAL_EMAIL_DOMAINS.has(domain)) {
+    if (!authorName) return null;
+    const cleanAuthor = authorName
+      .replace(/^Dr\.\s*|^Prof\.\s*|^Professor\s*/i, '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
 
+    const nameParts = cleanAuthor.split(/[^a-z0-9]+/).filter((p) => p.length >= 3);
+    const normLocal = localPart
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '');
+
+    const matches = nameParts.some((p) => normLocal.includes(p));
+    return matches ? 'personal-name-match' : null;
+  }
+
+  return 'institutional';
+}
+
+export function isAcceptableProfessorEmail(email: string): boolean {
+  if (!email || typeof email !== 'string' || !email.includes('@')) return false;
+  const clean = email.toLowerCase().trim().replace(/[.,;:\s>)]+$/, '');
+  const parts = clean.split('@');
+  if (parts.length !== 2) return false;
+  const [localPart, domain] = parts;
+  if (!localPart || !domain || !domain.includes('.')) return false;
+
+  if (/\.(png|jpg|jpeg|svg|gif|webp)$/i.test(clean)) return false;
+  if (DISPOSABLE_EMAIL_DOMAINS.has(domain)) return false;
+  for (const prefix of BLOCKED_LOCAL_PREFIXES) {
+    if (localPart.startsWith(prefix)) return false;
+  }
   return true;
 }
+
 
 export function isOfficialUniversityDomain(input: string): boolean {
   if (!input) return false;
@@ -1085,141 +1177,46 @@ export function evaluateFundedAd(ad: ExtractedAdDetails): {
     };
   }
 
-  // 4. Relevance Scoring against Shama Abidi's 5 Publications & Academic Themes
-  let score = 0;
-  let matchedPaper = '';
+  // 4. Relevance Scoring against Shama Abidi's Specializations
+  const CORE_KEYWORDS = [
+    'antimicrobial stewardship',
+    'antibiotic',
+    'medication safety',
+    'medication error',
+    'high-alert',
+    'clinical pharmac',
+    'hospital pharmac',
+    'cardiovascular',
+    'digital health',
+    'decision support',
+    'pharmacotherapy',
+    'adverse drug',
+  ];
 
-  // Publication 2 & 5: Antimicrobial Stewardship, AMR & Infectious Diseases (Ali et al., 2022 & Khadim et al., 2020)
-  const amr =
-    textLower.includes('antimicrobial') ||
-    textLower.includes('antibiotic') ||
-    textLower.includes('resistance') ||
-    textLower.includes('stewardship') ||
-    textLower.includes('escherichia') ||
-    textLower.includes('pathogen') ||
-    textLower.includes('infection') ||
-    textLower.includes('infectious') ||
-    textLower.includes('carbapenem') ||
-    textLower.includes('typhoid') ||
-    textLower.includes('sepsis') ||
-    textLower.includes('bacteria') ||
-    textLower.includes('microbiology') ||
-    textLower.includes('biofilm');
+  let distinctHits = 0;
+  let hasTitleHit = false;
 
-  // Publication 4: High-Alert Medications, Medication Safety & Pharmacovigilance (Baig et al., 2025)
-  const safety =
-    textLower.includes('medication safety') ||
-    textLower.includes('pharmacovigilance') ||
-    textLower.includes('adverse drug') ||
-    textLower.includes('high-alert') ||
-    textLower.includes('prescribing') ||
-    textLower.includes('medicines safety') ||
-    textLower.includes('deprescribing') ||
-    textLower.includes('drug safety') ||
-    textLower.includes('patient safety') ||
-    textLower.includes('pharmacology');
-
-  // Publication 6: Clinical Pharmacy Practice, Hospital Pharmacy & Therapeutics (Abidi, 2024 & 2026)
-  const clinPharm =
-    textLower.includes('clinical pharmacy') ||
-    textLower.includes('pharmacy practice') ||
-    textLower.includes('pharmacist') ||
-    textLower.includes('pharmacy') ||
-    textLower.includes('hospital pharmacy') ||
-    textLower.includes('therapeutics') ||
-    textLower.includes('pharmaceutical');
-
-  // Publication 3: AI meets human expertise & Clinical Decision Support (Baig et al., 2025)
-  const aiHealth =
-    textLower.includes('artificial intelligence') ||
-    textLower.includes('clinical decision support') ||
-    textLower.includes('machine learning') ||
-    textLower.includes('digital health') ||
-    textLower.includes('health informatics') ||
-    textLower.includes('simulation tools');
-
-  // Publication 1: Calcium Channel Blockers vs Beta Blockers & Cardiovascular Care (Abidi et al., 2024)
-  const cardio =
-    textLower.includes('angina') ||
-    textLower.includes('calcium channel') ||
-    textLower.includes('beta blocker') ||
-    textLower.includes('cardiovascular') ||
-    textLower.includes('cardiology') ||
-    textLower.includes('hypertension') ||
-    textLower.includes('heart failure') ||
-    textLower.includes('cardiac');
-
-  // Publication 5 & MPhil: Implementation Science, Evidence-Based Healthcare & Health Services (Abidi, 2021 & 2026)
-  const implSci =
-    textLower.includes('implementation science') ||
-    textLower.includes('health services') ||
-    textLower.includes('evidence-based') ||
-    textLower.includes('clinical audit') ||
-    textLower.includes('public health') ||
-    textLower.includes('epidemiology');
-
-  // Broader Clinical / Hospital Healthcare Context
-  const generalHealthcare =
-    textLower.includes('hospital') ||
-    textLower.includes('patient') ||
-    textLower.includes('clinical trial') ||
-    textLower.includes('healthcare') ||
-    textLower.includes('health') ||
-    textLower.includes('medical') ||
-    textLower.includes('biomedical');
-
-  if (amr) {
-    score += 50;
-    matchedPaper = 'Ali et al. (2022) hospital carbapenem antimicrobial stewardship prospective trial';
-  }
-  if (safety) {
-    score += 50;
-    if (!matchedPaper) matchedPaper = 'Baig et al. (2025) high-alert medications and medication safety assessment';
-  }
-  if (clinPharm) {
-    score += 45;
-    if (!matchedPaper) matchedPaper = 'Abidi (2026) evidence-based clinical pharmacy practice implementation';
-  }
-  if (cardio) {
-    score += 45;
-    if (!matchedPaper) matchedPaper = 'Abidi et al. (2024) calcium channel blockers vs beta blockers in angina';
-  }
-  if (aiHealth) {
-    score += 40;
-    if (!matchedPaper) matchedPaper = 'Baig et al. (2025) clinical pharmacist interventions vs artificial intelligence';
-  }
-  if (implSci) {
-    score += 35;
-    if (!matchedPaper) matchedPaper = 'Abidi (2026) implementation science in hospital pharmacy';
-  }
-  if (generalHealthcare) {
-    score += 20;
+  for (const kw of CORE_KEYWORDS) {
+    if (textLower.includes(kw)) {
+      distinctHits++;
+      if (titleLower.includes(kw)) {
+        hasTitleHit = true;
+      }
+    }
   }
 
-  score = Math.min(100, score);
+  const score = distinctHits * 15 + (hasTitleHit ? 20 : 0);
 
-  // Any position with relevance to Shama Abidi's publications or clinical pharmacy is accepted
-  if (score < 15) {
-    score = 35;
-    matchedPaper = 'Abidi (2026) clinical pharmacy practice and medication safety research';
+  if (score < 30) {
+    return {
+      accepted: false,
+      rejectionReason: `Rejected: Relevance score ${score} is below threshold 30 (keyword hits: ${distinctHits})`,
+      score,
+      matchReason: 'Insufficient relevance to Dr. Shama Abidi clinical pharmacy specialization',
+    };
   }
 
-  // 5. One-sentence Match Reason linking to Shama's specific publication
-  let matchReason = '';
-  if (matchedPaper.includes('Ali et al.')) {
-    matchReason = `Directly connects with your published prospective interventional trial evaluating carbapenem antimicrobial stewardship at a tertiary care hospital (Ali et al., 2022).`;
-  } else if (matchedPaper.includes('high-alert')) {
-    matchReason = `Directly aligns with your published multi-professional research evaluating high-alert medication knowledge to prevent adverse events in hospital settings (Baig et al., 2025).`;
-  } else if (matchedPaper.includes('artificial intelligence')) {
-    matchReason = `Directly builds upon your published hospital trial comparing clinical pharmacist interventions with artificial intelligence decision support (Baig et al., 2025).`;
-  } else if (matchedPaper.includes('calcium channel')) {
-    matchReason = `Directly matches your published observational study comparing calcium channel blockers to beta blockers in angina patients (Abidi et al., 2024).`;
-  } else if (matchedPaper.includes('implementation science')) {
-    matchReason = `Strongly aligns with your MPhil research on evidence-based pharmacy practice and health services implementation (Abidi, 2024 & 2026).`;
-  } else {
-    matchReason = `Aligns with your 17+ years of hospital clinical pharmacy, pharmacotherapy, and patient safety experience (LNH Karachi).`;
-  }
-
+  const matchReason = `High relevance score (${score}) matching core clinical pharmacy keywords (${distinctHits} hits).`;
   return {
     accepted: true,
     score,

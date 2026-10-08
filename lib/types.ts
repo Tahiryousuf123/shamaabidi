@@ -35,7 +35,12 @@ export interface Professor {
   deadlineDate?: string | null; // ISO YYYY-MM-DD for sorting & 30-day highlight
   deadlineSourceUrl: string | null;
   isExpired?: boolean;
-  verificationLevel: 'verified' | 'partial' | 'unverified';
+  verificationLevel:
+    | 'institutional'
+    | 'personal-name-match'
+    | 'verified'
+    | 'partial'
+    | 'unverified';
   openAlexAuthorId?: string | null;
   orcid?: string | null;
   recentPaper?: string;
@@ -44,6 +49,8 @@ export interface Professor {
   status:
     | 'new'
     | 'draft'
+    | 'claimed'
+    | 'drafted'
     | 'needs_review'
     | 'sent'
     | 'followup_draft'
@@ -322,6 +329,8 @@ export const FUNDING_CLASSIFICATION_COLORS: Record<NonNullable<Professor['fundin
 export const STATUS_LABELS: Record<Professor['status'], string> = {
   new: 'New',
   draft: 'Draft Ready',
+  claimed: 'Claimed (In Progress)',
+  drafted: 'Drafted in Gmail',
   needs_review: 'Needs Review',
   sent: 'Sent',
   followup_draft: 'Follow-up Draft',
@@ -335,6 +344,8 @@ export const STATUS_LABELS: Record<Professor['status'], string> = {
 export const STATUS_COLORS: Record<Professor['status'], string> = {
   new: 'bg-slate-500/20 text-slate-300 border border-slate-500/30',
   draft: 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30',
+  claimed: 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30',
+  drafted: 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30',
   needs_review: 'bg-amber-500/20 text-amber-300 border border-amber-500/30',
   sent: 'bg-blue-500/20 text-blue-300 border border-blue-500/30',
   followup_draft: 'bg-purple-500/20 text-purple-300 border border-purple-500/30',
@@ -346,12 +357,16 @@ export const STATUS_COLORS: Record<Professor['status'], string> = {
 };
 
 export const VERIFICATION_LABELS: Record<Professor['verificationLevel'], string> = {
+  institutional: 'Institutional Email',
+  'personal-name-match': 'Personal (Name Matched)',
   verified: 'Verified Official',
   partial: 'Partial Evidence',
   unverified: 'Unverified / No Email',
 };
 
 export const VERIFICATION_COLORS: Record<Professor['verificationLevel'], string> = {
+  institutional: 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30',
+  'personal-name-match': 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30',
   verified: 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30',
   partial: 'bg-amber-500/20 text-amber-300 border border-amber-500/30',
   unverified: 'bg-slate-500/20 text-slate-400 border border-slate-500/20',

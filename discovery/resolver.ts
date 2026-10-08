@@ -1,6 +1,6 @@
 import { CONTACT_EMAIL, USER_AGENT } from './config';
 import { resilientFetchJson } from './http';
-import { isOfficialUniversityDomain, isAcceptableProfessorEmail } from '@/lib/auto-find';
+import { isOfficialUniversityDomain, isAcceptableProfessorEmail, classifyEmail } from '@/lib/auto-find';
 
 const EMAIL_REGEX = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g;
 
@@ -140,18 +140,19 @@ export async function verifyFacultyPageAndEmail(
   verifiedEmail: string | null;
   emailSourceUrl: string | null;
   profileSourceUrl: string | null;
-  verificationLevel: 'verified' | 'partial' | 'unverified';
+  verificationLevel: 'institutional' | 'personal-name-match' | 'unverified';
 }> {
   // If candidate already has an email and sourceUrl
   if (candidateEmail && sourceUrl) {
-    const isOfficial = isOfficialUniversityDomain(sourceUrl) || isOfficialUniversityDomain(candidateEmail);
+    const classification = classifyEmail(candidateEmail, name);
     return {
       verifiedEmail: candidateEmail,
       emailSourceUrl: sourceUrl,
       profileSourceUrl: sourceUrl,
-      verificationLevel: isOfficial ? 'verified' : 'partial',
+      verificationLevel: classification || 'unverified',
     };
   }
+
 
   // Fetch official faculty page via Tavily or direct university search if available
   const apiKey = (process.env.TAVILY_API_KEY || '').trim();
@@ -233,12 +234,9 @@ export async function verifyFacultyPageAndEmail(
       }
     }
 
-    const verificationLevel: 'verified' | 'partial' | 'unverified' =
-      verifiedEmail && (isOfficialDomain || isAcceptableProfessorEmail(verifiedEmail))
-        ? 'verified'
-        : verifiedEmail
-        ? 'partial'
-        : 'unverified';
+    const classification = verifiedEmail ? classifyEmail(verifiedEmail, name) : null;
+    const verificationLevel: 'institutional' | 'personal-name-match' | 'unverified' =
+      classification || 'unverified';
 
     return {
       verifiedEmail,

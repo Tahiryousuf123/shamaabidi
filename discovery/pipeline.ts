@@ -176,7 +176,7 @@ export async function runProfessorDiscoveryPipeline(
   // 4. Mandatory Stage 3 Verification
   const verifiedCandidates: Array<{
     merged: MergedCandidate;
-    verificationLevel: 'verified' | 'partial' | 'unverified';
+    verificationLevel: 'institutional' | 'personal-name-match' | 'verified' | 'partial' | 'unverified';
     verifiedEmail: string | null;
     emailSourceUrl: string | null;
     profileSourceUrl: string | null;
@@ -307,7 +307,11 @@ export async function runProfessorDiscoveryPipeline(
       continue;
     }
 
-    const isVerifiedWithEmail = verificationLevel === 'verified' && Boolean(verifiedEmail);
+    const isVerifiedWithEmail =
+      (verificationLevel === 'institutional' ||
+        verificationLevel === 'personal-name-match' ||
+        verificationLevel === 'verified') &&
+      Boolean(verifiedEmail);
     const status = isVerifiedWithEmail
       ? 'draft'
       : merged.fundingStatus === 'funded'

@@ -334,19 +334,10 @@ async function handleAutoFind(request: NextRequest) {
       createdAt: FieldValue.serverTimestamp(),
     });
 
-    // Check if next batch should chain to reach the 50 daily target
-    const canChain = currentFound < dailyTarget && batchIndex < 15;
-    if (canChain) {
-      triggerNextBatch(request, batchIndex + 1);
-    }
-
-    // On batch 1, also trigger follow-up and replies check in background
-    if (batchIndex === 1) {
-      triggerFollowupCron(request);
-    }
-
+    // Manual execution: Do not chain additional batches or run scheduled followups
     return NextResponse.json({
       success: true,
+      manual: true,
       batchIndex,
       combinationsProcessed,
       lastCombo,
@@ -358,10 +349,10 @@ async function handleAutoFind(request: NextRequest) {
       rejected: totalRejected,
       todayFound: currentFound,
       dailyTarget,
-      chained: canChain,
+      chained: false,
     });
   } catch (err: any) {
-    console.error('Auto-find cron failed:', err);
+    console.error('Auto-find manual route failed:', err);
     const isQuota = err?.message?.includes('RESOURCE_EXHAUSTED') || err?.code === 8;
     return NextResponse.json(
       {
@@ -374,36 +365,4 @@ async function handleAutoFind(request: NextRequest) {
       { status: isQuota ? 429 : 500 }
     );
   }
-}
-
-function triggerNextBatch(request: NextRequest, nextBatch: number): void {
-  const cronSecret = process.env.CRON_SECRET || '';
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;
-  const targetUrl = `${appUrl}/api/cron/find?batch=${nextBatch}`;
-
-  fetch(targetUrl, {
-    method: 'GET',
-    headers: {
-      Authorization: `Bearer ${cronSecret}`,
-      'x-cron-secret': cronSecret,
-    },
-  }).catch((err) => {
-    console.warn(`Failed to chain auto-find batch #${nextBatch}:`, err);
-  });
-}
-
-function triggerFollowupCron(request: NextRequest): void {
-  const cronSecret = process.env.CRON_SECRET || '';
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;
-  const targetUrl = `${appUrl}/api/cron/followup`;
-
-  fetch(targetUrl, {
-    method: 'GET',
-    headers: {
-      Authorization: `Bearer ${cronSecret}`,
-      'x-cron-secret': cronSecret,
-    },
-  }).catch((err) => {
-    console.warn('Failed to trigger daily followup cron:', err);
-  });
 }
