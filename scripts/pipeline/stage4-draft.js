@@ -465,7 +465,7 @@ ${errorFeedback ? `\nPREVIOUS GENERATION FAILED VALIDATION: ${errorFeedback}. Pl
         const bodyMatch = text.match(/BODY:\s*([\s\S]+)/i);
         let body = (bodyMatch ? bodyMatch[1] : text).trim();
         body = body.replace(/^Dear\s+[^,\n]+,\s*/i, '').trim();
-        body = body.replace(/(Sincerely|Kind regards|Best regards|Warm regards|Regards)[\s\S]*$/i, '').trim();
+        body = body.replace(/(Sincerely|Kind regards|Best regards|Warm regards|Regards|Dr\.?\s*Shama\s*Abidi|Shama\s*Abidi)[\s\S]*$/i, '').trim();
 
         if (body && body.length > 50) {
           if (!body.includes('If this is not relevant to your work')) {
@@ -513,7 +513,7 @@ ${errorFeedback ? `\nPREVIOUS GENERATION FAILED VALIDATION: ${errorFeedback}. Pl
       const bodyMatch = text.match(/BODY:\s*([\s\S]+)/i);
       let body = (bodyMatch ? bodyMatch[1] : text).trim();
       body = body.replace(/^Dear\s+[^,\n]+,\s*/i, '').trim();
-      body = body.replace(/(Sincerely|Kind regards|Best regards|Warm regards|Regards)[\s\S]*$/i, '').trim();
+      body = body.replace(/(Sincerely|Kind regards|Best regards|Warm regards|Regards|Dr\.?\s*Shama\s*Abidi|Shama\s*Abidi)[\s\S]*$/i, '').trim();
 
       if (body && body.length > 50) {
         if (!body.includes('If this is not relevant to your work')) {
@@ -558,7 +558,7 @@ ${errorFeedback ? `\nPREVIOUS GENERATION FAILED VALIDATION: ${errorFeedback}. Pl
         const bodyMatch = text.match(/BODY:\s*([\s\S]+)/i);
         let body = (bodyMatch ? bodyMatch[1] : text).trim();
         body = body.replace(/^Dear\s+[^,\n]+,\s*/i, '').trim();
-        body = body.replace(/(Sincerely|Kind regards|Best regards|Warm regards|Regards)[\s\S]*$/i, '').trim();
+        body = body.replace(/(Sincerely|Kind regards|Best regards|Warm regards|Regards|Dr\.?\s*Shama\s*Abidi|Shama\s*Abidi)[\s\S]*$/i, '').trim();
 
         if (body && body.length > 50) {
           if (!body.includes('If this is not relevant to your work')) {

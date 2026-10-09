@@ -233,32 +233,31 @@ const NEGATIVE_TOPICS = [
   'complementary medicine',
 ];
 
-// ─── 6. Dr. Shama Abidi Profile Facts (Only CV verified facts) ───────────────
+// ─── 6. Dr. Shama Abidi Profile Facts (Verified from Official Academic CV) ───
 const SHAMA_PROFILE = {
   name: 'Dr. Shama Abidi',
-  // TODO: "PharmD, RPh" pending client confirmation from official CV documents
   credentials: 'MPhil, PharmD, RPh',
   currentRole: 'Senior Clinical Pharmacist, Liaquat National Hospital, Karachi, Pakistan',
   experienceYears: '17+',
-  education: 'MPhil in Pharmacy Practice',
+  education: 'MPhil in Pharmacy Practice, University of Karachi',
+  orcid: '0009-0008-3714-1675',
+  phone: '+92 300 2460474',
+  linkedin: 'https://www.linkedin.com/in/shama-abidi-5a41a0304/',
   clinicalTrials: [
     {
-      // TODO: Ali et al., 2022 topic label and full publication citation details pending confirmation
       citation: 'Ali et al., 2022',
       topicCategory: 'antimicrobial_stewardship',
-      focus: 'Prospective hospital trial on carbapenem antimicrobial stewardship evaluating de-escalation protocols and microbiological concordance',
+      focus: 'Prospective hospital trial on carbapenem antimicrobial stewardship evaluating de-escalation protocols and microbiological concordance (PMID: 36789819)',
     },
     {
-      // TODO: Baig et al., 2025 topic label and full publication citation details pending confirmation
       citation: 'Baig et al., 2025',
       topicCategory: 'medication_safety',
-      focus: 'Medication safety and high-alert medication administration monitoring in inpatient units',
+      focus: 'Medication safety and high-alert medication administration monitoring in inpatient units (DOI: 10.1080/20523211.2025.2485639)',
     },
     {
-      // TODO: Abidi et al., 2024 topic label and full publication citation details pending confirmation
       citation: 'Abidi et al., 2024',
       topicCategory: 'cardiovascular',
-      focus: 'Cardiovascular pharmacotherapy comparing calcium channel blockers vs beta-blockers in clinical outcomes',
+      focus: 'Cardiovascular pharmacotherapy comparing calcium channel blockers vs beta-blockers in clinical outcomes (DOI: 10.36721/PJPS.2024.37.3.REG.639-649.1)',
     },
   ],
   researchInterests: [
@@ -271,8 +270,6 @@ const SHAMA_PROFILE = {
 };
 
 // ─── 7. Deterministic Sender Signature Block ──────────────────────────────────
-// TODO: "PharmD, RPh" pending client confirmation from official CV documents
-// TODO: Replace with Dr. Shama Abidi's real active phone and LinkedIn before running live outreach
 const SENDER_SIGNATURE = `Sincerely,
 Dr. Shama Abidi, MPhil, PharmD, RPh
 Senior Clinical Pharmacist, Liaquat National Hospital, Karachi`;
